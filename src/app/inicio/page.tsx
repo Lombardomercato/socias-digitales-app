@@ -97,7 +97,7 @@ export default async function InicioPage() {
                 {[
                   { label: 'Lanzamiento', href: '/lanzamiento', note: 'Etapas y tareas', tone: 'bg-white' },
                   { label: 'Clases grabadas', href: '/clases', note: 'Programa Socias', tone: 'bg-[#EC9BB6]/70' },
-                  { label: 'Mi perfil', href: '/perfil', note: 'Tus datos y cuenta', tone: 'bg-[#F4EFEA]' },
+                  { label: 'Mi perfil', href: '/perfil', note: 'Tus datos y cuenta', tone: 'bg-[#F4EFEA] border border-[#EC9BB6]/60' },
                 ].map(item => <Link key={item.href} href={item.href} className={`group flex min-h-28 flex-col justify-between rounded-[20px] p-5 transition hover:-translate-y-0.5 ${item.tone}`}><span className="flex items-center justify-between gap-3 text-sm font-semibold">{item.label}<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FAF7F3]/80 text-[#294A38] transition group-hover:bg-[#294A38] group-hover:text-white"><ArrowIcon diagonal /></span></span><span className="text-xs text-[#746a64]">{item.note}</span></Link>)}
               </section>
             </>
