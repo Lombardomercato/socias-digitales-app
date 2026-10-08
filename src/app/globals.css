@@ -86,9 +86,9 @@ body {
   color: var(--sd-green) !important;
 }
 
-.platform-design [class*="bg-rose-100"],
-.platform-design [class*="bg-rose-50"],
-.platform-design [class*="bg-pink-100"] {
+.platform-design .bg-rose-100,
+.platform-design .bg-rose-50,
+.platform-design .bg-pink-100 {
   background-color: var(--sd-blush) !important;
 }
 

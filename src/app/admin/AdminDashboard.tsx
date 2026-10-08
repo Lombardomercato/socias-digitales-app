@@ -79,10 +79,12 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
     router.refresh()
   }
 
+  const consulta = busqueda.trim().toLowerCase()
   const alumnasFiltradas = alumnas.filter(a => {
     const coincideBusqueda =
-      a.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-      a.pais?.toLowerCase().includes(busqueda.toLowerCase())
+      !consulta ||
+      (a.nombre ?? '').toLowerCase().includes(consulta) ||
+      (a.pais ?? '').toLowerCase().includes(consulta)
     const coincideEstado = filtroEstado === 'todas' || a.estado === filtroEstado
     return coincideBusqueda && coincideEstado
   })
@@ -248,7 +250,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                     </td>
                   </tr>
                 ) : alumnasFiltradas.map(alumna => (
-                  <tr key={alumna.id} className="hover:bg-rose-50 transition-colors">
+                  <tr key={alumna.id} className="bg-white transition-colors hover:bg-[#F4CAD8]/20">
                     <td className="py-3.5 pr-4">
                       <div className="flex items-center gap-3">
                         {alumna.avatar_url ? (

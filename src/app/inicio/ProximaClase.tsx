@@ -35,5 +35,6 @@ export default function ProximaClase({ ahoraInicial }: { ahoraInicial: number })
       <p className="font-medium text-[#171413]">Lunes 12/10</p>
       <time dateTime={CLASE_LANZAMIENTO.fecha}>20:05 hora Argentina</time>
     </div>
+    <button type="button" disabled title="El enlace a la clase estará disponible próximamente" className="mt-3 w-full cursor-not-allowed rounded-full border border-[#294A38]/20 bg-[#FAF7F3] px-3 py-2 text-[11px] font-semibold text-[#294A38]/65">Entrar a la clase</button>
   </section>
 }
