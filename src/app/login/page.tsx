@@ -49,12 +49,13 @@ function LoginForm() {
     setRecuperando(true)
     setError('')
     setMensaje('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/callback?flow=recovery`,
-    })
-    if (error) setError('No pudimos enviar el enlace. Revisá el email e intentá de nuevo.')
-    else setMensaje('Si hay una cuenta asociada a ese email, vas a recibir un enlace para crear una contraseña nueva.')
-    setRecuperando(false)
+    try {
+      const response = await fetch('/api/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim(), recovery: true }) })
+      const result = await response.json()
+      if (!response.ok) setError(result.error || 'No pudimos enviar el enlace. Intentá de nuevo.')
+      else setMensaje('Si hay una cuenta confirmada asociada a ese email, vas a recibir un enlace para crear una contraseña nueva.')
+    } catch { setError('Revisá tu conexión e intentá nuevamente.') }
+    finally { setRecuperando(false) }
   }
 
   return (

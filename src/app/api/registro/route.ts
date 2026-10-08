@@ -20,7 +20,8 @@ export async function POST(request: Request) {
   const nombre = typeof input.nombre === 'string' ? input.nombre.trim() : ''
   const password = typeof input.password === 'string' ? input.password : ''
   const resend = input.resend === true
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || (!resend && (nombre.length < 2 || nombre.length > 120 || password.length < 6 || password.length > 128))) {
+  const recovery = input.recovery === true
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || (!resend && !recovery && (nombre.length < 2 || nombre.length > 120 || password.length < 6 || password.length > 128))) {
     return NextResponse.json({ error: 'Revisá el nombre, email y contraseña (mínimo 6 caracteres).' }, { status: 400 })
   }
   const admin = createAdminClient()
@@ -30,22 +31,26 @@ export async function POST(request: Request) {
   if (reserveError) return NextResponse.json({ error: 'No pudimos procesar el registro. Intentá nuevamente.' }, { status: 503 })
   if (!reservation?.allowed) return NextResponse.json({ error: 'Esperá un minuto antes de pedir otro correo.' }, { status: 429 })
   // Never reset a password, change a membership, or expose account existence.
-  if (reservation.confirmed || (resend && !reservation.exists)) return NextResponse.json({ ok: true })
-  const { data, error } = await admin.auth.admin.generateLink(reservation.exists
+  if ((!recovery && reservation.confirmed) || ((resend || recovery) && !reservation.exists) || (recovery && !reservation.confirmed)) return NextResponse.json({ ok: true })
+  const { data, error } = await admin.auth.admin.generateLink(recovery
+    ? { type: 'recovery', email, options: { redirectTo: `${site}/auth/callback?flow=recovery` } }
+    : reservation.exists
     ? { type: 'magiclink', email, options: { redirectTo: `${site}/auth/callback` } }
     : { type: 'signup', email, password, options: { data: { nombre, tipo_usuario: input.tipo_usuario === 'desafio' ? 'desafio' : 'gratuito' }, redirectTo: `${site}/auth/callback` } })
   if (error || !data.properties?.hashed_token) return NextResponse.json({ error: 'No pudimos crear el acceso. Intentá nuevamente.' }, { status: 503 })
   // Fragment keeps the one-time token out of server request/access logs. A human
   // clicks Confirmar before consuming it, so email link scanners cannot burn it.
-  const link = `${site}/confirmar#token_hash=${encodeURIComponent(data.properties.hashed_token)}`
+  const link = `${site}/confirmar#token_hash=${encodeURIComponent(data.properties.hashed_token)}${recovery ? '&flow=recovery' : ''}`
   const challenge = data.user?.user_metadata?.tipo_usuario === 'desafio'
   const firstName = escapeHtml((data.user?.user_metadata?.nombre || nombre || 'Socia').split(' ')[0])
-  const html = `<div style="background:#FAF7F3;padding:32px 16px;font-family:Arial,sans-serif;color:#171413"><div style="max-width:560px;margin:auto"><img src="${site}/academy-horizontal-color.png" alt="Socias Digitales Academy" width="220" style="display:block;margin:0 auto 32px"><h1 style="font-size:28px;color:#294A38">Confirmá tu cuenta</h1><p>Hola, ${firstName}.</p><p>${challenge ? 'Confirmá tu email para completar tu registro al Desafío Socias. Flor revisará tu inscripción y te enviará la bienvenida cuando habilite tu acceso.' : 'Confirmá tu email para entrar a tu cuenta de Socias Digitales.'}</p><a href="${link}" style="display:block;text-align:center;background:#294A38;color:white;padding:18px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:18px;margin:28px 0">CONFIRMAR MI CUENTA</a><p style="font-size:13px;color:#655B56">Si no creaste esta cuenta, ignorá este correo.</p><p>Un abrazo,<br>Flor</p></div></div>`
+  const heading = recovery ? 'Recuperá tu acceso' : 'Confirmá tu cuenta'
+  const description = recovery ? 'Recibimos un pedido para recuperar tu acceso. Desde este enlace podés elegir una contraseña nueva.' : challenge ? 'Confirmá tu email para completar tu registro al Desafío Socias. Flor revisará tu inscripción y te enviará la bienvenida cuando habilite tu acceso.' : 'Confirmá tu email para entrar a tu cuenta de Socias Digitales.'
+  const html = `<div style="background:#FAF7F3;padding:32px 16px;font-family:Arial,sans-serif;color:#171413"><div style="max-width:560px;margin:auto"><img src="${site}/academy-horizontal-color.png" alt="Socias Digitales Academy" width="220" style="display:block;margin:0 auto 32px"><h1 style="font-size:28px;color:#294A38">${heading}</h1><p>Hola, ${firstName}.</p><p>${description}</p><a href="${link}" style="display:block;text-align:center;background:#294A38;color:white;padding:18px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:18px;margin:28px 0">${recovery ? 'RECUPERAR MI ACCESO' : 'CONFIRMAR MI CUENTA'}</a><p style="font-size:13px;color:#655B56">Si no hiciste este pedido, ignorá este correo.</p><p>Un abrazo,<br>Flor</p></div></div>`
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.RESEND_FROM || 'Flor · Socias Digitales <no-reply@sociasdigitales.com>', to: [email], subject: challenge ? 'Confirmá tu registro al Desafío Socias' : 'Confirmá tu cuenta · Socias Digitales', html,
-        text: `Hola, ${firstName}. Confirmá tu cuenta: ${link}\n${challenge ? 'Flor revisará tu inscripción antes de habilitar las clases.' : ''}\nUn abrazo, Flor` }),
+      body: JSON.stringify({ from: process.env.RESEND_FROM || 'Flor · Socias Digitales <no-reply@sociasdigitales.com>', to: [email], subject: recovery ? 'Recuperá tu acceso · Socias Digitales' : challenge ? 'Confirmá tu registro al Desafío Socias' : 'Confirmá tu cuenta · Socias Digitales', html,
+        text: `Hola, ${firstName}. ${heading}: ${link}\n${description}\nUn abrazo, Flor` }),
       signal: AbortSignal.timeout(15000),
     })
     if (!response.ok) {

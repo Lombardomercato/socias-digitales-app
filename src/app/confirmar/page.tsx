@@ -9,12 +9,14 @@ export default function ConfirmarPage() {
   const [error, setError] = useState('')
   async function confirmar() {
     setLoading(true)
-    const tokenHash = new URLSearchParams(window.location.hash.slice(1)).get('token_hash')
+    const params = new URLSearchParams(window.location.hash.slice(1))
+    const tokenHash = params.get('token_hash')
+    const recovery = params.get('flow') === 'recovery'
     if (!tokenHash) { setError('El enlace no es válido. Pedí otro correo desde el registro.'); setLoading(false); return }
-    const { error } = await createClient().auth.verifyOtp({ token_hash: tokenHash, type: 'email' })
+    const { error } = await createClient().auth.verifyOtp({ token_hash: tokenHash, type: recovery ? 'recovery' : 'email' })
     if (error) { setError('El enlace venció o ya fue usado. Podés ingresar o pedir otro correo desde el registro.'); setLoading(false); return }
     window.history.replaceState(null, '', '/confirmar')
-    window.location.replace('/')
+    window.location.replace(recovery ? '/crear-contrasena' : '/')
   }
   return <main className="flex min-h-screen items-center justify-center bg-[#FAF7F3] px-5 text-[#171413]">
     <section className="w-full max-w-md text-center">
