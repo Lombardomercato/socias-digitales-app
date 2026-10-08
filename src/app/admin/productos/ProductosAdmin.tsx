@@ -1,4 +1,5 @@
 'use client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -66,6 +67,10 @@ const SUBTIPO_LABEL: Record<string, string> = {
   producto_fisico: 'Producto físico',
 }
 
+function nombreDeImagen(archivo: File) {
+  return `producto-${Date.now()}.${archivo.name.split('.').pop()}`
+}
+
 export default function ProductosAdmin({ productos, cotizacion }: Props) {
   const router = useRouter()
   const supabase = createClient()
@@ -106,7 +111,7 @@ export default function ProductosAdmin({ productos, cotizacion }: Props) {
     const archivo = e.target.files?.[0]
     if (!archivo) return
     setSubiendoImg(true)
-    const nombre = `producto-${Date.now()}.${archivo.name.split('.').pop()}`
+    const nombre = nombreDeImagen(archivo)
     const { error } = await supabase.storage.from('productos').upload(nombre, archivo, { upsert: true })
     if (!error) {
       const { data } = supabase.storage.from('productos').getPublicUrl(nombre)
@@ -127,6 +132,7 @@ export default function ProductosAdmin({ productos, cotizacion }: Props) {
           + Nuevo producto
         </button>
       </nav>
+      <AdminSectionMenu />
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 

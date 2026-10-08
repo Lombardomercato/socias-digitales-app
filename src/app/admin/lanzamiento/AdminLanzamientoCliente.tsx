@@ -1,4 +1,5 @@
 'use client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
 
 interface Metrica {
   id: string
@@ -88,18 +89,19 @@ export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) 
         <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         <a href="/admin" className="text-sm text-gray-500 hover:text-gray-800">← Panel admin</a>
       </nav>
+      <AdminSectionMenu />
 
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
 
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-3xl font-black" style={{ color: '#1a1a1a' }}>🚀 Lanzamiento</h1>
+            <h1 className="text-3xl font-semibold" style={{ color: '#211c19' }}>Avances de alumnas</h1>
             <p className="text-sm text-gray-500 mt-1">{afiliadas.length} afiliadas registradas · {metricasUnicas.length} con métricas cargadas</p>
           </div>
           <button onClick={exportarCSV}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-bold text-sm"
-            style={{ background: '#337357' }}>
-            📥 Exportar Excel
+            style={{ background: '#294A38' }}>
+            Descargar CSV
           </button>
         </div>
 

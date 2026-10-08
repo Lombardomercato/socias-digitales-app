@@ -1,4 +1,5 @@
 'use client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
@@ -55,6 +56,7 @@ export default function NotificacionesAdmin() {
         <Image src="/academy-horizontal-color.png" alt="Socias Digitales Academy" width={180} height={63} className="h-11 w-auto object-contain" />
         <a href="/admin" className="text-sm text-gray-500 hover:text-gray-800">← Panel admin</a>
       </nav>
+      <AdminSectionMenu />
 
       <div className="max-w-xl mx-auto px-4 py-10 space-y-6">
         <div>
@@ -73,7 +75,7 @@ export default function NotificacionesAdmin() {
             {TEMPLATES.map(t => (
               <button key={t.label} onClick={() => aplicarTemplate(t)}
                 className="px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all"
-                style={{ borderColor: '#E27396', color: '#E27396', background: '#fff5f8' }}>
+                style={{ borderColor: '#EC9BB6', color: '#294A38', background: '#F4CAD8' }}>
                 {t.label}
               </button>
             ))}
@@ -87,7 +89,7 @@ export default function NotificacionesAdmin() {
             <input type="text" value={title} onChange={e => setTitle(e.target.value)}
               placeholder="Ej: ¡Nueva clase disponible!"
               className="w-full border-2 rounded-xl px-4 py-3 text-gray-900 focus:outline-none transition-colors"
-              style={{ borderColor: title ? '#E27396' : '#e5e7eb' }} />
+              style={{ borderColor: title ? '#EC9BB6' : '#e7ddd5' }} />
           </div>
           <div>
             <label className="block text-sm font-bold text-gray-600 mb-1.5">Mensaje</label>
@@ -95,7 +97,7 @@ export default function NotificacionesAdmin() {
               placeholder="Ej: Entrá a la plataforma para ver el contenido nuevo."
               rows={3}
               className="w-full border-2 rounded-xl px-4 py-3 text-gray-900 focus:outline-none transition-colors resize-none"
-              style={{ borderColor: body ? '#E27396' : '#e5e7eb' }} />
+              style={{ borderColor: body ? '#EC9BB6' : '#e7ddd5' }} />
           </div>
           <div>
             <label className="block text-sm font-bold text-gray-600 mb-1.5">Llevar a (URL)</label>

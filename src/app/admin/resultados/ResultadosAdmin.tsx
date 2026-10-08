@@ -1,4 +1,5 @@
 'use client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -78,6 +79,7 @@ export default function ResultadosAdmin({ resultados }: Props) {
           <h1 className="text-lg font-bold text-rose-600">Resultados y Testimonios</h1>
         </div>
       </nav>
+      <AdminSectionMenu />
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 

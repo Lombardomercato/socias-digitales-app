@@ -1,4 +1,5 @@
 'use client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -64,6 +65,7 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
           <a href="/admin" className="text-sm font-medium" style={{ color: '#294A38' }}>← Panel de Flor</a>
           <a href="/admin/classroom" className="text-sm text-neutral-500">Gestionar clases</a>
         </nav>
+        <AdminSectionMenu />
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: '#294A38' }}>Desafío Socias</p>

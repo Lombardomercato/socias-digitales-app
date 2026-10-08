@@ -1,4 +1,5 @@
 'use client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -14,14 +15,27 @@ export default function ConfiguracionAdmin({ cotizacion: cotizacionInicial }: Pr
   const [cotizacion, setCotizacion] = useState(cotizacionInicial)
   const [guardando, setGuardando] = useState(false)
   const [guardado, setGuardado] = useState(false)
+  const [error, setError] = useState('')
 
   async function guardar() {
+    setError('')
+    if (!Number.isFinite(cotizacion) || cotizacion <= 0) {
+      setError('Ingresá una cotización mayor a cero.')
+      return
+    }
     setGuardando(true)
-    await supabase.from('configuracion').upsert({ clave: 'cotizacion_dolar', valor: String(cotizacion), updated_at: new Date().toISOString() })
-    setGuardando(false)
-    setGuardado(true)
-    setTimeout(() => setGuardado(false), 3000)
-    router.refresh()
+    setGuardado(false)
+    try {
+      const { error: causa } = await supabase.from('configuracion').upsert({ clave: 'cotizacion_dolar', valor: String(cotizacion), updated_at: new Date().toISOString() })
+      if (causa) throw causa
+      setGuardado(true)
+      setTimeout(() => setGuardado(false), 3000)
+      router.refresh()
+    } catch {
+      setError('No se pudo guardar la cotización. Intentá nuevamente.')
+    } finally {
+      setGuardando(false)
+    }
   }
 
   // Ejemplos de precios con la cotización actual
@@ -33,13 +47,14 @@ export default function ConfiguracionAdmin({ cotizacion: cotizacionInicial }: Pr
         <a href="/admin" className="text-gray-400 hover:text-gray-600 text-sm">← Admin</a>
         <h1 className="text-lg font-bold text-rose-600">Configuración</h1>
       </nav>
+      <AdminSectionMenu />
 
       <div className="max-w-xl mx-auto px-4 py-10 space-y-6">
 
         {/* Cotización del dólar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">💵 Cotización del dólar</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Cotización del dólar</h2>
             <p className="text-sm text-gray-500 mt-1">
               Esta cotización se aplica automáticamente a todos los productos para mostrar el precio en pesos.
             </p>
@@ -65,6 +80,7 @@ export default function ConfiguracionAdmin({ cotizacion: cotizacionInicial }: Pr
             </div>
           </div>
 
+          {error && <p role="alert" className="text-sm text-[#B01B30]">{error}</p>}
           <button
             onClick={guardar}
             disabled={guardando}

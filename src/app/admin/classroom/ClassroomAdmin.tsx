@@ -1,4 +1,5 @@
 'use client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -108,6 +109,7 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
           </button>
         )}
       </nav>
+      <AdminSectionMenu />
 
       <div className="border-b border-[#211C19]/8 bg-[#FAF7F3] px-5 sm:px-8">
         <div className="mx-auto flex max-w-6xl gap-2">

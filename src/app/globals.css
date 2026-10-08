@@ -160,6 +160,32 @@ body {
   background-color: var(--sd-paper);
 }
 
+/* Las secciones heredadas conservan sus acciones, con la misma identidad del panel. */
+.platform-design--admin > div > nav:first-child {
+  border-bottom: 1px solid var(--sd-line);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.platform-design--admin nav h1 {
+  color: var(--sd-ink) !important;
+  font-size: 24px;
+}
+
+.platform-design--admin [class~="font-black"] {
+  font-weight: 600;
+}
+
+.platform-design--admin .text-blue-500,
+.platform-design--admin .text-amber-500 {
+  color: var(--sd-green);
+}
+
+.platform-design--admin .bg-gradient-to-br {
+  background-image: none;
+  background-color: var(--sd-blush);
+}
+
 @media (max-width: 640px) {
   .platform-design h1 {
     letter-spacing: -0.025em;

@@ -133,12 +133,11 @@ export default function PerfilCliente({ user, perfil }: Props) {
   return (
     <div className="min-h-screen bg-[#F4EFEA] text-[#171413]">
       <nav className="flex items-center justify-between bg-[#FAF7F3] px-5 py-4 sm:px-8">
-        <Link href="/inicio" aria-label="Volver a mi espacio">
+        <Link href={esAdmin ? '/admin' : '/inicio'} aria-label={esAdmin ? 'Volver al panel de Flor' : 'Volver a mi espacio'}>
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         </Link>
         <div className="flex items-center gap-4">
-          <Link href="/inicio" className="text-sm font-medium text-[#294A38]">Mi espacio</Link>
-          {esAdmin && <Link href="/admin" className="text-sm font-medium text-[#294A38]">Panel de Flor</Link>}
+          <Link href={esAdmin ? '/admin' : '/inicio'} className="text-sm font-medium text-[#294A38]">{esAdmin ? 'Panel de Flor' : 'Mi espacio'}</Link>
           <button onClick={cerrarSesion} className="text-sm text-[#655B56] hover:text-[#171413]">Cerrar sesión</button>
         </div>
       </nav>
@@ -174,12 +173,12 @@ export default function PerfilCliente({ user, perfil }: Props) {
               {avatarUrl ? (
                 <img src={avatarUrl} className="w-16 h-16 rounded-full object-cover border-4 border-rose-200" alt="" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-rose-100 border-4 border-rose-200 flex items-center justify-center text-3xl">🌸</div>
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#F4CAD8] font-impact text-xl font-medium text-[#294A38]">{(nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</div>
               )}
               <div>
                 <p className="font-bold text-gray-900 text-lg">{nombre}</p>
                 {(pais || provincia) && (
-                  <p className="text-sm text-gray-500">📍 {[provincia, pais].filter(Boolean).join(', ')}</p>
+                  <p className="text-sm text-gray-500">{[provincia, pais].filter(Boolean).join(', ')}</p>
                 )}
                 {ocupacion && <p className="text-xs text-rose-500 mt-0.5">{ocupacion}</p>}
               </div>
@@ -207,7 +206,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Foto de perfil" className="w-28 h-28 rounded-full object-cover border-4 border-rose-200" />
               ) : (
-                <div className="w-28 h-28 rounded-full bg-rose-100 border-4 border-rose-200 flex items-center justify-center text-5xl">🌸</div>
+                <div className="flex h-28 w-28 items-center justify-center rounded-full bg-[#F4CAD8] font-impact text-3xl font-medium text-[#294A38]">{(nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</div>
               )}
             </div>
             <label className="cursor-pointer text-sm text-rose-600 hover:text-rose-800 font-medium">
@@ -265,7 +264,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
               <div className="flex gap-4">
                 <button type="button" onClick={() => setEsMama(true)}
                   className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${esMama === true ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-500 hover:border-rose-300'}`}>
-                  Sí 🤱
+                  Sí
                 </button>
                 <button type="button" onClick={() => setEsMama(false)}
                   className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${esMama === false ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-500 hover:border-rose-300'}`}>

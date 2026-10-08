@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import NavigationIcon from '@/components/NavigationIcon'
 
 interface Alumna {
   id: string
@@ -164,7 +165,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
             { href: '/admin', label: 'Inicio' }, { href: '/admin/desafio', label: 'Solicitudes' },
             { href: '/admin/classroom', label: 'Clases' }, { href: '/admin/lanzamiento', label: 'Avances de alumnas' },
             { href: '/admin/productos', label: 'Productos' }, { href: '/admin/notificaciones', label: 'Avisos' },
-          ].map(item => <a key={item.href} href={item.href} className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold ${item.href === '/admin' ? 'bg-[#294A38] text-white' : 'bg-[#F4EFEA] text-[#746a64]'}`}>{item.label}</a>)}
+          ].map(item => <a key={item.href} href={item.href} className={`flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold ${item.href === '/admin' ? 'bg-[#294A38] text-white' : 'bg-[#F4EFEA] text-[#746a64]'}`}><NavigationIcon name={item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</a>)}
         </nav>
         <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Panel de Flor</p>
@@ -179,7 +180,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               { href: '/admin/resultados', label: 'Resultados' },
               { href: '/admin/notificaciones', label: 'Notificaciones' },
               { href: '/admin/configuracion', label: 'Configuración' },
-            ].map(item => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${item.active ? 'bg-[#F4CAD8] font-semibold' : 'text-[#746a64] hover:bg-[#F4EFEA] hover:text-[#211c19]'}`}><span>{item.label}</span>{item.href === '/admin/desafio' && stats.solicitudesDesafioPendientes > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#211c19]">{stats.solicitudesDesafioPendientes}</span> : null}</a>)}
+            ].map(item => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${item.active ? 'bg-[#F4CAD8] font-semibold' : 'text-[#746a64] hover:bg-[#F4EFEA] hover:text-[#211c19]'}`}><span className="flex items-center gap-3"><NavigationIcon name={item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</span>{item.href === '/admin/desafio' && stats.solicitudesDesafioPendientes > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#211c19]">{stats.solicitudesDesafioPendientes}</span> : null}</a>)}
           </nav>
         </aside>
 
