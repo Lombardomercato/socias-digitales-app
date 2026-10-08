@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
@@ -11,6 +12,7 @@ interface Perfil {
   avatar_url: string | null
   progreso: number
   rol: string
+  whatsapp: string | null
   fecha_nacimiento: string | null
   ocupacion: string | null
   titulo_profesional: string | null
@@ -46,6 +48,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
   const supabase = createClient()
 
   const [nombre, setNombre] = useState(perfil?.nombre ?? '')
+  const [telefono, setTelefono] = useState(perfil?.whatsapp ?? '')
   const [fechaNacimiento, setFechaNacimiento] = useState(perfil?.fecha_nacimiento ?? '')
   const [ocupacion, setOcupacion] = useState(perfil?.ocupacion ?? '')
   const [tituloProfesional, setTituloProfesional] = useState(perfil?.titulo_profesional ?? '')
@@ -62,9 +65,12 @@ export default function PerfilCliente({ user, perfil }: Props) {
 
   const searchParams = useSearchParams()
   useEffect(() => {
-    if (searchParams.get('proximamente') === '1') {
-      setBannerProximamente(true)
-      setTimeout(() => setBannerProximamente(false), 4000)
+    if (searchParams.get('proximamente') !== '1') return
+    const showTimer = window.setTimeout(() => setBannerProximamente(true), 0)
+    const hideTimer = window.setTimeout(() => setBannerProximamente(false), 4000)
+    return () => {
+      window.clearTimeout(showTimer)
+      window.clearTimeout(hideTimer)
     }
   }, [searchParams])
 
@@ -80,6 +86,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
       .from('perfiles')
       .update({
         nombre,
+        whatsapp: telefono || null,
         avatar_url: avatarUrl,
         fecha_nacimiento: fechaNacimiento || null,
         ocupacion: ocupacion || null,
@@ -124,17 +131,25 @@ export default function PerfilCliente({ user, perfil }: Props) {
   const labelClass = "block text-sm font-medium text-gray-700 mb-1"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-100">
-      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/logo.png" alt="Socias Digitales" style={{ height: 36, objectFit: 'contain' }} />
+    <div className="min-h-screen bg-[#F4EFEA] text-[#171413]">
+      <nav className="flex items-center justify-between bg-[#FAF7F3] px-5 py-4 sm:px-8">
+        <Link href="/inicio" aria-label="Volver a mi espacio">
+          <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
+        </Link>
         <div className="flex items-center gap-4">
-          <a href="/productos" className="text-sm text-rose-600 hover:text-rose-800 font-medium hidden sm:block">Productos</a>
-          {esAdmin && <a href="/admin" className="text-sm text-rose-600 hover:text-rose-800 font-medium">Panel Admin</a>}
-          <button onClick={cerrarSesion} className="text-sm text-gray-500 hover:text-gray-800">Cerrar sesión</button>
+          <Link href="/inicio" className="text-sm font-medium text-[#294A38]">Mi espacio</Link>
+          {esAdmin && <Link href="/admin" className="text-sm font-medium text-[#294A38]">Panel de Flor</Link>}
+          <button onClick={cerrarSesion} className="text-sm text-[#655B56] hover:text-[#171413]">Cerrar sesión</button>
         </div>
       </nav>
 
-      <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6 px-4 py-8 sm:py-10">
+
+        <header>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#294A38]">Tu cuenta</p>
+          <h1 className="mt-2 font-serif text-4xl text-[#171413]">Mi perfil</h1>
+          <p className="mt-2 text-sm leading-6 text-[#655B56]">Tus datos y preferencias.</p>
+        </header>
 
         {/* Banner próximamente */}
         {bannerProximamente && (
@@ -170,71 +185,6 @@ export default function PerfilCliente({ user, perfil }: Props) {
             </button>
           </div>
         ) : null}
-
-        {/* Accesos rápidos para alumnas */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Mi perfil */}
-          <button onClick={() => setEditando(true)}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center hover:border-rose-300 hover:shadow-md transition-all group overflow-hidden w-full">
-            <img src="/banner-perfil.png" alt="Mi perfil" style={{ width: '100%', height: 140, objectFit: 'cover' }} className="group-hover:scale-105 transition-transform" />
-            <div className="p-4 pt-3">
-              <p className="font-bold text-gray-800 text-base">Mi perfil</p>
-              <p className="text-xs text-gray-400 mt-1">Completá tus datos</p>
-            </div>
-          </button>
-
-          {/* Productos — activo */}
-          <a href="/productos"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center hover:border-rose-300 hover:shadow-md transition-all group overflow-hidden flex flex-col items-center justify-center p-6">
-            <div className="text-5xl mb-3">🛍️</div>
-            <p className="font-bold text-gray-800 text-base">Productos</p>
-            <p className="text-xs text-gray-400 mt-1">Tu catálogo de afiliada</p>
-          </a>
-
-          {/* Resultados — activo */}
-          <a href="/resultados"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center hover:border-rose-300 hover:shadow-md transition-all group overflow-hidden">
-            <img src="/resultados.jpeg" alt="Mis resultados" style={{ width: '100%', height: 140, objectFit: 'cover', objectPosition: 'center' }} className="group-hover:scale-105 transition-transform" />
-            <div className="p-4 pt-3">
-              <p className="font-bold text-gray-800 text-base">Mis resultados</p>
-              <p className="text-xs text-gray-400 mt-1">Cargá tus comisiones</p>
-            </div>
-          </a>
-
-          {/* Comunidad — activa */}
-          <a href="/comunidad"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center hover:border-rose-300 hover:shadow-md transition-all group overflow-hidden flex flex-col items-center justify-center p-6">
-            <div className="text-5xl mb-3">💬</div>
-            <p className="font-bold text-gray-800 text-base">Comunidad</p>
-            <p className="text-xs text-gray-400 mt-1">Muro de resultados</p>
-          </a>
-
-          {/* Checklist — activo */}
-          <a href="/checklist"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center hover:border-rose-300 hover:shadow-md transition-all group overflow-hidden">
-            <img src="/banner-midia.jpeg" alt="Mi día" style={{ width: '100%', height: 140, objectFit: 'cover', objectPosition: 'center 70%' }} className="group-hover:scale-105 transition-transform" />
-            <div className="p-4 pt-3">
-              <p className="font-bold text-gray-800 text-base">Mi día</p>
-              <p className="text-xs text-gray-400 mt-1">Checklist diaria</p>
-            </div>
-          </a>
-
-          {/* Mis objetivos */}
-          <a href="/objetivos"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center hover:border-rose-300 hover:shadow-md transition-all group overflow-hidden flex flex-col items-center justify-center p-6">
-            <div className="text-5xl mb-3">🎯</div>
-            <p className="font-bold text-gray-800 text-base">Mis objetivos</p>
-            <p className="text-xs text-gray-400 mt-1">Calculá cuánto vender</p>
-          </a>
-
-          {/* Programa — activo */}
-          <a href="/classroom"
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 text-center hover:border-rose-300 hover:shadow-md transition-all group overflow-hidden flex flex-col items-center justify-center p-6">
-            <div className="text-5xl mb-3">📚</div>
-            <p className="font-bold text-gray-800 text-base">Programa</p>
-            <p className="text-xs text-gray-400 mt-1">Socias Digitales</p>
-          </a>
-        </div>
 
         {/* Formulario de perfil (colapsable) */}
         {editando && (
@@ -273,6 +223,12 @@ export default function PerfilCliente({ user, perfil }: Props) {
             <div>
               <label className={labelClass}>Email</label>
               <input type="email" value={user.email ?? ''} disabled className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-gray-500 bg-gray-50" />
+            </div>
+
+            {/* Teléfono */}
+            <div>
+              <label className={labelClass}>Teléfono / WhatsApp (opcional)</label>
+              <input type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Con código de país" className={inputClass} autoComplete="tel" />
             </div>
 
             {/* Fecha de nacimiento */}

@@ -31,6 +31,7 @@ interface Stats {
   ventasMes: number
   comisionesMes: number
   retencion: number
+  solicitudesDesafioPendientes: number
 }
 
 interface Props {
@@ -126,6 +127,11 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
 
         {/* Acciones rápidas */}
         <div className="flex justify-end gap-3">
+          <a href="/admin/desafio"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rose-300 text-sm font-medium text-gray-700 px-4 py-2 rounded-xl transition-all">
+            Solicitudes Desafío
+            <span className="rounded-full bg-[#F4CAD8] px-2 py-0.5 text-xs font-bold text-[#171413]">{stats.solicitudesDesafioPendientes}</span>
+          </a>
           <a href="/admin/invitar"
             className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
             ✉️ Invitar alumnas

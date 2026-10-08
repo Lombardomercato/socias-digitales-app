@@ -1,165 +1,107 @@
 'use client'
 
-import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
-function RegistroForm() {
+export default function RegistroPage() {
   const router = useRouter()
-  const params = useSearchParams()
-  const tipo = params.get('tipo') // 'afiliada' o null
-  const esAfiliada = tipo === 'afiliada'
-
   const supabase = createClient()
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [instagram, setInstagram] = useState('')
-  const [pais, setPais] = useState('')
   const [error, setError] = useState('')
+  const [mensaje, setMensaje] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleRegistro(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setMensaje('')
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { nombre, rol: esAfiliada ? 'afiliada_lanzamiento' : 'alumna' } }
+      options: {
+        data: { nombre },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      }
     })
 
     if (signUpError) {
-      setError(`Error: ${signUpError.message}`)
+      setError('No pudimos crear la cuenta. Revisá tus datos e intentá nuevamente.')
       setLoading(false)
       return
     }
 
-    if (data.user) {
-      // Guardar perfil via API con service role para garantizar el rol correcto
-      await fetch('/api/set-rol', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: data.user.id,
-          nombre,
-          email,
-          instagram: instagram || null,
-          pais: pais || null,
-          rol: esAfiliada ? 'afiliada_lanzamiento' : 'alumna',
-        }),
-      })
+    if (!data.session) {
+      setMensaje('Si es tu primer registro, revisá tu correo y la carpeta de spam para confirmar la cuenta. Si ya te habías registrado, ingresá o recuperá tu contraseña. El acceso al Desafío Socias se activa cuando Flor habilita tu inscripción.')
+      setLoading(false)
+      return
     }
 
-    router.push(esAfiliada ? '/lanzamiento' : '/perfil')
+    router.push('/inicio')
+    router.refresh()
   }
 
   return (
-    <div className="min-h-screen flex">
+    <main className="min-h-screen bg-[#FAF7F3] text-[#171413] lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
+      <section className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-[#F4CAD8] px-12 py-10 lg:flex xl:px-20">
+        <Image src="/academy-stacked-color.png" alt="Socias Digitales Academy" width={420} height={280} priority className="h-auto w-52 object-contain object-left" />
+        <div className="relative z-10 max-w-xl pb-10">
+          <p className="mb-4 font-impact text-xs font-semibold uppercase tracking-[0.18em] text-[#294A38]">Desafío Socias</p>
+          <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.04em] text-[#171413] xl:text-6xl">
+            Un paso a la vez. <span className="text-[#294A38]">A tu manera.</span>
+          </h1>
+          <p className="mt-5 max-w-md text-base leading-7 text-[#51443F]">
+            Creá tu cuenta para participar del Desafío Socias.
+          </p>
+        </div>
+      </section>
 
-      {/* Panel izquierdo */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center px-12"
-        style={{ background: 'linear-gradient(135deg, #E27396, #337357)' }}>
-        <img src="/logo.png" alt="Socias Digitales" style={{ width: 100, height: 100, objectFit: 'contain' }} className="mb-6" />
-        <h2 className="text-white font-black text-3xl text-center leading-tight">
-          {esAfiliada ? 'Escritorio de afiliadas 🚀' : 'Bienvenida a Socias Digitales'}
-        </h2>
-        <p className="text-white opacity-80 text-center mt-3 text-sm">
-          {esAfiliada
-            ? 'Creá tu cuenta para acceder al escritorio exclusivo del lanzamiento.'
-            : 'Creá tu cuenta para empezar a aprender y ganar.'}
-        </p>
-      </div>
+      <section className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-10">
+        <div className="w-full max-w-[420px]">
+          <div className="mb-9 text-center lg:hidden">
+            <Image src="/academy-stacked-color.png" alt="Socias Digitales Academy" width={280} height={180} priority className="mx-auto h-auto w-44 object-contain" />
+          </div>
 
-      {/* Panel derecho */}
-      <div className="flex flex-col items-center justify-center flex-1 px-6 py-12" style={{ background: '#FFDBE5' }}>
-
-        <div className="w-full max-w-sm">
           <div className="mb-8">
-            <h1 className="text-2xl font-black" style={{ color: '#337357' }}>
-              {esAfiliada ? 'Acceso afiliadas 🚀' : 'Crear cuenta'}
-            </h1>
-            <p className="text-sm mt-1" style={{ color: '#6D9F71' }}>
-              Completá tus datos para continuar
-            </p>
+            <p className="mb-3 font-impact text-xs font-semibold uppercase tracking-[0.16em] text-[#294A38]">Tu lugar empieza acá</p>
+            <h2 className="font-serif text-4xl leading-tight tracking-[-0.035em] text-[#171413]">Crear <span className="italic text-[#B01B30]">cuenta.</span></h2>
+            <p className="mt-3 text-sm leading-6 text-[#655B56]">Completá tus datos para registrarte.</p>
           </div>
 
           <form onSubmit={handleRegistro} className="space-y-4">
-
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: '#337357' }}>Nombre completo</label>
-              <input type="text" required value={nombre} onChange={e => setNombre(e.target.value)}
-                placeholder="Tu nombre"
-                className="w-full border-2 rounded-xl px-4 py-3 text-gray-900 focus:outline-none bg-white"
-                style={{ borderColor: '#EA9AB2' }} />
+              <label htmlFor="signup-name" className="mb-2 block text-sm font-medium text-[#3C332F]">Nombre completo</label>
+              <input id="signup-name" type="text" required autoComplete="name" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre" className="w-full rounded-xl border border-[#D8CFC8] bg-white px-4 py-3.5 text-[#171413] outline-none transition focus:border-[#294A38] focus:ring-2 focus:ring-[#294A38]/10" />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: '#337357' }}>Email</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                className="w-full border-2 rounded-xl px-4 py-3 text-gray-900 focus:outline-none bg-white"
-                style={{ borderColor: '#EA9AB2' }} />
+              <label htmlFor="signup-email" className="mb-2 block text-sm font-medium text-[#3C332F]">Email</label>
+              <input id="signup-email" type="email" required autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" className="w-full rounded-xl border border-[#D8CFC8] bg-white px-4 py-3.5 text-[#171413] outline-none transition focus:border-[#294A38] focus:ring-2 focus:ring-[#294A38]/10" />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-1.5" style={{ color: '#337357' }}>Contraseña</label>
-              <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                className="w-full border-2 rounded-xl px-4 py-3 text-gray-900 focus:outline-none bg-white"
-                style={{ borderColor: '#EA9AB2' }} />
+              <label htmlFor="signup-password" className="mb-2 block text-sm font-medium text-[#3C332F]">Contraseña</label>
+              <input id="signup-password" type="password" required minLength={6} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className="w-full rounded-xl border border-[#D8CFC8] bg-white px-4 py-3.5 text-[#171413] outline-none transition focus:border-[#294A38] focus:ring-2 focus:ring-[#294A38]/10" />
             </div>
 
-            {esAfiliada && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5" style={{ color: '#337357' }}>Instagram</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">@</span>
-                    <input type="text" value={instagram} onChange={e => setInstagram(e.target.value)}
-                      placeholder="tuusuario"
-                      className="w-full border-2 rounded-xl pl-9 pr-4 py-3 text-gray-900 focus:outline-none bg-white"
-                      style={{ borderColor: '#EA9AB2' }} />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5" style={{ color: '#337357' }}>País</label>
-                  <input type="text" value={pais} onChange={e => setPais(e.target.value)}
-                    placeholder="Argentina, México, España..."
-                    className="w-full border-2 rounded-xl px-4 py-3 text-gray-900 focus:outline-none bg-white"
-                    style={{ borderColor: '#EA9AB2' }} />
-                </div>
-              </>
-            )}
+            {error && <p role="alert" className="rounded-xl border border-[#B01B30]/20 bg-[#F4CAD8]/35 px-4 py-3 text-sm text-[#7C1D2A]">{error}</p>}
+            {mensaje && <p role="status" className="rounded-xl border border-[#294A38]/15 bg-[#F4EFEA] px-4 py-3 text-sm leading-6 text-[#294A38]">{mensaje}</p>}
 
-            {error && (
-              <p className="text-sm rounded-xl px-4 py-3" style={{ background: '#fff0f3', color: '#E27396', border: '1px solid #EA9AB2' }}>
-                {error}
-              </p>
-            )}
-
-            <button type="submit" disabled={loading}
-              className="w-full text-white font-bold py-3.5 rounded-xl disabled:opacity-60 text-sm tracking-wide mt-2"
-              style={{ background: 'linear-gradient(135deg, #E27396, #337357)' }}>
-              {loading ? 'Creando cuenta...' : 'Crear mi cuenta'}
+            <button type="submit" disabled={loading} className="mt-2 w-full rounded-xl bg-[#294A38] px-5 py-3.5 font-impact text-sm font-semibold text-white transition-colors hover:bg-[#203B2D] disabled:opacity-60">
+              {loading ? 'Creando cuenta…' : 'Crear mi cuenta'}
             </button>
           </form>
 
-          <p className="text-center text-xs mt-6" style={{ color: '#6D9F71' }}>
-            ¿Ya tenés cuenta?{' '}
-            <a href="/login" className="font-bold underline">Ingresá acá</a>
+          <p className="mt-8 text-center text-sm text-[#655B56]">
+            ¿Ya tenés cuenta? <a href="/login" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Ingresá acá</a>
           </p>
         </div>
-      </div>
-    </div>
-  )
-}
-
-export default function RegistroPage() {
-  return (
-    <Suspense>
-      <RegistroForm />
-    </Suspense>
+      </section>
+    </main>
   )
 }

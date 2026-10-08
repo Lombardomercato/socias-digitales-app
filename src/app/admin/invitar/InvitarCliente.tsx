@@ -35,7 +35,7 @@ export default function InvitarCliente() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-100">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/logo.png" alt="Socias Digitales" style={{ height: 36, objectFit: 'contain' }} />
+        <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         <a href="/admin" className="text-sm text-rose-600 hover:text-rose-800 font-medium">← Volver al panel</a>
       </nav>
 

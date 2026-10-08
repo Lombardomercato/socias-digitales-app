@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 interface Leccion {
@@ -72,9 +73,9 @@ export default function ModuloCliente({ modulo, leccionesCompletadas, userId }: 
       {/* Nav */}
       <nav className="border-b border-gray-200 bg-white sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 flex items-center gap-4 h-14">
-          <a href="/classroom" className="text-gray-400 hover:text-gray-700 text-sm flex items-center gap-1">
+          <Link href="/classroom" className="text-gray-400 hover:text-gray-700 text-sm flex items-center gap-1">
             ← Classroom
-          </a>
+          </Link>
           <span className="text-gray-300">|</span>
           <h1 className="font-semibold text-gray-900 text-sm truncate">{modulo.titulo}</h1>
           <div className="ml-auto flex items-center gap-3">

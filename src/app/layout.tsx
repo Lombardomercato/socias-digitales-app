@@ -1,22 +1,45 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, Playfair_Display, Poppins } from "next/font/google";
 import "./globals.css";
 import PushNotifications from "@/components/PushNotifications";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Socias Digitales",
-  description: "Plataforma de cursos de marketing de afiliados",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://app.sociasdigitales.com",
+  ),
+  title: {
+    default: "Socias Digitales",
+    template: "%s | Socias Digitales",
+  },
+  description: "Tu espacio de aprendizaje, comunidad y negocio digital.",
   manifest: "/manifest.json",
+  robots: {
+    index: false,
+    follow: false,
+  },
+  openGraph: {
+    title: "Socias Digitales",
+    description: "Tu espacio de aprendizaje, comunidad y negocio digital.",
+    siteName: "Socias Digitales",
+    url: "/",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -27,11 +50,11 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${poppins.variable} ${playfair.variable} h-full antialiased`}
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#E27396" />
+        <meta name="theme-color" content="#F4CAD8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Socias Digitales" />

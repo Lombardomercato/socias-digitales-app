@@ -1,14 +1,13 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Clase {
   id: string
   titulo: string
   descripcion: string | null
   vimeo_url: string | null
+  video_key?: string | null
   orden: number
   plan: '27' | '97'
   modulo: string
@@ -20,11 +19,11 @@ interface Perfil {
   avatar_url: string | null
   rol: string
   plan: string | null
+  desafio_socias_habilitada?: boolean
 }
 
 interface Props {
   clases: Clase[]
-  planAlumna: string | null
   esAdmin: boolean
   perfil: Perfil | null
 }
@@ -34,35 +33,46 @@ function vimeoEmbed(url: string) {
   return match ? `https://player.vimeo.com/video/${match[1]}?title=0&byline=0&portrait=0` : null
 }
 
-export default function ClassroomCliente({ clases, planAlumna, esAdmin, perfil }: Props) {
-  const router = useRouter()
-  const supabase = createClient()
+export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
   const [claseAbierta, setClaseAbierta] = useState<Clase | null>(null)
+  const [videoSeguroUrl, setVideoSeguroUrl] = useState<string | null>(null)
+  const [cargandoVideo, setCargandoVideo] = useState<string | null>(null)
+  const [errorVideo, setErrorVideo] = useState('')
 
-  const tieneAcceso = (plan: string) => {
-    if (esAdmin) return true
-    if (!planAlumna) return false
-    if (planAlumna === '97') return true
-    return plan === '27'
-  }
+  const tieneAcceso = () => esAdmin || Boolean(perfil?.desafio_socias_habilitada)
 
   // Agrupar por módulo
   const modulos = [...new Set(clases.map(c => c.modulo))]
-  const totalDesbloqueadas = clases.filter(c => tieneAcceso(c.plan)).length
+  const totalDesbloqueadas = clases.filter(() => tieneAcceso()).length
   const total = clases.length
 
-  async function cerrarSesion() {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+  async function abrirClase(clase: Clase) {
+    setErrorVideo('')
+    setVideoSeguroUrl(null)
+    if (clase.video_key) {
+      setCargandoVideo(clase.id)
+      try {
+        const response = await fetch(`/api/classroom/${clase.id}/video`, { cache: 'no-store' })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error ?? 'No se pudo abrir la clase.')
+        setVideoSeguroUrl(data.url)
+        setClaseAbierta(clase)
+      } catch (error) {
+        setErrorVideo(error instanceof Error ? error.message : 'No se pudo abrir la clase.')
+      } finally {
+        setCargandoVideo(null)
+      }
+      return
+    }
+    if (clase.vimeo_url) setClaseAbierta(clase)
   }
 
   return (
     <div className="min-h-screen" style={{ background: '#f5f0eb' }}>
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/logo.png" alt="Socias Digitales" style={{ height: 36, objectFit: 'contain' }} />
+        <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         <div className="flex items-center gap-4">
-          <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">← Mi perfil</a>
+          <a href="/inicio" className="text-sm text-gray-500 hover:text-gray-800">← Mi espacio</a>
           {esAdmin && <a href="/admin/classroom" className="text-sm text-rose-600 font-medium">Gestionar clases</a>}
         </div>
       </nav>
@@ -73,32 +83,18 @@ export default function ClassroomCliente({ clases, planAlumna, esAdmin, perfil }
         <div>
           <h1 className="text-3xl font-black" style={{ color: '#1a1a1a' }}>Programa Socias Digitales</h1>
           <p className="text-sm text-gray-500 mt-2">
-            {totalDesbloqueadas} de {total} clases desbloqueadas
+            {totalDesbloqueadas} de {total} clases disponibles
           </p>
         </div>
 
-        {/* Badge de plan */}
+        {/* Acceso al desafío */}
         {!esAdmin && (
-          <div className={`rounded-2xl px-5 py-4 flex items-center justify-between ${planAlumna ? 'bg-white' : 'bg-amber-50 border border-amber-200'}`}>
-            {planAlumna ? (
-              <>
-                <div>
-                  <p className="text-xs text-gray-400 font-medium">Tu plan actual</p>
-                  <p className="text-xl font-black mt-0.5" style={{ color: '#E27396' }}>
-                    Socia ${planAlumna} USD
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">{totalDesbloqueadas} clases</p>
-                  <p className="text-xs font-semibold" style={{ color: '#337357' }}>desbloqueadas ✓</p>
-                </div>
-              </>
-            ) : (
-              <div>
-                <p className="text-sm font-bold text-amber-800">No tenés un plan asignado todavía</p>
-                <p className="text-xs text-amber-600 mt-0.5">Contactá a tu administradora para activar tu acceso</p>
-              </div>
-            )}
+          <div className="rounded-2xl px-5 py-4 flex items-center justify-between bg-white">
+            <div>
+              <p className="text-xs text-gray-400 font-medium">Acceso habilitado</p>
+              <p className="text-lg font-bold mt-0.5" style={{ color: '#294A38' }}>Desafío Socias</p>
+            </div>
+            <p className="text-xs font-semibold" style={{ color: '#294A38' }}>{totalDesbloqueadas} clases disponibles ✓</p>
           </div>
         )}
 
@@ -109,12 +105,12 @@ export default function ClassroomCliente({ clases, planAlumna, esAdmin, perfil }
             <div key={modulo} className="space-y-3">
               <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">{modulo}</h2>
               <div className="space-y-2">
-                {clasesDelModulo.map((clase, i) => {
-                  const desbloqueada = tieneAcceso(clase.plan)
+                {clasesDelModulo.map(clase => {
+                  const desbloqueada = tieneAcceso()
                   return (
                     <div key={clase.id}
-                      onClick={() => desbloqueada && clase.vimeo_url && setClaseAbierta(clase)}
-                      className={`bg-white rounded-2xl p-4 flex items-center gap-4 transition-all ${desbloqueada ? 'cursor-pointer hover:shadow-md hover:border-rose-200 border border-transparent' : 'opacity-70 cursor-not-allowed border border-transparent'}`}>
+                      onClick={() => desbloqueada && (clase.vimeo_url || clase.video_key) && abrirClase(clase)}
+                      className={`bg-white rounded-2xl p-4 flex items-center gap-4 transition-all ${desbloqueada && (clase.vimeo_url || clase.video_key) ? 'cursor-pointer hover:shadow-md hover:border-rose-200 border border-transparent' : 'opacity-70 cursor-not-allowed border border-transparent'}`}>
 
                       {/* Número / candado */}
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-black text-sm"
@@ -132,19 +128,11 @@ export default function ClassroomCliente({ clases, planAlumna, esAdmin, perfil }
                         )}
                       </div>
 
-                      {/* Plan requerido si bloqueada */}
-                      {!desbloqueada && (
-                        <span className="text-xs font-bold px-2 py-1 rounded-full flex-shrink-0"
-                          style={{ background: '#fce7f3', color: '#E27396' }}>
-                          Plan $97
-                        </span>
-                      )}
-
                       {/* Play si desbloqueada */}
-                      {desbloqueada && clase.vimeo_url && (
+                      {desbloqueada && (clase.vimeo_url || clase.video_key) && (
                         <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                           style={{ background: '#E27396' }}>
-                          <span className="text-white text-xs">▶</span>
+                          <span className="text-white text-xs">{cargandoVideo === clase.id ? '…' : '▶'}</span>
                         </div>
                       )}
                     </div>
@@ -154,21 +142,6 @@ export default function ClassroomCliente({ clases, planAlumna, esAdmin, perfil }
             </div>
           )
         })}
-
-        {/* Upgrade banner si tiene $27 y hay clases de $97 */}
-        {planAlumna === '27' && clases.some(c => c.plan === '97') && (
-          <div className="rounded-3xl p-6 text-center" style={{ background: '#1a1a1a' }}>
-            <p className="text-2xl mb-2">🚀</p>
-            <p className="font-black text-white text-lg">Desbloqueá el curso completo</p>
-            <p className="text-sm text-gray-400 mt-1 mb-4">
-              Con el plan Socia $97 accedés a {clases.filter(c => c.plan === '97').length} clases extra y contenido exclusivo
-            </p>
-            <span className="inline-block text-sm font-bold px-5 py-2.5 rounded-xl"
-              style={{ background: '#E27396', color: 'white' }}>
-              Contactá a tu administradora para hacer el upgrade
-            </span>
-          </div>
-        )}
 
         {clases.length === 0 && (
           <div className="bg-white rounded-3xl p-12 text-center">
@@ -180,21 +153,21 @@ export default function ClassroomCliente({ clases, planAlumna, esAdmin, perfil }
       </div>
 
       {/* Modal reproductor */}
-      {claseAbierta && claseAbierta.vimeo_url && (
+      {errorVideo && <div role="alert" className="fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-white px-5 py-3 text-sm text-red-700 shadow-lg">{errorVideo}</div>}
+      {claseAbierta && (claseAbierta.vimeo_url || claseAbierta.video_key) && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4"
-          onClick={() => setClaseAbierta(null)}>
+          onClick={() => { setClaseAbierta(null); setVideoSeguroUrl(null) }}>
           <div className="w-full max-w-3xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
               <p className="text-white font-bold">{claseAbierta.titulo}</p>
-              <button onClick={() => setClaseAbierta(null)} className="text-white/70 hover:text-white text-2xl">✕</button>
+              <button onClick={() => { setClaseAbierta(null); setVideoSeguroUrl(null) }} className="text-white/70 hover:text-white text-2xl">✕</button>
             </div>
             <div className="relative rounded-2xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                src={vimeoEmbed(claseAbierta.vimeo_url) ?? ''}
-                className="absolute inset-0 w-full h-full"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowFullScreen
-              />
+              {claseAbierta.video_key ? (
+                videoSeguroUrl ? <video src={videoSeguroUrl} className="absolute inset-0 h-full w-full bg-black" controls autoPlay playsInline /> : <div className="absolute inset-0 flex items-center justify-center text-white">Preparando la clase…</div>
+              ) : (
+                <iframe src={vimeoEmbed(claseAbierta.vimeo_url ?? '') ?? ''} className="absolute inset-0 w-full h-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
+              )}
             </div>
           </div>
         </div>

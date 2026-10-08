@@ -57,7 +57,7 @@ export default function LogrosCliente({ perfil, todasInsignias, misInsignias }: 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-100">
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/logo.png" alt="Socias Digitales" style={{height:36,objectFit:"contain"}} />
+        <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{height:44,width:"auto",objectFit:"contain"}} />
         <div className="flex items-center gap-4">
           <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">Mi perfil</a>
           <a href="/ranking" className="text-sm text-rose-600 hover:text-rose-800 font-medium">Ranking</a>

@@ -124,7 +124,7 @@ export default function ComunidadCliente({ resultados, reacciones, comentarios, 
   return (
     <div className="min-h-screen" style={{ background: '#f5f0eb' }}>
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/logo.png" alt="Socias Digitales" style={{ height: 36, objectFit: 'contain' }} />
+        <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         <div className="flex items-center gap-4">
           <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">← Mi perfil</a>
         </div>

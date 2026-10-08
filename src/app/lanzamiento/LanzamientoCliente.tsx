@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Metricas {
@@ -13,507 +14,246 @@ interface Metricas {
   objetivo_septiembre: number
 }
 
-const FECHA_LANZAMIENTO = new Date('2026-09-28T00:00:00')
+interface Props {
+  nombre: string
+  userId: string
+  metricasGuardadas: Metricas | null
+  modoDemo?: boolean
+}
 
-const ETAPAS = [
+interface Etapa {
+  id: string
+  numero: string
+  nombre: string
+  contexto: string
+  descripcion: string
+  tareas: string[]
+  tareasInstagram?: string[]
+  tareasTiktok?: string[]
+  material: Array<{ label: string; url?: string }>
+}
+
+const ETAPAS: Etapa[] = [
   {
-    id: 'preparacion',
-    label: 'Preparación de redes y contenido',
-    emoji: '📱',
-    color: '#E27396',
-    descripcion: 'Todo lo que tenés que preparar antes de arrancar.',
-    tareas: [
-      'Crear grupo de WhatsApp',
-      'Colocar foto de perfil al grupo',
-      'Cerrar el grupo (solo el admin puede hablar)',
-      'Preparar mensaje de bienvenida para 1 a 1',
-    ],
-    tareasInstagram: [
-      'Actualizar bio con link de afiliada',
-      'Preparar contenido para stories de Instagram',
-      'Diseñar plantillas de publicaciones para feed',
-      'Definir calendario de posteos en Instagram',
-    ],
-    tareasTiktok: [
-      'Optimizar perfil de TikTok con link de afiliada',
-      'Preparar ideas de videos para el lanzamiento',
-      'Grabar videos de contenido de valor',
-      'Definir calendario de publicaciones en TikTok',
-    ],
+    id: 'preparacion', numero: '01', nombre: 'Preparación', contexto: 'Base del lanzamiento',
+    descripcion: 'Dejá listo el terreno, los canales y el mensaje antes de invitar personas.',
+    tareas: ['Crear y configurar el grupo de WhatsApp', 'Actualizar perfiles y enlaces de afiliada', 'Preparar el mensaje de bienvenida', 'Ordenar el calendario de contenidos'],
+    tareasInstagram: ['Actualizar la bio con tu enlace de afiliada', 'Preparar stories para presentar el lanzamiento', 'Diseñar las publicaciones del feed', 'Definir el calendario de posteos en Instagram'],
+    tareasTiktok: ['Optimizar el perfil con tu enlace de afiliada', 'Preparar ideas de videos para el lanzamiento', 'Grabar videos de contenido de valor', 'Definir el calendario de publicaciones en TikTok'],
     material: [
-      { label: 'Material de oferta, avatar y embudo', url: 'https://drive.google.com/drive/folders/1SIoQX_uTgnUNo25OFCHUFkoOJrsRnXrZ?usp=drive_link' },
-      { label: 'Clases de lanzamiento', url: '#' },
-      { label: 'Anuncios', url: 'https://drive.google.com/drive/folders/1EeDF0DbScMvz1VdK-wx3Jy3E40Q2ar7M?usp=drive_link' },
+      { label: 'Oferta, avatar y embudo', url: 'https://drive.google.com/drive/folders/1SIoQX_uTgnUNo25OFCHUFkoOJrsRnXrZ?usp=drive_link' },
+      { label: 'Clases de lanzamiento' },
     ],
   },
   {
-    id: 'captacion',
-    label: 'Captación',
-    emoji: '🎯',
-    color: '#7c3aed',
-    descripcion: 'Estrategias para atraer potenciales clientas.',
-    tareas: [
-      'Publicar stories de calentamiento',
-      'Compartir testimonios y resultados',
-      'Hacer lives de presentación',
-      'Invitar a lista de espera',
-    ],
+    id: 'captacion', numero: '02', nombre: 'Captación', contexto: 'Sumar personas correctas',
+    descripcion: 'Atraé interesadas, llevá conversaciones al grupo y detectá quién necesita seguimiento.',
+    tareas: ['Publicar el contenido previsto para hoy', 'Responder mensajes y consultas nuevas', 'Invitar interesadas al grupo de WhatsApp', 'Registrar personas que requieren seguimiento'],
     material: [
-      { label: 'Guía de captación', url: '#' },
+      { label: 'Anuncios y creatividades', url: 'https://drive.google.com/drive/folders/1EeDF0DbScMvz1VdK-wx3Jy3E40Q2ar7M?usp=drive_link' },
+      { label: 'Guía de captación' },
     ],
   },
   {
-    id: 'apertura',
-    label: 'Apertura de carrito',
-    emoji: '🛒',
-    color: '#337357',
-    descripcion: '28 de septiembre — ¡Se abren las inscripciones!',
-    tareas: [
-      'Publicar apertura en todas las redes',
-      'Enviar el link de compra a tu lista',
-      'Stories con cuenta regresiva',
-      'Responder consultas en tiempo real',
-    ],
-    material: [
-      { label: 'Link de venta', url: '#' },
-      { label: 'Plantillas de apertura', url: '#' },
-    ],
+    id: 'evento', numero: '03', nombre: 'Evento', contexto: 'Confianza y decisión',
+    descripcion: 'Acompañá a tu comunidad, aumentá la asistencia y mantené activas las conversaciones.',
+    tareas: ['Enviar el recordatorio del evento', 'Confirmar que todas tengan el enlace correcto', 'Compartir el vivo en historias y estados', 'Anotar preguntas y objeciones frecuentes'],
+    material: [{ label: 'Enlace del evento' }, { label: 'Mensajes y recordatorios' }],
   },
   {
-    id: 'cierre',
-    label: 'Cierre de ventas',
-    emoji: '🔥',
-    color: '#d97706',
-    descripcion: 'Las últimas horas son las más importantes.',
-    tareas: [
-      'Recordatorio de últimas horas',
-      'Stories de urgencia y escasez',
-      'Seguimiento a personas interesadas',
-      'Publicar cierre de carrito',
-    ],
-    material: [
-      { label: 'Plantillas de cierre', url: '#' },
-    ],
+    id: 'ventas', numero: '04', nombre: 'Ventas', contexto: 'Seguimiento y cierre',
+    descripcion: 'Priorizá conversaciones reales, resolvé objeciones y registrá cada resultado.',
+    tareas: ['Contactar a las interesadas prioritarias', 'Responder objeciones pendientes', 'Compartir casos y testimonios', 'Registrar ventas y próximos seguimientos'],
+    material: [{ label: 'Enlace de venta' }, { label: 'Respuestas a objeciones' }],
   },
 ]
 
-function usarCountdown() {
-  const ahora = new Date()
-  const diff = FECHA_LANZAMIENTO.getTime() - ahora.getTime()
-  if (diff <= 0) return { dias: 0, horas: 0, minutos: 0 }
-  const dias = Math.floor(diff / (1000 * 60 * 60 * 24))
-  const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  return { dias, horas, minutos }
+const METRICAS_INICIALES: Metricas = {
+  tipo_trafico: 'organico', inversion: 0, personas_grupo: 0, personas_seguimiento: 0,
+  ventas_realizadas: 0, objetivo_septiembre: 0,
 }
 
-export default function LanzamientoCliente({ nombre, userId, metricasGuardadas }: { nombre: string, userId: string, metricasGuardadas: Metricas | null }) {
-  const supabase = createClient()
-  const [etapaActiva, setEtapaActiva] = useState(0)
-  const { dias, horas, minutos } = usarCountdown()
-  const etapa = ETAPAS[etapaActiva]
+const PRECIO_PRODUCTO = 597
+const COMISION_REFERENCIA = PRECIO_PRODUCTO * 0.5
 
-  // Red social seleccionada para etapa de preparación
-  const RED_KEY = `lanzamiento-red-${userId}`
-  const [redSocial, setRedSocial] = useState<'instagram' | 'tiktok'>('instagram')
-  useEffect(() => {
-    try {
-      const guardada = localStorage.getItem(RED_KEY) as 'instagram' | 'tiktok' | null
-      if (guardada) setRedSocial(guardada)
-    } catch {}
-  }, [RED_KEY])
+function CheckIcon() {
+  return <svg width="12" height="10" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M1 5.2 4.4 8.5 11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+}
 
-  function cambiarRed(red: 'instagram' | 'tiktok') {
-    setRedSocial(red)
-    try { localStorage.setItem(RED_KEY, red) } catch {}
+function ArrowIcon() {
+  return <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-4-4 4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+}
+
+function SocialIcon({ red, activo }: { red: 'instagram' | 'tiktok'; activo: boolean }) {
+  if (red === 'instagram') {
+    return <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${activo ? 'bg-white/14 text-white' : 'bg-[#F4CAD8] text-[#9C365C]'}`}><svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" /><circle cx="17.4" cy="6.7" r="1.1" fill="currentColor" /></svg></span>
   }
 
-  // Tareas checkeadas — persisten en localStorage por usuaria
-  const STORAGE_KEY = `lanzamiento-tareas-${userId}`
-  const [tareasCheck, setTareasCheck] = useState<Record<string, boolean>>({})
-  useEffect(() => {
-    try {
-      const guardado = localStorage.getItem(STORAGE_KEY)
-      if (guardado) setTareasCheck(JSON.parse(guardado))
-    } catch {}
-  }, [STORAGE_KEY])
+  return <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${activo ? 'bg-white/14 text-white' : 'bg-[#EAE5E0] text-[#171413]'}`}><svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94a8.16 8.16 0 0 1-5.65 3.47c-1.41.08-2.84-.03-4.19-.45a8.19 8.19 0 0 1-4.73-3.83c-1.49-2.57-1.69-5.86-.51-8.59a8.16 8.16 0 0 1 4.37-4.3c1.69-.82 3.69-1.03 5.52-.68.02 1.49-.04 2.98-.04 4.47-.84-.27-1.78-.2-2.6.09a3.93 3.93 0 0 0-2.29 2.01c-.57.99-.41 2.27.16 3.24.63 1.02 1.79 1.67 3 1.65.8-.02 1.59-.29 2.21-.81.72-.6 1.19-1.52 1.21-2.47.07-4.61.01-9.21.03-13.82z" /></svg></span>
+}
 
-  function toggleTarea(etapaId: string, idx: number) {
+export default function LanzamientoCliente({ nombre, userId, metricasGuardadas, modoDemo = false }: Props) {
+  const supabase = createClient()
+  const [etapaActiva, setEtapaActiva] = useState(modoDemo ? 1 : 0)
+  const [redSocial, setRedSocial] = useState<'instagram' | 'tiktok'>('instagram')
+  const [tareasCheck, setTareasCheck] = useState<Record<string, boolean>>({})
+  const [metricas, setMetricas] = useState<Metricas>(metricasGuardadas ?? METRICAS_INICIALES)
+  const [metricaId, setMetricaId] = useState(metricasGuardadas?.id ?? null)
+  const [guardandoMetricas, setGuardandoMetricas] = useState(false)
+  const [estadoGuardado, setEstadoGuardado] = useState<'idle' | 'ok' | 'error'>('idle')
+
+  const etapa = ETAPAS[etapaActiva]
+  const storageKey = `lanzamiento-tareas-v2-${userId}`
+  const redStorageKey = `lanzamiento-red-${userId}`
+
+  useEffect(() => {
+    let frame: number | undefined
+    try {
+      const guardada = localStorage.getItem(redStorageKey)
+      if (guardada === 'instagram' || guardada === 'tiktok') {
+        frame = requestAnimationFrame(() => setRedSocial(guardada))
+      }
+    } catch {}
+    return () => {
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [redStorageKey])
+
+  useEffect(() => {
+    let frame: number | undefined
+    try {
+      const guardado = localStorage.getItem(storageKey)
+      if (guardado) frame = requestAnimationFrame(() => setTareasCheck(JSON.parse(guardado)))
+    } catch {}
+    return () => {
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [storageKey])
+
+  const tareasEtapa = useMemo(() => {
+    if (etapa.id !== 'preparacion') return etapa.tareas
+    const tareasDeRed = redSocial === 'instagram' ? etapa.tareasInstagram : etapa.tareasTiktok
+    return [...etapa.tareas, ...(tareasDeRed ?? [])]
+  }, [etapa, redSocial])
+
+  function claveTarea(index: number) {
+    if (etapa.id === 'preparacion' && index >= etapa.tareas.length) {
+      return `${etapa.id}-${redSocial}-${index - etapa.tareas.length}`
+    }
+    return `${etapa.id}-${index}`
+  }
+
+  const tareasHechas = tareasEtapa.reduce((total, _tarea, index) => total + (tareasCheck[claveTarea(index)] ? 1 : 0), 0)
+  const resumen = { hechas: tareasHechas, total: tareasEtapa.length, porcentaje: Math.round((tareasHechas / tareasEtapa.length) * 100) }
+
+  const ventasNecesarias = metricas.objetivo_septiembre > 0 ? Math.ceil(metricas.objetivo_septiembre / COMISION_REFERENCIA) : 0
+  const progresoObjetivo = ventasNecesarias > 0 ? Math.min(Math.round((metricas.ventas_realizadas / ventasNecesarias) * 100), 100) : 0
+  const pulsoItems = [
+    { label: 'Grupo', value: metricas.personas_grupo },
+    { label: 'Seguimiento', value: metricas.personas_seguimiento },
+    { label: 'Ventas', value: metricas.ventas_realizadas },
+  ]
+  const mayorPulso = Math.max(...pulsoItems.map(item => item.value), 1)
+
+  function toggleTarea(index: number) {
+    const key = claveTarea(index)
     setTareasCheck(prev => {
-      const key = `${etapaId}-${idx}`
       const siguiente = { ...prev, [key]: !prev[key] }
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(siguiente)) } catch {}
+      try { localStorage.setItem(storageKey, JSON.stringify(siguiente)) } catch {}
       return siguiente
     })
   }
 
-  const [metricas, setMetricas] = useState<Metricas>(metricasGuardadas ?? {
-    tipo_trafico: 'organico',
-    inversion: 0,
-    personas_grupo: 0,
-    personas_seguimiento: 0,
-    ventas_realizadas: 0,
-    objetivo_septiembre: 0,
-  })
-  const [guardandoMetricas, setGuardandoMetricas] = useState(false)
-  const [metricasGuardadasOk, setMetricasGuardadasOk] = useState(false)
+  function cambiarRed(red: 'instagram' | 'tiktok') {
+    setRedSocial(red)
+    try { localStorage.setItem(redStorageKey, red) } catch {}
+  }
 
   async function guardarMetricas() {
     setGuardandoMetricas(true)
-    const datos = { alumna_id: userId, ...metricas, actualizado_en: new Date().toISOString() }
-    if (metricasGuardadas?.id) {
-      await supabase.from('metricas_lanzamiento').update(datos).eq('id', metricasGuardadas.id)
-    } else {
-      await supabase.from('metricas_lanzamiento').insert(datos)
+    setEstadoGuardado('idle')
+    if (modoDemo) {
+      await new Promise(resolve => setTimeout(resolve, 350))
+      setGuardandoMetricas(false)
+      setEstadoGuardado('ok')
+      return
     }
+    const datos = { alumna_id: userId, ...metricas, actualizado_en: new Date().toISOString() }
+    const respuesta = metricaId
+      ? await supabase.from('metricas_lanzamiento').update(datos).eq('id', metricaId)
+      : await supabase.from('metricas_lanzamiento').insert(datos).select('id').single()
+    if (!respuesta.error && 'data' in respuesta && respuesta.data?.id) setMetricaId(respuesta.data.id)
     setGuardandoMetricas(false)
-    setMetricasGuardadasOk(true)
-    setTimeout(() => setMetricasGuardadasOk(false), 3000)
+    setEstadoGuardado(respuesta.error ? 'error' : 'ok')
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f5f0eb' }}>
-      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/logo.png" alt="Socias Digitales" style={{ height: 36, objectFit: 'contain' }} />
-        <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">← Mi perfil</a>
-      </nav>
+    <div className="min-h-screen bg-[#FAF7F3] text-[#171413]">
+      <header className="bg-[#FAF7F3]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
+          <Image src="/academy-horizontal-color.png" alt="Socias Digitales Academy" width={220} height={77} className="h-12 w-auto object-contain sm:h-14" priority />
+          <a href="/inicio" className="rounded-full bg-[#F4EFEA] px-4 py-2 text-xs font-medium text-[#171413] transition hover:bg-[#F4CAD8]">Volver a mi espacio</a>
+        </div>
+      </header>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <main className="mx-auto max-w-6xl px-5 py-5 sm:px-8 sm:py-7">
+        {modoDemo ? <div className="mb-4 text-[10px] uppercase tracking-[0.18em] text-[#171413]/45">Vista de aprobación · datos de muestra</div> : null}
 
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section className="rounded-[26px] bg-[#F4CAD8] px-6 py-7 text-[#171413] sm:px-9 sm:py-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:items-center">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#E27396' }}>Acceso exclusivo afiliadas</p>
-              <h1 className="text-2xl font-black text-gray-900 mt-1">
-                Escritorio de lanzamiento 🚀
-              </h1>
-              {nombre && <p className="text-sm text-gray-400 mt-0.5">Hola, {nombre} 👋</p>}
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#294A38]">Tu hoja de ruta</p>
+              <h1 className="mt-5 max-w-3xl font-serif text-[2.55rem] leading-[0.96] tracking-[-0.045em] sm:text-[3.7rem]">{nombre ? <><span className="italic">{nombre},</span>{' estás en '}</> : 'Estás en '}<span className="font-impact font-bold not-italic text-[#294A38]">{etapa.nombre.toLowerCase()}</span></h1>
             </div>
-
-            {/* Countdown */}
-            <div className="rounded-2xl px-5 py-3 text-center flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #E27396, #337357)' }}>
-              <p className="text-xs font-bold text-white opacity-80 mb-1">Apertura de carrito</p>
-              <p className="text-xs text-white opacity-70 mb-2">28 de septiembre</p>
-              {dias > 0 ? (
-                <div className="flex gap-3 justify-center">
-                  {[{ v: dias, l: 'días' }, { v: horas, l: 'hs' }, { v: minutos, l: 'min' }].map(({ v, l }) => (
-                    <div key={l} className="text-center">
-                      <p className="text-2xl font-black text-white leading-none">{v}</p>
-                      <p className="text-xs text-white opacity-70">{l}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-white font-black text-lg">¡Hoy es el día! 🎉</p>
-              )}
+            <div className="rounded-2xl bg-[#FAF7F3]/80 p-5">
+              <div className="flex items-end justify-between gap-4">
+                <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#171413]/55">Progreso</p><p className="font-impact mt-2 text-4xl font-bold tracking-[-0.04em]">{resumen.porcentaje}%</p></div>
+                <p className="pb-1 text-xs font-medium text-[#171413]/55">{resumen.hechas} de {resumen.total}</p>
+              </div>
+              <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#EC9BB6]/45"><div className="h-full rounded-full bg-[#294A38] transition-all duration-500" style={{ width: `${resumen.porcentaje}%` }} /></div>
             </div>
           </div>
+        </section>
+
+        <section aria-label="Etapas del lanzamiento" className="mt-4 rounded-[22px] bg-[#F4EFEA] p-2.5 sm:p-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {ETAPAS.map((item, index) => {
+              const activa = index === etapaActiva
+              const anterior = index < etapaActiva
+              return <button key={item.id} type="button" onClick={() => setEtapaActiva(index)} aria-current={activa ? 'step' : undefined} className={`group rounded-2xl px-3 py-2.5 text-left transition sm:px-4 ${activa ? 'bg-[#F4CAD8]' : 'hover:bg-[#FAF7F3]'}`}><div className="flex items-center gap-2.5"><span className={`font-impact flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold ${activa ? 'bg-[#EC9BB6] text-[#171413]' : anterior ? 'bg-[#294A38] text-white' : 'bg-[#FAF7F3] text-[#171413]/45'}`}>{anterior ? <CheckIcon /> : item.numero}</span><span className={`font-impact text-xs font-semibold sm:text-sm ${activa ? 'text-[#171413]' : 'text-[#171413]/60'}`}>{item.nombre}</span></div><p className="mt-1.5 hidden pl-[38px] text-[10px] leading-4 text-[#171413]/45 sm:block">{item.contexto}</p></button>
+            })}
+          </div>
+        </section>
+
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
+          <section className="rounded-[24px] bg-[#F4EFEA] p-5 sm:p-6">
+            <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#171413]/50">Qué hacer ahora</p><h2 className="mt-1.5 font-serif text-3xl font-semibold tracking-[-0.03em] text-[#171413]">{etapa.nombre}</h2></div><span className="w-fit rounded-full bg-[#294A38]/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#294A38]">{etapa.contexto}</span></div>
+            {etapa.id === 'preparacion' ? <div className="mt-5 flex w-fit rounded-full bg-[#FAF7F3] p-1.5" aria-label="Red social principal">{(['instagram', 'tiktok'] as const).map(red => { const activa = redSocial === red; return <button key={red} type="button" onClick={() => cambiarRed(red)} aria-pressed={activa} className={`flex min-h-11 items-center gap-2.5 rounded-full px-3.5 pr-5 text-[13px] font-bold transition ${activa ? 'bg-[#294A38] text-white shadow-sm' : 'text-[#171413]/65 hover:bg-[#F4CAD8]/45 hover:text-[#171413]'}`}><SocialIcon red={red} activo={activa} /><span>{red === 'instagram' ? 'Instagram' : 'TikTok'}</span></button> })}</div> : null}
+            <div className="mt-4 space-y-2">
+              {tareasEtapa.map((tarea, index) => {
+                const hecha = Boolean(tareasCheck[claveTarea(index)])
+                return <button key={tarea} type="button" onClick={() => toggleTarea(index)} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition ${hecha ? 'bg-[#294A38]/10' : 'bg-[#FAF7F3] hover:bg-[#F4CAD8]/55'}`}><span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${hecha ? 'bg-[#294A38] text-white' : 'bg-[#F4CAD8] text-transparent'}`}><CheckIcon /></span><span className={`text-sm font-semibold ${hecha ? 'text-[#294A38]/65 line-through' : 'text-[#171413]'}`}>{tarea}</span></button>
+              })}
+            </div>
+            <div className="mt-6"><p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#171413]/50">Material de esta etapa</p><div className="grid gap-2 sm:grid-cols-2">{etapa.material.map(item => item.url ? <a key={item.label} href={item.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-2xl bg-[#FAF7F3] px-4 py-3 text-sm font-bold text-[#171413] transition hover:bg-[#F4CAD8]/55"><span>{item.label}</span><ArrowIcon /></a> : <div key={item.label} className="flex items-center justify-between rounded-2xl bg-[#FAF7F3] px-4 py-3 text-sm font-semibold text-[#171413]/45"><span>{item.label}</span><span className="text-[9px] font-bold uppercase tracking-[0.12em]">Próximamente</span></div>)}</div></div>
+          </section>
+
+          <aside className="space-y-4">
+            <section className="rounded-[24px] bg-[#EC9BB6] p-5 text-[#171413]"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#171413]/60">Tu meta de venta</p><div className="mt-4 flex items-center gap-4"><div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#294A38 ${progresoObjetivo * 3.6}deg, rgba(250,247,243,.58) 0deg)` }}><div className="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-[#EC9BB6]"><span className="font-impact text-xl font-bold">{progresoObjetivo}%</span></div></div><div><p className="font-impact text-3xl font-bold tracking-[-0.04em]">{metricas.ventas_realizadas}<span className="text-base font-medium opacity-55">/{ventasNecesarias || '—'}</span></p><p className="mt-1 text-xs font-medium leading-5 text-[#171413]/65">ventas realizadas</p></div></div><label className="mt-4 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#171413]/65" htmlFor="objetivo">¿Cuánto querés ganar?</label><div className="mt-2 flex items-center rounded-xl bg-[#FAF7F3]/80 px-4 ring-1 ring-[#171413]/10 focus-within:ring-2 focus-within:ring-[#294A38]"><span className="font-impact text-sm font-semibold">$</span><input id="objetivo" type="number" min={0} value={metricas.objetivo_septiembre || ''} onChange={event => setMetricas(actual => ({ ...actual, objetivo_septiembre: Number(event.target.value) || 0 }))} placeholder="Ej. 3.000" className="font-impact w-full bg-transparent px-2 py-3 text-xl font-semibold outline-none" /><span className="text-xs font-medium opacity-55">USD</span></div>{ventasNecesarias > 0 ? <p className="mt-3 text-xs font-medium text-[#171413]/65">Necesitás {ventasNecesarias} ventas · comisión USD {COMISION_REFERENCIA.toLocaleString('es-AR')}.</p> : <p className="mt-3 text-xs font-medium text-[#171413]/55">USD {PRECIO_PRODUCTO} · 50% de comisión.</p>}</section>
+            <section className="rounded-[24px] bg-[#F4EFEA] p-5"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#171413]/50">Pulso del lanzamiento</p><div className="mt-4 space-y-3">{pulsoItems.map(item => <div key={item.label}><div className="flex items-baseline justify-between gap-3"><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#171413]/50">{item.label}</p><p className="font-impact text-lg font-bold tracking-[-0.03em] text-[#171413]">{item.value}</p></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#F4CAD8]/55"><div className="h-full rounded-full bg-[#294A38]" style={{ width: `${Math.max((item.value / mayorPulso) * 100, item.value > 0 ? 5 : 0)}%` }} /></div></div>)}</div></section>
+          </aside>
         </div>
 
-        {/* Objetivo septiembre */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#E27396' }}>Objetivo septiembre</p>
-            <p className="text-sm text-gray-400">¿Cuánto querés ganar este mes? Te decimos cuántas ventas necesitás.</p>
-          </div>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-300 text-xl">$</span>
-            <input
-              type="number" min={0}
-              value={metricas.objetivo_septiembre || ''}
-              onChange={e => setMetricas(m => ({ ...m, objetivo_septiembre: parseFloat(e.target.value) || 0 }))}
-              placeholder="0"
-              className="w-full border-2 rounded-xl pl-10 pr-16 py-4 text-2xl font-black text-gray-900 focus:outline-none transition-colors"
-              style={{ borderColor: metricas.objetivo_septiembre ? '#E27396' : '#f3f4f6' }}
-            />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">USD</span>
-          </div>
-          {metricas.objetivo_septiembre > 0 && (() => {
-            const ventasNecesarias = Math.ceil(metricas.objetivo_septiembre / 290)
-            const ventasHechas = metricas.ventas_realizadas || 0
-            const pct = Math.min(Math.round((ventasHechas / ventasNecesarias) * 100), 100)
-            const radio = 54
-            const circunferencia = 2 * Math.PI * radio
-            const offset = circunferencia - (pct / 100) * circunferencia
-            const color = pct >= 100 ? '#337357' : '#E27396'
-            return (
-              <div className="flex flex-col sm:flex-row gap-4 items-center">
-
-                {/* Gráfico circular */}
-                <div className="flex-shrink-0 flex flex-col items-center">
-                  <div className="relative" style={{ width: 160, height: 160 }}>
-                    <svg width="160" height="160" viewBox="0 0 160 160">
-                      <circle cx="80" cy="80" r={radio} fill="none" stroke="#f3f4f6" strokeWidth="14" />
-                      <circle cx="80" cy="80" r={radio} fill="none"
-                        stroke={color} strokeWidth="14" strokeLinecap="round"
-                        strokeDasharray={circunferencia} strokeDashoffset={offset}
-                        transform="rotate(-90 80 80)"
-                        style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-black" style={{ color }}>{pct}%</span>
-                      <span className="text-xs text-gray-400 mt-0.5">del objetivo</span>
-                    </div>
-                  </div>
-                  {pct >= 100 && <p className="text-sm font-bold mt-1" style={{ color: '#337357' }}>🎉 ¡Meta lograda!</p>}
-                </div>
-
-                {/* Info + input ventas */}
-                <div className="flex-1 space-y-3 w-full">
-                  <div className="rounded-2xl p-4 text-center" style={{ background: 'linear-gradient(135deg, #337357, #4a9970)' }}>
-                    <p className="text-white text-xs opacity-80 mb-0.5">Necesitás vender</p>
-                    <p className="text-white font-black text-4xl leading-none">{ventasNecesarias}</p>
-                    <p className="text-white opacity-70 text-xs mt-1">× $290 = ${(ventasNecesarias * 290).toLocaleString('es-AR')} USD</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 mb-1.5">¿Cuántas vendiste hasta ahora?</p>
-                    <input type="number" min={0}
-                      value={metricas.ventas_realizadas || ''}
-                      onChange={e => setMetricas(m => ({ ...m, ventas_realizadas: parseInt(e.target.value) || 0 }))}
-                      placeholder="0"
-                      className="w-full border-2 rounded-xl px-4 py-3 text-2xl font-black text-center text-gray-900 focus:outline-none transition-colors"
-                      style={{ borderColor: ventasHechas > 0 ? color : '#f3f4f6' }}
-                    />
-                    {ventasHechas > 0 && (
-                      <p className="text-xs text-center mt-1.5 font-semibold" style={{ color }}>
-                        ${(ventasHechas * 290).toLocaleString('es-AR')} USD ganados · faltan {Math.max(ventasNecesarias - ventasHechas, 0)} ventas
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            )
-          })()}
-        </div>
-
-        {/* Timeline de etapas */}
-        <div className="bg-white rounded-2xl shadow-sm p-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4 px-2">Etapas del lanzamiento</p>
-          <div className="flex gap-1 overflow-x-auto pb-1">
-            {ETAPAS.map((e, i) => (
-              <button key={e.id} onClick={() => setEtapaActiva(i)}
-                className="flex-1 min-w-0 rounded-xl px-3 py-3 text-center transition-all border-2"
-                style={{
-                  borderColor: etapaActiva === i ? e.color : '#f3f4f6',
-                  background: etapaActiva === i ? e.color + '12' : 'white',
-                }}>
-                <p className="text-xl mb-1">{e.emoji}</p>
-                <p className="text-xs font-semibold leading-tight"
-                  style={{ color: etapaActiva === i ? e.color : '#9ca3af' }}>
-                  {e.label}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Contenido de la etapa activa */}
-        <div className="grid sm:grid-cols-2 gap-4">
-
-          {/* Tareas */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xl">{etapa.emoji}</span>
-              <h2 className="font-black text-gray-800">{etapa.label}</h2>
-            </div>
-            <p className="text-sm text-gray-500">{etapa.descripcion}</p>
-            {/* Selector red social (solo etapa preparacion) */}
-            {etapa.id === 'preparacion' && (
-              <div className="flex gap-2 pt-1">
-                {(['instagram', 'tiktok'] as const).map(red => (
-                  <button key={red} onClick={() => cambiarRed(red)}
-                    className="flex-1 py-2 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-1.5 transition-all"
-                    style={{
-                      borderColor: redSocial === red ? etapa.color : '#e5e7eb',
-                      background: redSocial === red ? etapa.color + '15' : 'white',
-                      color: redSocial === red ? etapa.color : '#9ca3af',
-                    }}>
-                    {red === 'instagram' ? '📸 Instagram' : '🎵 TikTok'}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-2 pt-1">
-              {(() => {
-                // Para preparacion: tareas base + tareas de la red elegida
-                const listaTareas = etapa.id === 'preparacion'
-                  ? [
-                      ...etapa.tareas,
-                      ...(redSocial === 'instagram'
-                        ? (etapa as any).tareasInstagram
-                        : (etapa as any).tareasTiktok)
-                    ]
-                  : etapa.tareas
-                return listaTareas.map((t: string, i: number) => {
-                  const key = `${etapa.id}-${etapa.id === 'preparacion' ? redSocial + '-' : ''}${i}`
-                  const hecho = !!tareasCheck[key]
-                  return (
-                    <button key={i} onClick={() => {
-                      setTareasCheck(prev => {
-                        const siguiente = { ...prev, [key]: !prev[key] }
-                        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(siguiente)) } catch {}
-                        return siguiente
-                      })
-                    }}
-                      className="flex items-start gap-2.5 w-full text-left"
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                      <div className="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-all"
-                        style={{
-                          borderColor: etapa.color,
-                          background: hecho ? etapa.color : 'transparent',
-                        }}>
-                        {hecho && (
-                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </div>
-                      <p className="text-sm transition-all" style={{
-                        color: hecho ? '#9ca3af' : '#374151',
-                        textDecoration: hecho ? 'line-through' : 'none',
-                      }}>{t}</p>
-                    </button>
-                  )
-                })
-              })()}
-            </div>
-          </div>
-
-          {/* Material */}
-          <div className="space-y-4">
-
-            {/* Links de Drive */}
-            <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Material de esta etapa</p>
-              {etapa.material.map((m, i) => (
-                <a key={i} href={m.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-xl p-3 transition-all hover:shadow-sm"
-                  style={{ background: etapa.color + '10', border: `1.5px solid ${etapa.color}30` }}>
-                  <span className="text-xl">📁</span>
-                  <span className="text-sm font-semibold" style={{ color: etapa.color }}>{m.label}</span>
-                  <span className="ml-auto text-gray-300 text-lg">→</span>
-                </a>
-              ))}
-            </div>
-
-            {/* Fecha clave */}
-            <div className="bg-white rounded-2xl shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Fechas clave</p>
-              <div className="space-y-2">
-                {[
-                  { fecha: 'Septiembre 2026', evento: 'Preparación y captación', emoji: '📱' },
-                  { fecha: '28 Sep 2026', evento: 'Apertura de carrito 🛒', emoji: '🎯' },
-                  { fecha: 'Por confirmar', evento: 'Cierre de ventas', emoji: '🔥' },
-                ].map((f, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span>{f.emoji}</span>
-                    <div>
-                      <p className="text-xs font-bold" style={{ color: '#337357' }}>{f.fecha}</p>
-                      <p className="text-xs text-gray-500">{f.evento}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* Métricas */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
-          <div>
-            <h2 className="font-black text-gray-800 text-lg">📊 Mis métricas de lanzamiento</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Completá tus números para llevar el seguimiento</p>
-          </div>
-
-          {/* Tipo de tráfico */}
-          <div>
-            <p className="text-sm font-bold text-gray-600 mb-2">Tipo de tráfico</p>
-            <div className="flex gap-2">
-              {['organico', 'pago'].map(tipo => (
-                <button key={tipo} onClick={() => setMetricas(m => ({ ...m, tipo_trafico: tipo }))}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 capitalize transition-all"
-                  style={{
-                    borderColor: metricas.tipo_trafico === tipo ? '#E27396' : '#e5e7eb',
-                    background: metricas.tipo_trafico === tipo ? '#fff0f4' : 'white',
-                    color: metricas.tipo_trafico === tipo ? '#E27396' : '#9ca3af',
-                  }}>
-                  {tipo === 'organico' ? '🌱 Orgánico' : '💰 Pago'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Inversión (solo si es pago) */}
-          {metricas.tipo_trafico === 'pago' && (
-            <div>
-              <p className="text-sm font-bold text-gray-600 mb-2">Inversión en publicidad (USD)</p>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                <input type="number" min={0}
-                  value={metricas.inversion || ''}
-                  onChange={e => setMetricas(m => ({ ...m, inversion: parseFloat(e.target.value) || 0 }))}
-                  placeholder="0"
-                  className="w-full border-2 rounded-xl pl-9 pr-4 py-3 text-gray-900 focus:outline-none"
-                  style={{ borderColor: '#e5e7eb' }} />
-              </div>
-            </div>
-          )}
-
-          {/* Métricas numéricas */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { key: 'personas_grupo', label: 'En el grupo', emoji: '👥' },
-              { key: 'personas_seguimiento', label: 'En seguimiento', emoji: '🎯' },
-              { key: 'ventas_realizadas', label: 'Ventas', emoji: '🏆' },
-            ].map(({ key, label, emoji }) => (
-              <div key={key} className="text-center">
-                <p className="text-xs text-gray-400 mb-1">{emoji} {label}</p>
-                <input
-                  type="number" min={0}
-                  value={(metricas as any)[key] || ''}
-                  onChange={e => setMetricas(m => ({ ...m, [key]: parseInt(e.target.value) || 0 }))}
-                  placeholder="0"
-                  className="w-full border-2 rounded-xl px-3 py-3 text-center text-xl font-black text-gray-800 focus:outline-none transition-colors"
-                  style={{ borderColor: '#e5e7eb' }}
-                  onFocus={e => e.target.style.borderColor = '#E27396'}
-                  onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Resumen visual */}
-          {(metricas.personas_grupo > 0 || metricas.ventas_realizadas > 0) && (
-            <div className="rounded-xl p-4 grid grid-cols-3 gap-3 text-center" style={{ background: '#f5f0eb' }}>
-              <div>
-                <p className="text-2xl font-black" style={{ color: '#337357' }}>{metricas.personas_grupo}</p>
-                <p className="text-xs text-gray-500">en el grupo</p>
-              </div>
-              <div>
-                <p className="text-2xl font-black" style={{ color: '#E27396' }}>{metricas.personas_seguimiento}</p>
-                <p className="text-xs text-gray-500">en seguimiento</p>
-              </div>
-              <div>
-                <p className="text-2xl font-black" style={{ color: '#d97706' }}>{metricas.ventas_realizadas}</p>
-                <p className="text-xs text-gray-500">ventas</p>
-              </div>
-            </div>
-          )}
-
-          <button onClick={guardarMetricas} disabled={guardandoMetricas}
-            className="w-full py-3.5 rounded-2xl text-white font-bold text-sm disabled:opacity-60 transition-all"
-            style={{ background: metricasGuardadasOk ? '#337357' : 'linear-gradient(135deg, #E27396, #337357)' }}>
-            {guardandoMetricas ? 'Guardando...' : metricasGuardadasOk ? '✓ Métricas guardadas' : 'Guardar métricas'}
-          </button>
-        </div>
-
-      </div>
+        <section className="mt-4 rounded-[24px] bg-[#F4EFEA] p-5 sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#171413]/50">Carga rápida</p><h2 className="mt-2 text-2xl leading-tight tracking-[-0.03em] text-[#171413]"><span className="font-serif font-semibold">Los números</span>{' '}<span className="font-impact text-[1.12em] font-bold text-[#EC9BB6]">que sí importan</span></h2></div><div className="flex gap-2" aria-label="Tipo de tráfico">{(['organico', 'pago'] as const).map(tipo => <button key={tipo} type="button" onClick={() => setMetricas(actual => ({ ...actual, tipo_trafico: tipo }))} className={`rounded-full px-4 py-2 text-xs font-semibold capitalize transition ${metricas.tipo_trafico === tipo ? 'bg-[#294A38] text-white' : 'bg-[#FAF7F3] text-[#171413]/60'}`}>{tipo === 'organico' ? 'Orgánico' : 'Pago'}</button>)}</div></div>
+          <div className={`mt-4 grid gap-3 ${metricas.tipo_trafico === 'pago' ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>{metricas.tipo_trafico === 'pago' ? <CampoMetrica label="Inversión USD" value={metricas.inversion} onChange={value => setMetricas(actual => ({ ...actual, inversion: value }))} /> : null}<CampoMetrica label="Personas en grupo" value={metricas.personas_grupo} onChange={value => setMetricas(actual => ({ ...actual, personas_grupo: value }))} /><CampoMetrica label="En seguimiento" value={metricas.personas_seguimiento} onChange={value => setMetricas(actual => ({ ...actual, personas_seguimiento: value }))} /><CampoMetrica label="Ventas realizadas" value={metricas.ventas_realizadas} onChange={value => setMetricas(actual => ({ ...actual, ventas_realizadas: value }))} /></div>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className={`text-xs font-medium ${estadoGuardado === 'error' ? 'text-[#B01B30]' : 'text-[#294A38]'}`} aria-live="polite">{estadoGuardado === 'ok' ? 'Datos guardados.' : estadoGuardado === 'error' ? 'No pudimos guardar. Probá nuevamente.' : ''}</p><button type="button" onClick={guardarMetricas} disabled={guardandoMetricas} className="font-impact rounded-full bg-[#294A38] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50">{guardandoMetricas ? 'Guardando…' : 'Guardar avance'}</button></div>
+        </section>
+      </main>
     </div>
   )
+}
+
+function CampoMetrica({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return <label className="rounded-xl bg-[#FAF7F3]/90 px-4 py-3"><span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#171413]/50">{label}</span><input type="number" min={0} value={value || ''} onChange={event => onChange(Number(event.target.value) || 0)} placeholder="0" className="font-impact mt-1 w-full bg-transparent text-2xl font-bold tracking-[-0.03em] text-[#171413] outline-none" /></label>
 }

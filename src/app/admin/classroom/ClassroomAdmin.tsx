@@ -9,6 +9,7 @@ interface Clase {
   titulo: string
   descripcion: string | null
   vimeo_url: string | null
+  video_key: string | null
   orden: number
   plan: '27' | '97'
   modulo: string
@@ -30,6 +31,7 @@ const CLASE_VACIA = {
   titulo: '',
   descripcion: '',
   vimeo_url: '',
+  video_key: '',
   plan: '27' as '27' | '97',
   modulo: 'Módulo 1',
   activo: true,
@@ -140,13 +142,14 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
                           <p className="font-bold text-gray-900 text-sm">{clase.titulo}</p>
                           {clase.descripcion && <p className="text-xs text-gray-400 truncate">{clase.descripcion}</p>}
                           {clase.vimeo_url && <p className="text-xs text-blue-400 truncate mt-0.5">{clase.vimeo_url}</p>}
+                          {clase.video_key && <p className="text-xs text-green-700 truncate mt-0.5">Video privado conectado</p>}
                         </div>
                         <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${clase.plan === '27' ? 'bg-pink-100 text-pink-600' : 'bg-green-100 text-green-700'}`}>
                           ${clase.plan}
                         </span>
                         <div className="flex gap-2 flex-shrink-0">
                           <button onClick={() => {
-                            setEditando({ titulo: clase.titulo, descripcion: clase.descripcion ?? '', vimeo_url: clase.vimeo_url ?? '', plan: clase.plan, modulo: clase.modulo, activo: clase.activo, orden: clase.orden, id: clase.id })
+                            setEditando({ titulo: clase.titulo, descripcion: clase.descripcion ?? '', vimeo_url: clase.vimeo_url ?? '', video_key: clase.video_key ?? '', plan: clase.plan, modulo: clase.modulo, activo: clase.activo, orden: clase.orden, id: clase.id })
                             setModal(true)
                           }} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Editar</button>
                           <button onClick={() => eliminarClase(clase.id)}
@@ -218,6 +221,13 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
                 <input type="url" placeholder="https://vimeo.com/123456789"
                   value={editando.vimeo_url ?? ''}
                   onChange={e => setEditando(p => ({ ...p, vimeo_url: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Clave del video privado (opcional)</label>
+                <input type="text" placeholder="desafio-socias/clase-01.mp4"
+                  value={editando.video_key ?? ''}
+                  onChange={e => setEditando(p => ({ ...p, video_key: e.target.value }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" />
               </div>
               <div className="grid grid-cols-2 gap-4">

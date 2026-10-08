@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 function CrearContrasenaForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [contrasena, setContrasena] = useState('')
   const [confirmar, setConfirmar] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -30,7 +29,7 @@ function CrearContrasenaForm() {
       setError('Error al guardar. Intentá de nuevo.')
     } else {
       setListo(true)
-      setTimeout(() => router.push('/perfil'), 2000)
+      setTimeout(() => router.push('/inicio'), 1200)
     }
     setGuardando(false)
   }
@@ -39,7 +38,7 @@ function CrearContrasenaForm() {
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#FFDBE5' }}>
       <div className="bg-white rounded-3xl shadow-lg p-10 w-full max-w-md mx-4">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Socias Digitales" style={{ height: 60, objectFit: 'contain', margin: '0 auto 16px' }} />
+          <img src="/academy-stacked-color.png" alt="Socias Digitales Academy" style={{ width: 200, height: 'auto', objectFit: 'contain', margin: '0 auto 16px' }} />
           <h1 className="text-2xl font-black text-gray-900">Creá tu contraseña</h1>
           <p className="text-sm text-gray-500 mt-2">Elegí una contraseña para acceder a Socias Digitales</p>
         </div>

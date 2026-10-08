@@ -11,14 +11,15 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    function irSegunTipo(esInvitacion: boolean) {
-      router.push(esInvitacion ? '/crear-contrasena' : '/perfil')
+    function irSegunTipo(esInvitacion: boolean, esRecuperacion = false) {
+      router.replace(esInvitacion || esRecuperacion ? '/crear-contrasena' : '/')
     }
 
     async function procesar() {
       const url = new URL(window.location.href)
       const tokenHash = url.searchParams.get('token_hash')
       const type = url.searchParams.get('type')
+      const flow = url.searchParams.get('flow')
       const code = url.searchParams.get('code')
       const hash = window.location.hash
 
@@ -29,7 +30,7 @@ export default function AuthCallbackPage() {
           setError('El link expiró o ya fue usado. Pedile a tu administradora que te reenvíe la invitación.')
           return
         }
-        irSegunTipo(type === 'invite')
+        irSegunTipo(type === 'invite', type === 'recovery' || flow === 'recovery')
         return
       }
 
@@ -40,7 +41,7 @@ export default function AuthCallbackPage() {
           setError('El link expiró o ya fue usado. Pedile a tu administradora que te reenvíe la invitación.')
           return
         }
-        irSegunTipo(hash.includes('type=invite'))
+        irSegunTipo(hash.includes('type=invite') || type === 'invite', flow === 'recovery' || type === 'recovery')
         return
       }
 
@@ -55,14 +56,14 @@ export default function AuthCallbackPage() {
             setError('El link expiró o ya fue usado. Pedile a tu administradora que te reenvíe la invitación.')
             return
           }
-          irSegunTipo(params.get('type') === 'invite' || hash.includes('type=invite'))
+          irSegunTipo(params.get('type') === 'invite' || hash.includes('type=invite'), params.get('type') === 'recovery' || flow === 'recovery')
           return
         }
       }
 
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        irSegunTipo(hash.includes('type=invite'))
+        irSegunTipo(hash.includes('type=invite'), flow === 'recovery')
         return
       }
 
@@ -73,7 +74,8 @@ export default function AuthCallbackPage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session) {
-        irSegunTipo(window.location.hash.includes('type=invite'))
+        const callbackUrl = new URL(window.location.href)
+        irSegunTipo(window.location.hash.includes('type=invite'), callbackUrl.searchParams.get('flow') === 'recovery' || window.location.hash.includes('type=recovery'))
       }
     })
 
@@ -83,7 +85,7 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#FFDBE5' }}>
       <div className="text-center max-w-sm px-4">
-        <img src="/logo.png" alt="Socias Digitales" style={{ height: 60, objectFit: 'contain', margin: '0 auto 20px' }} />
+        <img src="/academy-stacked-color.png" alt="Socias Digitales Academy" style={{ width: 200, height: 'auto', objectFit: 'contain', margin: '0 auto 20px' }} />
         {error ? (
           <>
             <p className="text-red-600 font-medium mb-4">{error}</p>

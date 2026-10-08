@@ -6,7 +6,8 @@ export default async function Home() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    redirect('/perfil')
+    const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', user.id).maybeSingle()
+    redirect(perfil?.rol === 'admin' ? '/admin' : '/inicio')
   } else {
     redirect('/login')
   }

@@ -2,6 +2,7 @@
 
 interface Metrica {
   id: string
+  alumna_id: string
   tipo_trafico: string
   inversion: number
   personas_grupo: number
@@ -36,11 +37,15 @@ interface Props {
 
 export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) {
 
+  const metricasUnicas = metricas.filter((metrica, index, lista) =>
+    lista.findIndex(item => item.alumna_id === metrica.alumna_id) === index
+  )
+
   const total = {
-    grupo: metricas.reduce((a, m) => a + (m.personas_grupo || 0), 0),
-    seguimiento: metricas.reduce((a, m) => a + (m.personas_seguimiento || 0), 0),
-    ventas: metricas.reduce((a, m) => a + (m.ventas_realizadas || 0), 0),
-    inversion: metricas.reduce((a, m) => a + (m.inversion || 0), 0),
+    grupo: metricasUnicas.reduce((a, m) => a + (m.personas_grupo || 0), 0),
+    seguimiento: metricasUnicas.reduce((a, m) => a + (m.personas_seguimiento || 0), 0),
+    ventas: metricasUnicas.reduce((a, m) => a + (m.ventas_realizadas || 0), 0),
+    inversion: metricasUnicas.reduce((a, m) => a + (m.inversion || 0), 0),
   }
 
   function exportarCSV() {
@@ -49,8 +54,8 @@ export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) 
     ]
 
     afiliadas.forEach(a => {
-      const m = metricas.find(x => x.perfiles?.email === a.email)
-      const ventasNec = m?.objetivo_septiembre ? Math.ceil(m.objetivo_septiembre / 290) : 0
+      const m = metricasUnicas.find(x => x.perfiles?.email === a.email)
+      const ventasNec = m?.objetivo_septiembre ? Math.ceil(m.objetivo_septiembre / 298.5) : 0
       filas.push([
         a.nombre || '',
         a.email || '',
@@ -80,7 +85,7 @@ export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) 
   return (
     <div className="min-h-screen" style={{ background: '#f5f0eb' }}>
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/logo.png" alt="Socias Digitales" style={{ height: 36, objectFit: 'contain' }} />
+        <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         <a href="/admin" className="text-sm text-gray-500 hover:text-gray-800">← Panel admin</a>
       </nav>
 
@@ -89,7 +94,7 @@ export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) 
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-3xl font-black" style={{ color: '#1a1a1a' }}>🚀 Lanzamiento</h1>
-            <p className="text-sm text-gray-500 mt-1">{afiliadas.length} afiliadas registradas · {metricas.length} con métricas cargadas</p>
+            <p className="text-sm text-gray-500 mt-1">{afiliadas.length} afiliadas registradas · {metricasUnicas.length} con métricas cargadas</p>
           </div>
           <button onClick={exportarCSV}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-bold text-sm"
@@ -140,8 +145,8 @@ export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) 
                 </thead>
                 <tbody>
                   {afiliadas.map(a => {
-                    const m = metricas.find(x => x.perfiles?.email === a.email)
-                    const ventasNec = m?.objetivo_septiembre ? Math.ceil(m.objetivo_septiembre / 290) : null
+                    const m = metricasUnicas.find(x => x.perfiles?.email === a.email)
+                    const ventasNec = m?.objetivo_septiembre ? Math.ceil(m.objetivo_septiembre / 298.5) : null
                     return (
                       <tr key={a.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">

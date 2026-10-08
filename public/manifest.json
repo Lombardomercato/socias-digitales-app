@@ -1,8 +1,8 @@
 {
   "name": "Socias Digitales",
   "short_name": "Socias",
-  "description": "Tu plataforma de afiliadas",
-  "start_url": "/perfil",
+  "description": "Tu espacio de aprendizaje, comunidad y negocio digital.",
+  "start_url": "/inicio",
   "display": "standalone",
   "background_color": "#FFDBE5",
   "theme_color": "#E27396",

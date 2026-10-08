@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -13,19 +13,21 @@ export async function POST(request: Request) {
   const { emails } = await request.json()
   if (!emails || !Array.isArray(emails)) return NextResponse.json({ error: 'Lista de emails inválida' }, { status: 400 })
 
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  if (!isAdminSupabaseConfigured()) {
+    return NextResponse.json({ error: 'La invitación por email todavía no está configurada' }, { status: 503 })
+  }
+
+  const admin = createAdminClient()
 
   const resultados: { email: string; ok: boolean; mensaje: string }[] = []
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://app.sociasdigitales.com').replace(/\/$/, '')
 
   for (const email of emails) {
     const trimmed = email.trim().toLowerCase()
     if (!trimmed || !trimmed.includes('@')) continue
 
     const { error } = await admin.auth.admin.inviteUserByEmail(trimmed, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://socias-digitales.vercel.app'}/auth/callback`,
+      redirectTo: `${siteUrl}/auth/callback`,
       data: { password_set: false },
     })
 

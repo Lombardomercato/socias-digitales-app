@@ -9,9 +9,11 @@ export default async function LanzamientoPage() {
 
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('nombre, rol')
+    .select('nombre, rol, desafio_socias_habilitada')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (!perfil || (perfil.rol !== 'admin' && !perfil.desafio_socias_habilitada)) redirect('/inicio?acceso=pendiente')
 
   const { data: metricas } = await supabase
     .from('metricas_lanzamiento')

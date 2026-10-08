@@ -6,13 +6,13 @@ self.addEventListener('push', function(event) {
       body: data.body,
       icon: '/logo.png',
       badge: '/logo.png',
-      data: { url: data.url || '/perfil' },
+      data: { url: data.url || '/inicio' },
     })
   );
 });
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  const url = event.notification.data?.url || '/perfil';
+  const url = event.notification.data?.url || '/inicio';
   event.waitUntil(clients.openWindow(url));
 });
