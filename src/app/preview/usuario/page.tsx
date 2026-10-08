@@ -1,5 +1,5 @@
-import UsuarioPreview from './UsuarioPreview'
+import { redirect } from 'next/navigation'
 
 export default function UsuarioPreviewPage() {
-  return <UsuarioPreview />
+  redirect('/inicio')
 }

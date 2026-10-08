@@ -14,6 +14,7 @@ export default async function LanzamientoPage() {
     .maybeSingle()
 
   if (!perfil || (perfil.rol !== 'admin' && !perfil.desafio_socias_habilitada)) redirect('/inicio?acceso=pendiente')
+  if (perfil.rol === 'admin') redirect('/admin/lanzamiento')
 
   const { data: metricas } = await supabase
     .from('metricas_lanzamiento')

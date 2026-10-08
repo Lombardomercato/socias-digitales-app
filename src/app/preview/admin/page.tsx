@@ -1,5 +1,5 @@
-import AdminPreview from './AdminPreview'
+import { redirect } from 'next/navigation'
 
 export default function AdminPreviewPage() {
-  return <AdminPreview />
+  redirect('/admin')
 }

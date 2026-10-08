@@ -30,7 +30,11 @@ export const metadata: Metadata = {
   },
   description: "Tu espacio de aprendizaje, comunidad y negocio digital.",
   manifest: "/manifest.json",
-  icons: { icon: "/logo.png", apple: "/logo.png" },
+  icons: {
+    icon: [{ url: "/logo.png?v=sd-20261008", type: "image/png" }],
+    shortcut: "/logo.png?v=sd-20261008",
+    apple: "/logo.png?v=sd-20261008",
+  },
   robots: {
     index: false,
     follow: false,
@@ -55,13 +59,10 @@ export default function RootLayout({
       className={`${dmSans.variable} ${poppins.variable} ${playfair.variable} h-full antialiased`}
     >
       <head>
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#F4CAD8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Socias Digitales" />
-        <link rel="icon" href="/logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/logo.png" />
       </head>
       <body className="min-h-full flex flex-col">
         <PlatformAppearance>{children}</PlatformAppearance>

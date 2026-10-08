@@ -37,6 +37,7 @@ interface Stats {
   comisionesMes: number
   retencion: number
   solicitudesDesafioPendientes: number
+  fechaReferencia: number
 }
 
 interface Props {
@@ -44,9 +45,9 @@ interface Props {
   stats: Stats
 }
 
-function diasSinIngresar(ultimoAcceso: string | null) {
+function diasSinIngresar(ultimoAcceso: string | null, fechaReferencia: number) {
   if (!ultimoAcceso) return '—'
-  const diff = Date.now() - new Date(ultimoAcceso).getTime()
+  const diff = fechaReferencia - new Date(ultimoAcceso).getTime()
   const dias = Math.floor(diff / (1000 * 60 * 60 * 24))
   return dias === 0 ? 'Hoy' : `${dias}d`
 }
@@ -88,7 +89,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
 
   const inactivasMes = alumnas.filter(a => {
     if (!a.ultimo_acceso) return true
-    return Date.now() - new Date(a.ultimo_acceso).getTime() > 30 * 24 * 60 * 60 * 1000
+    return stats.fechaReferencia - new Date(a.ultimo_acceso).getTime() > 30 * 24 * 60 * 60 * 1000
   }).length
   const perfilesIncompletos = alumnas.filter(a => !a.nombre?.trim() || !a.pais).length
   const activasPct = stats.totalAlumnas ? Math.round((stats.activas / stats.totalAlumnas) * 100) : 0
@@ -159,7 +160,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
         <nav className="col-span-full flex gap-2 overflow-x-auto border-b border-[#e7ddd5] px-4 py-2 lg:hidden" aria-label="Navegación de administración">
           {[
             { href: '/admin', label: 'Inicio' }, { href: '/admin/desafio', label: 'Solicitudes' },
-            { href: '/admin/classroom', label: 'Clases' }, { href: '/admin/lanzamiento', label: 'Lanzamiento' },
+            { href: '/admin/classroom', label: 'Clases' }, { href: '/admin/lanzamiento', label: 'Avances de alumnas' },
             { href: '/admin/productos', label: 'Productos' }, { href: '/admin/notificaciones', label: 'Avisos' },
           ].map(item => <a key={item.href} href={item.href} className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold ${item.href === '/admin' ? 'bg-[#294A38] text-white' : 'bg-[#F4EFEA] text-[#746a64]'}`}>{item.label}</a>)}
         </nav>
@@ -170,7 +171,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               { href: '/admin', label: 'Vista general', active: true },
               { href: '/admin/desafio', label: 'Solicitudes del Desafío' },
               { href: '/admin/classroom', label: 'Clases' },
-              { href: '/admin/lanzamiento', label: 'Lanzamiento' },
+              { href: '/admin/lanzamiento', label: 'Avances de alumnas' },
               { href: '/admin/productos', label: 'Productos' },
               { href: '/admin/comunidad', label: 'Comunidad' },
               { href: '/admin/resultados', label: 'Resultados' },
@@ -184,7 +185,6 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Vista general</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Panel de Flor</h1></div>
             <div className="flex flex-wrap gap-2">
-              <a href="/preview/usuario" className="inline-flex w-fit items-center gap-2 rounded-full border border-[#294A38]/25 bg-white px-5 py-3 text-sm font-semibold text-[#294A38] transition hover:bg-[#F4EFEA]">Vista de usuaria <span aria-hidden="true">↗</span></a>
               <a href="/admin/invitar" className="inline-flex w-fit items-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Invitar al Desafío <span aria-hidden="true">+</span></a>
             </div>
           </div>
@@ -268,7 +268,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                     <td className="py-3.5"><span className="rounded-full bg-[#F4EFEA] px-2.5 py-1 text-xs font-medium">{etiquetaTipoUsuario(alumna.tipo_usuario)}</span></td>
                     <td className="py-3.5 text-xs text-[#746a64]">{alumna.pais ?? '—'}</td>
                     <td className="py-3.5 text-xs text-[#746a64]">{formatFecha(alumna.created_at)}</td>
-                    <td className="py-3.5 text-xs text-[#746a64]">{diasSinIngresar(alumna.ultimo_acceso)}</td>
+                    <td className="py-3.5 text-xs text-[#746a64]">{diasSinIngresar(alumna.ultimo_acceso, stats.fechaReferencia)}</td>
                     <td className="py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#F4EFEA]">
@@ -374,7 +374,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Último acceso</p>
-                  <p className="font-semibold text-gray-800">{diasSinIngresar(alumnaSeleccionada.ultimo_acceso)}</p>
+                  <p className="font-semibold text-gray-800">{diasSinIngresar(alumnaSeleccionada.ultimo_acceso, stats.fechaReferencia)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Rol</p>

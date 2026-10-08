@@ -80,12 +80,12 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
     <main className="min-h-screen bg-[#F4EFEA] text-[#211C19]">
       <header className="border-b border-[#211C19]/8 bg-[#FAF7F3]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <a href="/inicio" aria-label="Volver a mi espacio" className="flex items-center gap-3">
+          <a href={esAdmin ? '/admin' : '/inicio'} aria-label={esAdmin ? 'Volver al panel de Flor' : 'Volver a mi espacio'} className="flex items-center gap-3">
             <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-9 w-auto object-contain sm:h-11" />
           </a>
           <div className="flex items-center gap-3">
             {esAdmin && <a href="/admin/classroom" className="rounded-full bg-[#F4CAD8] px-4 py-2.5 text-xs font-semibold text-[#211C19] transition hover:bg-[#EC9BB6] sm:text-sm">Gestionar clases</a>}
-            <a href="/inicio" className="hidden items-center gap-2 text-sm font-medium text-[#746A64] transition hover:text-[#294A38] sm:flex">Mi espacio <Icon name="arrow" className="h-4 w-4" /></a>
+            <a href={esAdmin ? '/admin' : '/inicio'} className="hidden items-center gap-2 text-sm font-medium text-[#746A64] transition hover:text-[#294A38] sm:flex">{esAdmin ? 'Panel de Flor' : 'Mi espacio'} <Icon name="arrow" className="h-4 w-4" /></a>
           </div>
         </div>
       </header>

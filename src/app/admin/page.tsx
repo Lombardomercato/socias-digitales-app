@@ -32,6 +32,7 @@ export default async function AdminPage() {
   ])
 
   const stats = {
+    fechaReferencia: hoy.getTime(),
     totalAlumnas: alumnas?.length ?? 0,
     activas: alumnas?.filter(a => a.estado === 'activa').length ?? 0,
     nuevasHoy: alumnas?.filter(a => a.created_at >= inicioHoy).length ?? 0,
