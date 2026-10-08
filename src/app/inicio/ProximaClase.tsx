@@ -21,9 +21,10 @@ export default function ProximaClase({ ahoraInicial }: { ahoraInicial: number })
   const numero = dias > 0 ? dias : horas > 0 ? horas : mins
   const unidad = dias > 0 ? (dias === 1 ? 'día' : 'días') : horas > 0 ? (horas === 1 ? 'hora' : 'horas') : (mins === 1 ? 'minuto' : 'minutos')
   return <section aria-label="Clase de lanzamiento" className="rounded-[22px] bg-[#F4CAD8] p-5 text-[#171413]">
-    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#294A38]">{pasada ? 'Clase de lanzamiento' : 'Próxima clase'}</p>
-    <p className="mt-3 font-serif text-xl font-semibold">{CLASE_LANZAMIENTO.etiqueta}</p>
-    <time dateTime={CLASE_LANZAMIENTO.fecha} className="mt-1 block text-sm text-[#655B56]">{CLASE_LANZAMIENTO.hora}</time>
+    <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#294A38]">Tu acceso</p>
+    <p className="mt-3 font-serif text-xl font-semibold">Desafío Socias</p>
+    <p className="mt-3 text-sm font-medium">{CLASE_LANZAMIENTO.etiqueta}</p>
+    <time dateTime={CLASE_LANZAMIENTO.fecha} className="mt-1 block text-xs text-[#655B56]">{CLASE_LANZAMIENTO.hora}</time>
     {!pasada && <div className="mt-4 rounded-2xl bg-[#294A38] px-4 py-4 text-center text-[#FAF7F3]" role="timer" aria-label={minutos > 0 ? `Faltan ${dias} días, ${horas} horas y ${mins} minutos` : 'Llegó la hora de la clase'}>
       {minutos > 0 ? <>
         <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#F4CAD8]">Faltan</p>
