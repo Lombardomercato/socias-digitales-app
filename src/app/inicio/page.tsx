@@ -86,9 +86,9 @@ export default async function InicioPage() {
                   </div>
                   <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Continuar lanzamiento <span aria-hidden="true">→</span></Link>
                 </article>
-                <Link href="/clases" className="flex min-h-[250px] items-start flex-col justify-between rounded-[26px] bg-[#F4EFEA] p-6 text-[#171413] transition hover:bg-[#eee7df] sm:p-8">
-                  <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#294A38]">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#171413]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#655B56]">Volvé a ver las grabaciones del Desafío Socias.</p></div>
-                  <span className="mt-7 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-[#FAF7F3]">Ir a clases&nbsp; →</span>
+                <Link href="/clases" className="flex min-h-[250px] items-start flex-col justify-between rounded-[26px] bg-[#294A38] p-6 text-white transition hover:bg-[#203a2c] sm:p-8">
+                  <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#FAF7F3]/80">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#FAF7F3]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#FAF7F3]/90">Volvé a ver las grabaciones del Desafío Socias.</p></div>
+                  <span className="mt-7 rounded-full bg-[#FAF7F3] px-5 py-3 text-sm font-semibold text-[#294A38]">Ir a clases&nbsp; →</span>
                 </Link>
               </section>
               <section className="mt-4 grid gap-3 sm:grid-cols-3">
