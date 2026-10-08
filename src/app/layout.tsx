@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Playfair_Display, Poppins } from "next/font/google";
 import "./globals.css";
 import PushNotifications from "@/components/PushNotifications";
+import PlatformAppearance from "@/components/PlatformAppearance";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -61,7 +62,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/logo.png" />
       </head>
       <body className="min-h-full flex flex-col">
-        {children}
+        <PlatformAppearance>{children}</PlatformAppearance>
         <PushNotifications />
       </body>
     </html>
