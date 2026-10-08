@@ -110,12 +110,14 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="admin-dashboard min-h-screen bg-gray-50">
       {/* Nav */}
-      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+      <nav className="bg-white px-5 py-4 flex justify-between items-center border-b border-gray-100 sm:px-8">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-rose-600">Panel Admin</h1>
-          <span className="text-xs bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full font-medium">Administradora</span>
+          <a href="/admin" aria-label="Panel de Flor">
+            <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 38, width: 'auto', objectFit: 'contain' }} />
+          </a>
+          <span className="hidden rounded-full bg-rose-100 px-3 py-1 text-xs font-medium text-rose-600 sm:inline-flex">Administración</span>
         </div>
         <div className="flex items-center gap-4">
           <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">Mi perfil</a>
@@ -123,77 +125,83 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <div className="max-w-[1440px] mx-auto px-4 py-8 sm:px-7 lg:px-10 space-y-7">
+
+        <header className="flex flex-col gap-5 border-b border-gray-200 pb-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">Tu plataforma · Administración</p>
+            <h1 className="mt-2 text-4xl md:text-5xl">Panel de Flor</h1>
+            <p className="mt-2 text-sm text-gray-500">Alumnas, accesos y actividad.</p>
+          </div>
+          <a href="/admin/desafio" className="inline-flex items-center gap-3 self-start rounded-full bg-rose-100 px-5 py-3 text-sm font-semibold text-gray-900 transition hover:bg-rose-200 md:self-auto">
+            <span>Solicitudes del Desafío</span>
+            <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-white px-2 text-xs">{stats.solicitudesDesafioPendientes}</span>
+          </a>
+        </header>
 
         {/* Acciones rápidas */}
-        <div className="flex justify-end gap-3">
-          <a href="/admin/desafio"
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rose-300 text-sm font-medium text-gray-700 px-4 py-2 rounded-xl transition-all">
-            Solicitudes Desafío
-            <span className="rounded-full bg-[#F4CAD8] px-2 py-0.5 text-xs font-bold text-[#171413]">{stats.solicitudesDesafioPendientes}</span>
-          </a>
+        <div className="flex flex-wrap justify-end gap-3">
           <a href="/admin/invitar"
-            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">
-            ✉️ Invitar alumnas
+            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-5 py-3 rounded-full transition-all">
+            Invitar alumnas
           </a>
           <a href="/api/exportar-alumnas" download
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rose-300 hover:shadow-sm text-sm font-medium text-gray-700 px-4 py-2 rounded-xl transition-all">
-            📥 Descargar datos (.csv)
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rose-300 text-sm font-medium text-gray-700 px-5 py-3 rounded-full transition-all">
+            Descargar datos
           </a>
         </div>
 
         {/* KPIs principales */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {[
-            { emoji: '📈', label: 'Suscriptoras activas', valor: stats.activas },
-            { emoji: '💰', label: 'MRR', valor: `$${stats.mrr.toLocaleString('es-AR')}` },
-            { emoji: '🔥', label: 'Afiliadas activas', valor: stats.afiliadasActivas },
-            { emoji: '🎯', label: 'Ventas del mes', valor: stats.ventasMes },
-            { emoji: '🏆', label: 'Comisiones del mes', valor: `$${stats.comisionesMes.toLocaleString('es-AR')}` },
+            { label: 'Alumnas activas', valor: stats.activas },
+            { label: 'Ingresos del mes', valor: `$${stats.mrr.toLocaleString('es-AR')}` },
+            { label: 'Afiliadas activas', valor: stats.afiliadasActivas },
+            { label: 'Ventas del mes', valor: stats.ventasMes },
+            { label: 'Comisiones del mes', valor: `$${stats.comisionesMes.toLocaleString('es-AR')}` },
           ].map(kpi => (
-            <div key={kpi.label} className="bg-white rounded-xl shadow-sm p-4 text-center border border-gray-100">
-              <div className="text-2xl mb-1">{kpi.emoji}</div>
-              <div className="text-2xl font-bold text-gray-900">{kpi.valor}</div>
-              <div className="text-xs text-gray-500 mt-1">{kpi.label}</div>
+            <div key={kpi.label} className="bg-white rounded-2xl p-5 border border-gray-100">
+              <div className="text-3xl font-semibold leading-none text-gray-900 md:text-4xl" style={{ fontFamily: 'var(--font-playfair)' }}>{kpi.valor}</div>
+              <div className="mt-3 text-xs font-medium uppercase tracking-[0.12em] text-gray-500">{kpi.label}</div>
             </div>
           ))}
         </div>
 
         {/* Dashboard general */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+          <div className="bg-white rounded-2xl p-5 border border-gray-100">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Nuevas hoy</p>
-            <p className="text-3xl font-bold text-rose-500">{stats.nuevasHoy}</p>
+            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>{stats.nuevasHoy}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+          <div className="bg-white rounded-2xl p-5 border border-gray-100">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Nuevas este mes</p>
-            <p className="text-3xl font-bold text-rose-500">{stats.nuevasMes}</p>
+            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>{stats.nuevasMes}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+          <div className="bg-white rounded-2xl p-5 border border-gray-100">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Tasa de retención</p>
-            <p className="text-3xl font-bold text-rose-500">{stats.retencion}%</p>
+            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>{stats.retencion}%</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+          <div className="bg-white rounded-2xl p-5 border border-gray-100">
             <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Facturación histórica</p>
-            <p className="text-3xl font-bold text-rose-500">${stats.facturacionHistorica.toLocaleString('es-AR')}</p>
+            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>${stats.facturacionHistorica.toLocaleString('es-AR')}</p>
           </div>
         </div>
 
         {/* Accesos rápidos */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { href: '/admin/classroom', emoji: '📚', label: 'Classroom' },
-            { href: '/admin/productos', emoji: '🛍️', label: 'Productos' },
-            { href: '/admin/comunidad', emoji: '💬', label: 'Comunidad y Q&A' },
-            { href: '/admin/resultados', emoji: '🏆', label: 'Resultados' },
-            { href: '/admin/notificaciones', emoji: '🔔', label: 'Notificaciones' },
-            { href: '/admin/lanzamiento', emoji: '🚀', label: 'Lanzamiento' },
-            { href: '/admin/configuracion', emoji: '⚙️', label: 'Configuración' },
+            { href: '/admin/classroom', label: 'Clases' },
+            { href: '/admin/productos', label: 'Productos' },
+            { href: '/admin/comunidad', label: 'Comunidad y preguntas' },
+            { href: '/admin/resultados', label: 'Resultados' },
+            { href: '/admin/notificaciones', label: 'Notificaciones' },
+            { href: '/admin/lanzamiento', label: 'Lanzamiento' },
+            { href: '/admin/configuracion', label: 'Configuración' },
           ].map(link => (
             <a key={link.href} href={link.href}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center hover:border-rose-200 hover:shadow-md transition-all">
-              <div className="text-2xl mb-1">{link.emoji}</div>
-              <p className="text-sm font-medium text-gray-700">{link.label}</p>
+              className="group flex min-h-[92px] items-end justify-between gap-3 bg-white rounded-2xl border border-gray-100 p-4 transition-all hover:border-rose-300">
+              <p className="text-sm font-semibold text-gray-700">{link.label}</p>
+              <span aria-hidden="true" className="text-xl text-rose-500 transition-transform group-hover:translate-x-1">↗</span>
             </a>
           ))}
         </div>
