@@ -39,12 +39,6 @@ interface Props {
   stats: Stats
 }
 
-const ESTADO_COLOR: Record<string, string> = {
-  activa: 'bg-green-100 text-green-700',
-  pausada: 'bg-yellow-100 text-yellow-700',
-  cancelada: 'bg-red-100 text-red-700',
-}
-
 function diasSinIngresar(ultimoAcceso: string | null) {
   if (!ultimoAcceso) return '—'
   const diff = Date.now() - new Date(ultimoAcceso).getTime()
@@ -81,6 +75,13 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
     return coincideBusqueda && coincideEstado
   })
 
+  const inactivasMes = alumnas.filter(a => {
+    if (!a.ultimo_acceso) return true
+    return Date.now() - new Date(a.ultimo_acceso).getTime() > 30 * 24 * 60 * 60 * 1000
+  }).length
+  const perfilesIncompletos = alumnas.filter(a => !a.nombre?.trim() || !a.pais).length
+  const activasPct = stats.totalAlumnas ? Math.round((stats.activas / stats.totalAlumnas) * 100) : 0
+
   function abrirFicha(alumna: Alumna) {
     setAlumnaSeleccionada(alumna)
     setEditando({ ...alumna })
@@ -110,104 +111,74 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
   }
 
   return (
-    <div className="admin-dashboard min-h-screen bg-gray-50">
-      {/* Nav */}
-      <nav className="bg-white px-5 py-4 flex justify-between items-center border-b border-gray-100 sm:px-8">
-        <div className="flex items-center gap-3">
-          <a href="/admin" aria-label="Panel de Flor">
-            <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 38, width: 'auto', objectFit: 'contain' }} />
-          </a>
-          <span className="hidden rounded-full bg-rose-100 px-3 py-1 text-xs font-medium text-rose-600 sm:inline-flex">Administración</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">Mi perfil</a>
-          <button onClick={cerrarSesion} className="text-sm text-gray-500 hover:text-gray-800">Cerrar sesión</button>
-        </div>
-      </nav>
+    <div className="admin-dashboard min-h-screen bg-[#FAF7F3] text-[#211c19]">
+      <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] bg-[#FAF7F3] px-5 sm:px-8">
+        <a href="/admin" aria-label="Panel de Flor"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto object-contain" /></a>
+        <div className="flex items-center gap-4"><span className="hidden text-xs text-[#746a64] sm:block">Administración</span><a href="/perfil" className="text-sm font-medium text-[#294A38]">Mi perfil</a><button onClick={cerrarSesion} className="text-sm text-[#746a64] hover:text-[#211c19]">Cerrar sesión</button></div>
+      </header>
 
-      <div className="max-w-[1440px] mx-auto px-4 py-8 sm:px-7 lg:px-10 space-y-7">
-
-        <header className="flex flex-col gap-5 border-b border-gray-200 pb-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600">Tu plataforma · Administración</p>
-            <h1 className="mt-2 text-4xl md:text-5xl">Panel de Flor</h1>
-            <p className="mt-2 text-sm text-gray-500">Alumnas, accesos y actividad.</p>
-          </div>
-          <a href="/admin/desafio" className="inline-flex items-center gap-3 self-start rounded-full bg-rose-100 px-5 py-3 text-sm font-semibold text-gray-900 transition hover:bg-rose-200 md:self-auto">
-            <span>Solicitudes del Desafío</span>
-            <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-white px-2 text-xs">{stats.solicitudesDesafioPendientes}</span>
-          </a>
-        </header>
-
-        {/* Acciones rápidas */}
-        <div className="flex flex-wrap justify-end gap-3">
-          <a href="/admin/invitar"
-            className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold px-5 py-3 rounded-full transition-all">
-            Invitar alumnas
-          </a>
-          <a href="/api/exportar-alumnas" download
-            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-rose-300 text-sm font-medium text-gray-700 px-5 py-3 rounded-full transition-all">
-            Descargar datos
-          </a>
-        </div>
-
-        {/* KPIs principales */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="mx-auto grid max-w-[1400px] lg:grid-cols-[220px_minmax(0,1fr)]">
+        <nav className="col-span-full flex gap-2 overflow-x-auto border-b border-[#e7ddd5] px-4 py-2 lg:hidden" aria-label="Navegación de administración">
           {[
-            { label: 'Alumnas activas', valor: stats.activas },
-            { label: 'Ingresos del mes', valor: `$${stats.mrr.toLocaleString('es-AR')}` },
-            { label: 'Afiliadas activas', valor: stats.afiliadasActivas },
-            { label: 'Ventas del mes', valor: stats.ventasMes },
-            { label: 'Comisiones del mes', valor: `$${stats.comisionesMes.toLocaleString('es-AR')}` },
-          ].map(kpi => (
-            <div key={kpi.label} className="bg-white rounded-2xl p-5 border border-gray-100">
-              <div className="text-3xl font-semibold leading-none text-gray-900 md:text-4xl" style={{ fontFamily: 'var(--font-playfair)' }}>{kpi.valor}</div>
-              <div className="mt-3 text-xs font-medium uppercase tracking-[0.12em] text-gray-500">{kpi.label}</div>
+            { href: '/admin', label: 'Inicio' }, { href: '/admin/desafio', label: 'Solicitudes' },
+            { href: '/admin/classroom', label: 'Clases' }, { href: '/admin/lanzamiento', label: 'Lanzamiento' },
+            { href: '/admin/productos', label: 'Productos' }, { href: '/admin/notificaciones', label: 'Avisos' },
+          ].map(item => <a key={item.href} href={item.href} className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold ${item.href === '/admin' ? 'bg-[#294A38] text-white' : 'bg-[#F4EFEA] text-[#746a64]'}`}>{item.label}</a>)}
+        </nav>
+        <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Panel de Flor</p>
+          <nav className="mt-5 space-y-1.5" aria-label="Navegación de administración">
+            {[
+              { href: '/admin', label: 'Vista general', active: true },
+              { href: '/admin/desafio', label: 'Solicitudes del Desafío' },
+              { href: '/admin/classroom', label: 'Clases' },
+              { href: '/admin/lanzamiento', label: 'Lanzamiento' },
+              { href: '/admin/productos', label: 'Productos' },
+              { href: '/admin/comunidad', label: 'Comunidad' },
+              { href: '/admin/resultados', label: 'Resultados' },
+              { href: '/admin/notificaciones', label: 'Notificaciones' },
+              { href: '/admin/configuracion', label: 'Configuración' },
+            ].map(item => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${item.active ? 'bg-[#F4CAD8] font-semibold' : 'text-[#746a64] hover:bg-[#F4EFEA] hover:text-[#211c19]'}`}><span>{item.label}</span>{item.href === '/admin/desafio' && stats.solicitudesDesafioPendientes > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#211c19]">{stats.solicitudesDesafioPendientes}</span> : null}</a>)}
+          </nav>
+        </aside>
+
+        <main className="min-w-0 space-y-4 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Vista general</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Panel de Flor</h1></div>
+            <a href="/admin/invitar" className="inline-flex w-fit items-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Invitar alumna <span aria-hidden="true">+</span></a>
+          </div>
+
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: 'Usuarias', value: stats.totalAlumnas, note: `+${stats.nuevasMes} este mes`, tone: 'bg-[#F4CAD8]' },
+              { label: 'Alumnas activas', value: stats.activas, note: `${activasPct}% del total`, tone: 'bg-[#EC9BB6]' },
+              { label: 'Solicitudes pendientes', value: stats.solicitudesDesafioPendientes, note: 'Desafío Socias', tone: 'bg-[#F4EFEA]' },
+              { label: 'Ventas del mes', value: stats.ventasMes, note: 'Registradas en la plataforma', tone: 'bg-[#294A38] text-white' },
+            ].map(kpi => <article key={kpi.label} className={`rounded-[22px] p-5 ${kpi.tone}`}><p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-65">{kpi.label}</p><p className="mt-3 font-impact text-4xl font-semibold tracking-[-0.04em]">{kpi.value}</p><p className="mt-2 text-xs font-medium opacity-65">{kpi.note}</p></article>)}
+          </section>
+
+          <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+            <article className="rounded-[24px] bg-[#F4EFEA] p-5 sm:p-6">
+              <div className="flex items-center justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Estado de la comunidad</p><h2 className="mt-1.5 font-serif text-2xl font-semibold">Actividad de alumnas</h2></div><span className="font-impact text-sm font-semibold text-[#294A38]">{stats.totalAlumnas}</span></div>
+              <div className="mt-6 flex h-5 overflow-hidden rounded-full bg-white"><div className="bg-[#294A38] transition-all" style={{ width: `${activasPct}%` }} /><div className="bg-[#EC9BB6] transition-all" style={{ width: `${100 - activasPct}%` }} /></div>
+              <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl bg-white px-4 py-3"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#294A38]"/><span className="text-xs font-semibold">Activas</span></div><p className="mt-2 font-impact text-2xl font-semibold">{stats.activas}</p></div><div className="rounded-xl bg-white px-4 py-3"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#EC9BB6]"/><span className="text-xs font-semibold">Otras</span></div><p className="mt-2 font-impact text-2xl font-semibold">{Math.max(stats.totalAlumnas - stats.activas, 0)}</p></div></div>
+            </article>
+            <article className="rounded-[24px] bg-[#F4CAD8] p-5 sm:p-6">
+              <div className="flex items-start justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Requieren atención</p><p className="mt-2 font-impact text-4xl font-semibold">{inactivasMes + stats.solicitudesDesafioPendientes}</p></div><span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FAF7F3] text-[#294A38]" aria-hidden="true">!</span></div>
+              <div className="mt-5 space-y-2 text-sm"><a href="/admin/desafio" className="flex items-center justify-between rounded-xl bg-[#FAF7F3]/75 px-4 py-3"><span>Solicitudes pendientes</span><strong className="font-impact">{stats.solicitudesDesafioPendientes}</strong></a><div className="flex items-center justify-between rounded-xl bg-[#FAF7F3]/75 px-4 py-3"><span>Sin ingreso reciente</span><strong className="font-impact">{inactivasMes}</strong></div><div className="flex items-center justify-between rounded-xl bg-[#FAF7F3]/75 px-4 py-3"><span>Perfil por completar</span><strong className="font-impact">{perfilesIncompletos}</strong></div></div>
+            </article>
+          </section>
+
+          <section className="rounded-[24px] bg-white p-5 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Usuarias</p><h2 className="mt-1 font-serif text-2xl font-semibold">Acceso y actividad</h2></div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <a href="/api/exportar-alumnas" download className="text-sm font-medium text-[#294A38]">Descargar lista&nbsp; ↓</a>
+                <input type="text" aria-label="Buscar alumnas" placeholder="Buscar por nombre o país" value={busqueda} onChange={e => setBusqueda(e.target.value)} className="min-w-[220px] rounded-full border-0 bg-[#F4EFEA] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#EC9BB6]" />
+              </div>
             </div>
-          ))}
-        </div>
 
-        {/* Dashboard general */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl p-5 border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Nuevas hoy</p>
-            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>{stats.nuevasHoy}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Nuevas este mes</p>
-            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>{stats.nuevasMes}</p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Tasa de retención</p>
-            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>{stats.retencion}%</p>
-          </div>
-          <div className="bg-white rounded-2xl p-5 border border-gray-100">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Facturación histórica</p>
-            <p className="text-3xl font-semibold text-rose-500" style={{ fontFamily: 'var(--font-poppins)' }}>${stats.facturacionHistorica.toLocaleString('es-AR')}</p>
-          </div>
-        </div>
-
-        {/* Accesos rápidos */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { href: '/admin/classroom', label: 'Clases' },
-            { href: '/admin/productos', label: 'Productos' },
-            { href: '/admin/comunidad', label: 'Comunidad y preguntas' },
-            { href: '/admin/resultados', label: 'Resultados' },
-            { href: '/admin/notificaciones', label: 'Notificaciones' },
-            { href: '/admin/lanzamiento', label: 'Lanzamiento' },
-            { href: '/admin/configuracion', label: 'Configuración' },
-          ].map(link => (
-            <a key={link.href} href={link.href}
-              className="group flex min-h-[92px] items-end justify-between gap-3 bg-white rounded-2xl border border-gray-100 p-4 transition-all hover:border-rose-300">
-              <p className="text-sm font-semibold text-gray-700">{link.label}</p>
-              <span aria-hidden="true" className="text-xl text-rose-500 transition-transform group-hover:translate-x-1">↗</span>
-            </a>
-          ))}
-        </div>
-
-        {/* Estados rápidos */}
-        <div className="flex gap-3 flex-wrap">
+            <div className="mt-4 flex flex-wrap gap-1.5 rounded-full bg-[#F4EFEA] p-1 sm:w-fit">
           {[
             { label: 'Todas', valor: 'todas', count: stats.totalAlumnas },
             { label: 'Activas', valor: 'activa', count: stats.activas },
@@ -217,97 +188,67 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
             <button
               key={f.valor}
               onClick={() => setFiltroEstado(f.valor)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`rounded-full px-3.5 py-2 text-xs font-semibold transition-colors ${
                 filtroEstado === f.valor
-                  ? 'bg-rose-500 text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-rose-300'
+                  ? 'bg-[#294A38] text-white'
+                  : 'text-[#746a64] hover:bg-white'
               }`}
             >
               {f.label} <span className="ml-1 opacity-70">({f.count})</span>
             </button>
           ))}
-        </div>
+            </div>
 
-        {/* Tabla de alumnas */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-          <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <h2 className="text-lg font-bold text-gray-900">Gestión de Alumnas</h2>
-            <input
-              type="text"
-              placeholder="Buscar por nombre o país..."
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-rose-300"
-            />
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-gray-400 uppercase tracking-wide border-b border-gray-100">
-                  <th className="text-left px-6 py-3">Alumna</th>
-                  <th className="text-left px-4 py-3">Estado</th>
-                  <th className="text-left px-4 py-3">Plan</th>
-                  <th className="text-left px-4 py-3">País</th>
-                  <th className="text-left px-4 py-3">Ingreso</th>
-                  <th className="text-left px-4 py-3">Último acceso</th>
-                  <th className="text-left px-4 py-3">Progreso</th>
-                  <th className="text-left px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
+            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead><tr className="border-b border-[#e7ddd5] text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#746a64]"><th className="pb-3">Alumna</th><th className="pb-3">Estado</th><th className="pb-3">Plan</th><th className="pb-3">País</th><th className="pb-3">Ingreso</th><th className="pb-3">Actividad</th><th className="pb-3">Progreso</th><th className="pb-3"></th></tr></thead><tbody className="divide-y divide-[#e7ddd5]">
                 {alumnasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-10 text-gray-400">
+                    <td colSpan={8} className="py-10 text-center text-[#746a64]">
                       No hay alumnas que coincidan
                     </td>
                   </tr>
                 ) : alumnasFiltradas.map(alumna => (
                   <tr key={alumna.id} className="hover:bg-rose-50 transition-colors">
-                    <td className="px-6 py-4">
+                    <td className="py-3.5 pr-4">
                       <div className="flex items-center gap-3">
                         {alumna.avatar_url ? (
-                          <img src={alumna.avatar_url} className="w-9 h-9 rounded-full object-cover" alt="" />
+                          <img src={alumna.avatar_url} className="h-9 w-9 rounded-full object-cover" alt="" />
                         ) : (
-                          <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-lg">🌸</div>
+                          <div className="font-impact flex h-9 w-9 items-center justify-center rounded-full bg-[#F4CAD8] text-xs font-semibold">{(alumna.nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</div>
                         )}
                         <div>
-                          <p className="font-medium text-gray-900">{alumna.nombre || 'Sin nombre'}</p>
-                          {alumna.whatsapp && <p className="text-xs text-gray-400">{alumna.whatsapp}</p>}
+                          <p className="font-semibold text-[#211c19]">{alumna.nombre || 'Sin nombre'}</p>
+                          {alumna.whatsapp && <p className="mt-0.5 text-xs text-[#746a64]">{alumna.whatsapp}</p>}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${ESTADO_COLOR[alumna.estado] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {alumna.estado ?? 'activa'}
-                      </span>
+                    <td className="py-3.5"><span className="flex items-center gap-2 text-xs font-medium text-[#211c19]"><span className={`h-2 w-2 rounded-full ${alumna.estado === 'activa' ? 'bg-[#294A38]' : alumna.estado === 'pausada' ? 'bg-[#EC9BB6]' : 'bg-[#211c19]/25'}`} />
+                        {alumna.estado ?? 'activa'}</span>
                     </td>
-                    <td className="px-4 py-4 text-gray-600 capitalize">{alumna.plan ?? '—'}</td>
-                    <td className="px-4 py-4 text-gray-600">{alumna.pais ?? '—'}</td>
-                    <td className="px-4 py-4 text-gray-500">{formatFecha(alumna.created_at)}</td>
-                    <td className="px-4 py-4 text-gray-500">{diasSinIngresar(alumna.ultimo_acceso)}</td>
-                    <td className="px-4 py-4">
+                    <td className="py-3.5"><span className="rounded-full bg-[#F4EFEA] px-2.5 py-1 text-xs font-medium capitalize">{alumna.plan ?? '—'}</span></td>
+                    <td className="py-3.5 text-xs text-[#746a64]">{alumna.pais ?? '—'}</td>
+                    <td className="py-3.5 text-xs text-[#746a64]">{formatFecha(alumna.created_at)}</td>
+                    <td className="py-3.5 text-xs text-[#746a64]">{diasSinIngresar(alumna.ultimo_acceso)}</td>
+                    <td className="py-3.5">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-100 rounded-full h-1.5">
-                          <div className="bg-rose-400 h-1.5 rounded-full" style={{ width: `${alumna.progreso ?? 0}%` }} />
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#F4EFEA]">
+                          <div className="h-full rounded-full bg-[#294A38]" style={{ width: `${Math.max(0, Math.min(Number(alumna.progreso ?? 0), 100))}%` }} />
                         </div>
-                        <span className="text-xs text-gray-500">{alumna.progreso ?? 0}%</span>
+                        <span className="font-impact text-xs font-semibold">{alumna.progreso ?? 0}%</span>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="py-3.5 text-right">
                       <button
                         onClick={() => abrirFicha(alumna)}
-                        className="text-xs text-rose-600 hover:text-rose-800 font-medium"
+                        className="text-xs font-semibold text-[#294A38] hover:underline"
                       >
                         Ver ficha
                       </button>
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </tbody></table></div>
+          </section>
+        </main>
       </div>
 
       {/* Modal ficha de alumna */}
