@@ -25,3 +25,140 @@ body {
   color: var(--foreground);
   font-family: var(--font-dm-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Socias Digitales · una misma experiencia visual en el panel y el espacio de las alumnas. */
+.platform-design {
+  --sd-paper: #f4efea;
+  --sd-surface: #fffdfa;
+  --sd-blush: #f4cad8;
+  --sd-rose: #ec9bb6;
+  --sd-green: #294a38;
+  --sd-ink: #211c19;
+  --sd-muted: #746a64;
+  --sd-line: #e7ddd5;
+  min-height: 100vh;
+  color: var(--sd-ink);
+  background: var(--sd-paper);
+  font-family: var(--font-dm-sans), Arial, Helvetica, sans-serif;
+}
+
+.platform-design .bg-gray-50,
+.platform-design .bg-gradient-to-br.from-rose-50,
+.platform-design [style*="background: '#f5f0eb'"],
+.platform-design [style*="background: '#F4EFEA'"] {
+  background: var(--sd-paper) !important;
+}
+
+.platform-design .bg-white {
+  background: var(--sd-surface) !important;
+}
+
+.platform-design [class*="shadow"],
+.platform-design [class*="drop-shadow"] {
+  box-shadow: none !important;
+}
+
+.platform-design [class*="border-gray-100"],
+.platform-design [class*="border-gray-200"],
+.platform-design [class*="border-gray-300"] {
+  border-color: var(--sd-line) !important;
+}
+
+.platform-design [class*="text-gray-900"],
+.platform-design [class*="text-gray-800"] {
+  color: var(--sd-ink) !important;
+}
+
+.platform-design [class*="text-gray-600"],
+.platform-design [class*="text-gray-500"],
+.platform-design [class*="text-gray-400"] {
+  color: var(--sd-muted) !important;
+}
+
+.platform-design [class*="bg-rose-500"],
+.platform-design [class*="hover:bg-rose-600"]:hover {
+  background-color: var(--sd-green) !important;
+}
+
+.platform-design [class*="text-rose-600"],
+.platform-design [class*="text-rose-500"],
+.platform-design [class*="hover:text-rose-800"]:hover {
+  color: var(--sd-green) !important;
+}
+
+.platform-design [class*="bg-rose-100"],
+.platform-design [class*="bg-rose-50"],
+.platform-design [class*="bg-pink-100"] {
+  background-color: var(--sd-blush) !important;
+}
+
+.platform-design [class*="bg-rose-400"] {
+  background-color: var(--sd-rose) !important;
+}
+
+.platform-design [class*="border-rose-"] {
+  border-color: var(--sd-rose) !important;
+}
+
+.platform-design nav {
+  background-color: #faf7f3 !important;
+  box-shadow: none !important;
+}
+
+.platform-design h1 {
+  color: var(--sd-ink);
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.platform-design h2,
+.platform-design h3 {
+  color: var(--sd-ink);
+  font-family: var(--font-poppins), var(--font-dm-sans), sans-serif;
+  letter-spacing: -0.025em;
+}
+
+.platform-design button,
+.platform-design a {
+  transition-duration: 160ms;
+}
+
+.platform-design input:not([type="checkbox"]),
+.platform-design textarea,
+.platform-design select {
+  border-color: var(--sd-line) !important;
+  border-radius: 14px !important;
+  background-color: var(--sd-surface);
+  color: var(--sd-ink);
+}
+
+.platform-design input:focus,
+.platform-design textarea:focus,
+.platform-design select:focus {
+  --tw-ring-color: var(--sd-rose) !important;
+  border-color: var(--sd-rose) !important;
+}
+
+.platform-design table thead {
+  background: #faf7f3;
+}
+
+.platform-design table tbody tr:hover {
+  background-color: #fbf1f4 !important;
+}
+
+.platform-design--admin > :first-child,
+.platform-design--member > :first-child {
+  background-color: var(--sd-paper);
+}
+
+@media (max-width: 640px) {
+  .platform-design h1 {
+    letter-spacing: -0.025em;
+  }
+
+  .platform-design table {
+    min-width: 680px;
+  }
+}
