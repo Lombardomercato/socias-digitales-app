@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ProximaClase from './ProximaClase'
+import ArrowIcon from '@/components/ArrowIcon'
+import NavigationIcon from '@/components/NavigationIcon'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -42,12 +44,12 @@ export default async function InicioPage() {
         {habilitada && <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Mi espacio</p>
           <nav className="mt-5 space-y-1.5" aria-label="Navegación principal">
-            <Link href="/inicio" aria-current="page" className="flex items-center gap-3 rounded-xl bg-[#F4CAD8] px-3 py-3 text-sm font-semibold">Inicio</Link>
+            <Link href="/inicio" aria-current="page" className="flex items-center gap-3 rounded-xl bg-[#F4CAD8] px-3 py-3 text-sm font-semibold"><NavigationIcon name="inicio" />Inicio</Link>
             {habilitada ? <>
-              <Link href="/lanzamiento" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]">Mi lanzamiento</Link>
-              <Link href="/clases" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]">Programa</Link>
+              <Link href="/lanzamiento" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="lanzamiento" />Mi lanzamiento</Link>
+              <Link href="/clases" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="clases" />Programa</Link>
             </> : null}
-            <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]">Mi perfil</Link>
+            <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="perfil" />Mi perfil</Link>
           </nav>
           {mostrarClase && <div className="mt-8"><ProximaClase ahoraInicial={ahoraInicial} /></div>}
         </aside>}
@@ -58,7 +60,7 @@ export default async function InicioPage() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">{habilitada ? 'Desafío Socias' : esDesafio ? 'Desafío Socias' : 'Acceso gratuito'}</p>
               <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Hola, {nombre}.</h1>
             </div>
-            <Link href="/perfil" className="text-sm font-medium text-[#294A38]">Mi perfil&nbsp; ↗</Link>
+            <Link href="/perfil" className="inline-flex items-center gap-2 text-sm font-medium text-[#294A38]">Mi perfil <ArrowIcon diagonal /></Link>
           </div>
 
           {mostrarClase && <div className={`mt-6 ${habilitada ? 'lg:hidden' : ''}`}><ProximaClase ahoraInicial={ahoraInicial} /></div>}
@@ -84,11 +86,11 @@ export default async function InicioPage() {
                     <h2 className="mt-4 max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">Seguí avanzando con tu lanzamiento.</h2>
                     <p className="mt-3 text-sm text-[#211c19]/65">Etapas, tareas y avances en un solo lugar.</p>
                   </div>
-                  <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Continuar lanzamiento <span aria-hidden="true">→</span></Link>
+                  <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Continuar lanzamiento <ArrowIcon /></Link>
                 </article>
                 <Link href="/clases" className="flex min-h-[250px] items-start flex-col justify-between rounded-[26px] bg-[#294A38] p-6 text-white transition hover:bg-[#203a2c] sm:p-8">
                   <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#FAF7F3]/80">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#FAF7F3]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#FAF7F3]/90">Volvé a ver las grabaciones del Desafío Socias.</p></div>
-                  <span className="mt-7 rounded-full bg-[#FAF7F3] px-5 py-3 text-sm font-semibold text-[#294A38]">Ir a clases&nbsp; →</span>
+                  <span className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#FAF7F3] px-5 py-3 text-sm font-semibold text-[#294A38]">Ir a clases <ArrowIcon /></span>
                 </Link>
               </section>
               <section className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -96,7 +98,7 @@ export default async function InicioPage() {
                   { label: 'Lanzamiento', href: '/lanzamiento', note: 'Etapas y tareas', tone: 'bg-white' },
                   { label: 'Clases grabadas', href: '/clases', note: 'Programa Socias', tone: 'bg-[#EC9BB6]/70' },
                   { label: 'Mi perfil', href: '/perfil', note: 'Tus datos y cuenta', tone: 'bg-[#F4EFEA]' },
-                ].map(item => <Link key={item.href} href={item.href} className={`flex min-h-28 flex-col justify-between rounded-[20px] p-5 transition hover:-translate-y-0.5 ${item.tone}`}><span className="text-sm font-semibold">{item.label}<span className="float-right" aria-hidden="true">↗</span></span><span className="text-xs text-[#746a64]">{item.note}</span></Link>)}
+                ].map(item => <Link key={item.href} href={item.href} className={`group flex min-h-28 flex-col justify-between rounded-[20px] p-5 transition hover:-translate-y-0.5 ${item.tone}`}><span className="flex items-center justify-between gap-3 text-sm font-semibold">{item.label}<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FAF7F3]/80 text-[#294A38] transition group-hover:bg-[#294A38] group-hover:text-white"><ArrowIcon diagonal /></span></span><span className="text-xs text-[#746a64]">{item.note}</span></Link>)}
               </section>
             </>
           )}
