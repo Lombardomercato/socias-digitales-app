@@ -42,10 +42,10 @@ export default async function InicioPage() {
             </> : null}
             <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]">Mi perfil</Link>
           </nav>
-          {habilitada ? <div className="mt-8 rounded-[22px] bg-[#294A38] p-5 text-white">
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/65">Tu acceso</p>
+          {habilitada ? <div className="mt-8 rounded-[22px] bg-[#F4EFEA] p-5 text-[#171413]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#294A38]">Tu acceso</p>
             <p className="mt-3 font-serif text-xl">Desafío Socias</p>
-            <p className="mt-2 text-xs leading-5 text-white/70">Clases y espacio de lanzamiento habilitados.</p>
+            <p className="mt-2 text-xs leading-5 text-[#655B56]">Clases y espacio de lanzamiento habilitados.</p>
           </div> : null}
         </aside>}
 
@@ -81,9 +81,9 @@ export default async function InicioPage() {
                   </div>
                   <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Continuar lanzamiento <span aria-hidden="true">→</span></Link>
                 </article>
-                <Link href="/clases" className="flex min-h-[250px] flex-col justify-between rounded-[26px] bg-[#294A38] p-6 text-white transition hover:bg-[#203a2c] sm:p-8">
-                  <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/65">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold">Tus clases</h2><p className="mt-3 text-sm leading-6 text-white/70">Volvé a ver las grabaciones del Desafío Socias.</p></div>
-                  <span className="text-sm font-semibold">Ir a clases&nbsp; →</span>
+                <Link href="/clases" className="flex min-h-[250px] items-start flex-col justify-between rounded-[26px] bg-[#F4EFEA] p-6 text-[#171413] transition hover:bg-[#eee7df] sm:p-8">
+                  <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#294A38]">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#171413]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#655B56]">Volvé a ver las grabaciones del Desafío Socias.</p></div>
+                  <span className="mt-7 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-[#FAF7F3]">Ir a clases&nbsp; →</span>
                 </Link>
               </section>
               <section className="mt-4 grid gap-3 sm:grid-cols-3">

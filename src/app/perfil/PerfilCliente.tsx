@@ -151,6 +151,11 @@ export default function PerfilCliente({ user, perfil }: Props) {
           <p className="mt-2 text-sm leading-6 text-[#655B56]">Tus datos y preferencias.</p>
         </header>
 
+        <section className="flex items-center justify-between gap-4 rounded-2xl bg-[#FAF7F3] p-5">
+          <div><h2 className="text-sm font-semibold">Seguridad de tu cuenta</h2><p className="mt-1 text-xs text-[#655B56]">Tu contraseña es personal.</p></div>
+          <Link href="/cuenta/contrasena" className="text-sm font-semibold text-[#294A38] underline underline-offset-4">Cambiar contraseña</Link>
+        </section>
+
         {/* Banner próximamente */}
         {bannerProximamente && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-center gap-3">

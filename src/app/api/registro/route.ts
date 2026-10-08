@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto'
+import { EMAIL_HEADER } from '@/lib/email-brand'
 import { NextResponse } from 'next/server'
 import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
 
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
   const firstName = escapeHtml((data.user?.user_metadata?.nombre || nombre || 'Socia').split(' ')[0])
   const heading = recovery ? 'Recuperá tu acceso' : 'Confirmá tu cuenta'
   const description = recovery ? 'Recibimos un pedido para recuperar tu acceso. Desde este enlace podés elegir una contraseña nueva.' : challenge ? 'Confirmá tu email para completar tu registro al Desafío Socias. Flor revisará tu inscripción y te enviará la bienvenida cuando habilite tu acceso.' : 'Confirmá tu email para entrar a tu cuenta de Socias Digitales.'
-  const html = `<div style="background:#FAF7F3;padding:32px 16px;font-family:Arial,sans-serif;color:#171413"><div style="max-width:560px;margin:auto"><img src="${site}/academy-horizontal-color.png" alt="Socias Digitales Academy" width="220" style="display:block;margin:0 auto 32px"><h1 style="font-size:28px;color:#294A38">${heading}</h1><p>Hola, ${firstName}.</p><p>${description}</p><a href="${link}" style="display:block;text-align:center;background:#294A38;color:white;padding:18px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:18px;margin:28px 0">${recovery ? 'RECUPERAR MI ACCESO' : 'CONFIRMAR MI CUENTA'}</a><p style="font-size:13px;color:#655B56">Si no hiciste este pedido, ignorá este correo.</p><p>Un abrazo,<br>Flor</p></div></div>`
+  const html = `<div style="background:#FAF7F3;padding:32px 16px;font-family:Arial,sans-serif;color:#171413"><div style="max-width:560px;margin:auto">${EMAIL_HEADER}<h1 style="font-size:28px;color:#294A38">${heading}</h1><p>Hola, ${firstName}.</p><p>${description}</p><a href="${link}" style="display:block;text-align:center;background:#294A38;color:white;padding:18px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:18px;margin:28px 0">${recovery ? 'RECUPERAR MI ACCESO' : 'CONFIRMAR MI CUENTA'}</a><p style="font-size:13px;color:#655B56">Si no hiciste este pedido, ignorá este correo.</p><p>Un abrazo,<br>Flor</p></div></div>`
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },

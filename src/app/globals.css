@@ -119,6 +119,13 @@ body {
   letter-spacing: -0.025em;
 }
 
+/* Los títulos deben conservar el contraste de las pocas tarjetas verdes. */
+.platform-design [class*="bg-[#294A38]"][class*="text-white"] h1,
+.platform-design [class*="bg-[#294A38]"][class*="text-white"] h2,
+.platform-design [class*="bg-[#294A38]"][class*="text-white"] h3 {
+  color: #faf7f3;
+}
+
 .platform-design button,
 .platform-design a {
   transition-duration: 160ms;
