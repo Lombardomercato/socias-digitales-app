@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import ProximaClase from './ProximaClase'
+
+async function leerHoraServidor() {
+  return Date.now()
+}
 
 export default async function InicioPage() {
   const supabase = await createClient()
@@ -19,6 +24,8 @@ export default async function InicioPage() {
   const tipoUsuario = perfil?.tipo_usuario ?? (perfil?.rol === 'afiliada' || perfil?.rol === 'afiliada_lanzamiento' ? 'socia' : 'gratuito')
   const habilitada = Boolean(perfil?.desafio_socias_habilitada)
   const esDesafio = tipoUsuario === 'desafio'
+  const mostrarClase = habilitada || tipoUsuario === 'socia'
+  const ahoraInicial = await leerHoraServidor()
   const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
   return (
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
@@ -42,11 +49,7 @@ export default async function InicioPage() {
             </> : null}
             <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]">Mi perfil</Link>
           </nav>
-          {habilitada ? <div className="mt-8 rounded-[22px] bg-[#F4EFEA] p-5 text-[#171413]">
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#294A38]">Tu acceso</p>
-            <p className="mt-3 font-serif text-xl">Desafío Socias</p>
-            <p className="mt-2 text-xs leading-5 text-[#655B56]">Clases y espacio de lanzamiento habilitados.</p>
-          </div> : null}
+          {mostrarClase && <div className="mt-8"><ProximaClase ahoraInicial={ahoraInicial} /></div>}
         </aside>}
 
         <main className="min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
@@ -57,6 +60,8 @@ export default async function InicioPage() {
             </div>
             <Link href="/perfil" className="text-sm font-medium text-[#294A38]">Mi perfil&nbsp; ↗</Link>
           </div>
+
+          {mostrarClase && <div className={`mt-6 ${habilitada ? 'lg:hidden' : ''}`}><ProximaClase ahoraInicial={ahoraInicial} /></div>}
 
           {!habilitada && esDesafio ? (
             <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
