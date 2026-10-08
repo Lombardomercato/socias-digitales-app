@@ -9,7 +9,7 @@ export default async function InicioPage() {
 
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('nombre, avatar_url, rol, tipo_usuario, desafio_socias_habilitada')
+    .select('nombre, avatar_url, rol, tipo_usuario, desafio_socias_habilitada, desafio_socias_estado')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -19,6 +19,7 @@ export default async function InicioPage() {
   const tipoUsuario = perfil?.tipo_usuario ?? (perfil?.rol === 'afiliada' || perfil?.rol === 'afiliada_lanzamiento' ? 'socia' : 'gratuito')
   const habilitada = Boolean(perfil?.desafio_socias_habilitada)
   const esDesafio = tipoUsuario === 'desafio'
+  const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
   return (
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
       <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
@@ -60,8 +61,8 @@ export default async function InicioPage() {
           {!habilitada && esDesafio ? (
             <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Inscripción recibida</p>
-              <h2 className="mt-3 font-serif text-3xl font-semibold">Tu acceso está en revisión.</h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/70">Cuando Flor habilite tu inscripción, vas a recibir el email de bienvenida para entrar a tus clases y al espacio de lanzamiento.</p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold">{accesoCerrado ? 'Tu acceso no está habilitado.' : 'Tu acceso está en revisión.'}</h2>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/70">{accesoCerrado ? 'Contactá a la administradora del Desafío Socias para consultar tu inscripción.' : 'Cuando Flor habilite tu inscripción, vas a recibir el email de bienvenida para entrar a tus clases y al espacio de lanzamiento.'}</p>
               <Link href="/perfil" className="mt-6 inline-flex rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Revisar mi perfil&nbsp; →</Link>
             </section>
           ) : !habilitada ? (
