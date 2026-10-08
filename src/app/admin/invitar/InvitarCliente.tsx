@@ -42,7 +42,7 @@ export default function InvitarCliente() {
       <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
         <div>
           <h1 className="text-3xl font-black text-gray-900">Invitar alumnas</h1>
-          <p className="text-gray-500 mt-1">Pegá los emails y les llegará una invitación para crear su contraseña.</p>
+          <p className="text-gray-500 mt-1">Pegá los emails y les llegará una invitación para crear su cuenta del Desafío Socias.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">

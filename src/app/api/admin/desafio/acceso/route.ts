@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
 
-type Accion = 'habilitar' | 'bloquear' | 'reenviar_bienvenida'
+type Accion = 'habilitar' | 'bloquear' | 'rechazar' | 'reenviar_bienvenida'
 
 function escaparHtml(texto: string) {
   const entidades: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
@@ -33,26 +33,39 @@ export async function POST(request: Request) {
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Solicitud inválida.' }, { status: 400 }) }
   const perfilId = body.perfilId
   const accion = body.accion
-  if (!perfilId || !/^[0-9a-f-]{36}$/i.test(perfilId) || !['habilitar', 'bloquear', 'reenviar_bienvenida'].includes(accion ?? '')) {
+  if (!perfilId || !/^[0-9a-f-]{36}$/i.test(perfilId) || !['habilitar', 'bloquear', 'rechazar', 'reenviar_bienvenida'].includes(accion ?? '')) {
     return NextResponse.json({ error: 'Elegí una cuenta y una acción válidas.' }, { status: 400 })
   }
 
   const admin = createAdminClient()
   const { data: alumna, error: perfilError } = await admin.from('perfiles')
-    .select('id, nombre, rol, desafio_socias_habilitada, desafio_socias_bienvenida_enviada_at')
+    .select('id, nombre, rol, tipo_usuario, desafio_socias_habilitada, desafio_socias_bienvenida_enviada_at')
     .eq('id', perfilId)
     .maybeSingle()
   if (perfilError || !alumna) return NextResponse.json({ error: 'No encontramos esa cuenta.' }, { status: 404 })
   if (alumna.rol === 'admin') return NextResponse.json({ error: 'La cuenta administradora no se modifica desde aquí.' }, { status: 400 })
+  if (alumna.tipo_usuario !== 'desafio') return NextResponse.json({ error: 'Esta cuenta no está asignada al Desafío Socias.' }, { status: 409 })
 
   if (accion === 'bloquear') {
     const { error } = await admin.from('perfiles').update({
       desafio_socias_habilitada: false,
       desafio_socias_habilitada_at: null,
       desafio_socias_habilitada_por: null,
+      desafio_socias_estado: 'bloqueada',
     }).eq('id', perfilId)
     if (error) return NextResponse.json({ error: 'No se pudo bloquear el acceso.' }, { status: 500 })
     return NextResponse.json({ ok: true, habilitada: false })
+  }
+
+  if (accion === 'rechazar') {
+    const { error } = await admin.from('perfiles').update({
+      desafio_socias_habilitada: false,
+      desafio_socias_habilitada_at: null,
+      desafio_socias_habilitada_por: null,
+      desafio_socias_estado: 'rechazada',
+    }).eq('id', perfilId)
+    if (error) return NextResponse.json({ error: 'No se pudo rechazar la solicitud.' }, { status: 500 })
+    return NextResponse.json({ ok: true, habilitada: false, rechazada: true })
   }
 
   if (accion === 'reenviar_bienvenida' && !alumna.desafio_socias_habilitada) {
@@ -64,6 +77,7 @@ export async function POST(request: Request) {
       desafio_socias_habilitada: true,
       desafio_socias_habilitada_at: new Date().toISOString(),
       desafio_socias_habilitada_por: user.id,
+      desafio_socias_estado: 'habilitada',
     }).eq('id', perfilId)
     if (error) return NextResponse.json({ error: 'No se pudo habilitar el acceso.' }, { status: 500 })
   }

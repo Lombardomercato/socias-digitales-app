@@ -1,49 +1,55 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
 
 export default function RegistroPage() {
-  const router = useRouter()
-  const supabase = createClient()
+  const pathname = usePathname()
+  const esDesafio = pathname === '/registro/desafio'
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [loading, setLoading] = useState(false)
+  const [reenviando, setReenviando] = useState(false)
+  const [requiereConfirmacion, setRequiereConfirmacion] = useState(false)
 
   async function handleRegistro(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
     setMensaje('')
+    setRequiereConfirmacion(false)
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { nombre },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      }
-    })
+    try {
+      const response = await fetch('/api/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, email, password, tipo_usuario: esDesafio ? 'desafio' : 'gratuito' }) })
+      const result = await response.json()
+      setRequiereConfirmacion(true)
+      if (!response.ok) { setError(result.error || 'No pudimos crear la cuenta. Intentá nuevamente.'); return }
+      setMensaje(esDesafio
+        ? 'Revisá tu correo para confirmar la cuenta. Flor habilitará tu acceso al Desafío Socias; cuando lo haga, vas a recibir la bienvenida y podrás entrar a lanzamiento y clases.'
+        : 'Revisá tu correo para confirmar la cuenta. ¡Bienvenida! Tu cuenta gratuita queda creada; los accesos se habilitarán cuando corresponda.')
+    } catch { setError('Revisá tu conexión e intentá nuevamente.') }
+    finally { setLoading(false) }
+  }
 
-    if (signUpError) {
-      setError('No pudimos crear la cuenta. Revisá tus datos e intentá nuevamente.')
-      setLoading(false)
+  async function reenviarConfirmacion() {
+    if (!email) {
+      setError('Escribí el email con el que creaste la cuenta para reenviar la confirmación.')
       return
     }
 
-    if (!data.session) {
-      setMensaje('Si es tu primer registro, revisá tu correo y la carpeta de spam para confirmar la cuenta. Si ya te habías registrado, ingresá o recuperá tu contraseña. El acceso al Desafío Socias se activa cuando Flor habilita tu inscripción.')
-      setLoading(false)
-      return
-    }
-
-    router.push('/inicio')
-    router.refresh()
+    setReenviando(true)
+    setError('')
+    try {
+      const response = await fetch('/api/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, resend: true }) })
+      const result = await response.json()
+      if (!response.ok) setError(result.error || 'No pudimos reenviar el correo.')
+      else setMensaje('Si tu cuenta está pendiente, enviamos la confirmación. Revisá también Spam y Promociones. Si ya confirmaste, podés ingresar.')
+    } catch { setError('Revisá tu conexión e intentá nuevamente.') }
+    finally { setReenviando(false) }
   }
 
   return (
@@ -51,12 +57,12 @@ export default function RegistroPage() {
       <section className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-[#F4CAD8] px-12 py-10 lg:flex xl:px-20">
         <Image src="/academy-stacked-color.png" alt="Socias Digitales Academy" width={420} height={280} priority className="h-auto w-52 object-contain object-left" />
         <div className="relative z-10 max-w-xl pb-10">
-          <p className="mb-4 font-impact text-xs font-semibold uppercase tracking-[0.18em] text-[#294A38]">Desafío Socias</p>
+          <p className="mb-4 font-impact text-xs font-semibold uppercase tracking-[0.18em] text-[#294A38]">{esDesafio ? 'Desafío Socias' : 'Socias Digitales'}</p>
           <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.04em] text-[#171413] xl:text-6xl">
             Un paso a la vez. <span className="text-[#294A38]">A tu manera.</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-7 text-[#51443F]">
-            Creá tu cuenta para participar del Desafío Socias.
+            {esDesafio ? 'Registrate para participar del Desafío Socias.' : 'Creá tu cuenta gratuita y recibí la bienvenida.'}
           </p>
         </div>
       </section>
@@ -68,7 +74,7 @@ export default function RegistroPage() {
           </div>
 
           <div className="mb-8">
-            <p className="mb-3 font-impact text-xs font-semibold uppercase tracking-[0.16em] text-[#294A38]">Tu lugar empieza acá</p>
+            <p className="mb-3 font-impact text-xs font-semibold uppercase tracking-[0.16em] text-[#294A38]">{esDesafio ? 'Desafío Socias' : 'Acceso gratuito'}</p>
             <h2 className="font-serif text-4xl leading-tight tracking-[-0.035em] text-[#171413]">Crear <span className="italic text-[#B01B30]">cuenta.</span></h2>
             <p className="mt-3 text-sm leading-6 text-[#655B56]">Completá tus datos para registrarte.</p>
           </div>
@@ -90,7 +96,12 @@ export default function RegistroPage() {
             </div>
 
             {error && <p role="alert" className="rounded-xl border border-[#B01B30]/20 bg-[#F4CAD8]/35 px-4 py-3 text-sm text-[#7C1D2A]">{error}</p>}
-            {mensaje && <p role="status" className="rounded-xl border border-[#294A38]/15 bg-[#F4EFEA] px-4 py-3 text-sm leading-6 text-[#294A38]">{mensaje}</p>}
+            {(mensaje || requiereConfirmacion) && <div role="status" className="rounded-xl border border-[#294A38]/15 bg-[#F4EFEA] px-4 py-3 text-sm leading-6 text-[#294A38]">
+              <p>{mensaje}</p>
+              {requiereConfirmacion && <button type="button" onClick={reenviarConfirmacion} disabled={reenviando} className="mt-2 font-semibold underline underline-offset-4 disabled:opacity-60">
+                {reenviando ? 'Reenviando…' : 'No me llegó: reenviar correo'}
+              </button>}
+            </div>}
 
             <button type="submit" disabled={loading} className="mt-2 w-full rounded-xl bg-[#294A38] px-5 py-3.5 font-impact text-sm font-semibold text-white transition-colors hover:bg-[#203B2D] disabled:opacity-60">
               {loading ? 'Creando cuenta…' : 'Crear mi cuenta'}
@@ -100,6 +111,7 @@ export default function RegistroPage() {
           <p className="mt-8 text-center text-sm text-[#655B56]">
             ¿Ya tenés cuenta? <a href="/login" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Ingresá acá</a>
           </p>
+          {!esDesafio && <p className="mt-3 text-center text-sm text-[#655B56]">¿Te inscribís al Desafío Socias? <a href="/registro/desafio" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Registrate por acá</a></p>}
         </div>
       </section>
     </main>

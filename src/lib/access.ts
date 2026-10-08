@@ -1,5 +1,6 @@
 export type RolPerfil = 'alumna' | 'afiliada' | 'afiliada_lanzamiento' | 'admin'
-export type NivelAcceso = 'gratuita' | 'socia' | 'admin'
+export type TipoUsuario = 'gratuito' | 'desafio' | 'socia'
+export type NivelAcceso = TipoUsuario | 'admin'
 
 export interface ModuloAcceso {
   id: string
@@ -15,22 +16,20 @@ export interface DefinicionAcceso {
   modulos: ModuloAcceso[]
 }
 
-export const NIVEL_POR_ROL: Record<RolPerfil, NivelAcceso> = {
-  alumna: 'gratuita',
-  afiliada: 'socia',
-  afiliada_lanzamiento: 'socia',
-  admin: 'admin',
-}
-
 export const ACCESOS: Record<NivelAcceso, DefinicionAcceso> = {
-  gratuita: {
+  gratuito: {
     nombre: 'Acceso gratuito',
-    etiqueta: 'Para empezar',
-    resumen: 'Perfil, comunidad y primeros pasos.',
+    etiqueta: 'Bienvenida',
+    resumen: 'Tu cuenta está creada. Los espacios se habilitarán según tu acceso.',
+    modulos: [],
+  },
+  desafio: {
+    nombre: 'Desafío Socias',
+    etiqueta: 'Desafío',
+    resumen: 'Lanzamiento y clases del desafío, una vez habilitados por Flor.',
     modulos: [
-      { id: 'perfil', nombre: 'Mi perfil', descripcion: 'Tu punto de partida', href: '/perfil' },
-      { id: 'inicio', nombre: 'Primeros pasos', descripcion: 'Guía inicial', href: '/perfil' },
-      { id: 'comunidad', nombre: 'Comunidad', descripcion: 'Logros compartidos', href: '/comunidad' },
+      { id: 'lanzamiento', nombre: 'Mi lanzamiento', descripcion: 'Etapas y tareas', href: '/lanzamiento' },
+      { id: 'programa', nombre: 'Clases', descripcion: 'Clases y materiales', href: '/classroom' },
     ],
   },
   socia: {
@@ -61,9 +60,11 @@ export const ACCESOS: Record<NivelAcceso, DefinicionAcceso> = {
   },
 }
 
-export function obtenerNivelAcceso(rol: string | null | undefined): NivelAcceso {
-  if (rol && rol in NIVEL_POR_ROL) return NIVEL_POR_ROL[rol as RolPerfil]
-  return 'gratuita'
+export function obtenerNivelAcceso(rol: string | null | undefined, tipoUsuario?: string | null): NivelAcceso {
+  if (rol === 'admin') return 'admin'
+  if (tipoUsuario === 'socia' || rol === 'afiliada' || rol === 'afiliada_lanzamiento') return 'socia'
+  if (tipoUsuario === 'desafio') return 'desafio'
+  return 'gratuito'
 }
 
 export function obtenerRutaInicio(rol: string | null | undefined) {

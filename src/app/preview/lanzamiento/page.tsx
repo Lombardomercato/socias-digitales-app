@@ -1,13 +1,6 @@
-import { notFound } from 'next/navigation'
 import LanzamientoCliente from '@/app/lanzamiento/LanzamientoCliente'
 
 export default function LanzamientoPreviewPage() {
-  const previewHabilitada =
-    process.env.NODE_ENV === 'development' ||
-    process.env.ENABLE_PUBLIC_PREVIEW === 'true'
-
-  if (!previewHabilitada) notFound()
-
   return (
     <LanzamientoCliente
       nombre="Flor"

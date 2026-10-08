@@ -9,13 +9,14 @@ interface Inscripta {
   email: string
   created_at: string
   desafio_socias_habilitada: boolean
+  desafio_socias_estado: string
   desafio_socias_bienvenida_enviada_at: string | null
 }
 
 export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }) {
   const router = useRouter()
   const [busqueda, setBusqueda] = useState('')
-  const [filtroAcceso, setFiltroAcceso] = useState<'pendientes' | 'habilitadas' | 'todas'>('pendientes')
+  const [filtroAcceso, setFiltroAcceso] = useState<'pendientes' | 'habilitadas' | 'rechazadas' | 'todas'>('pendientes')
   const [enCurso, setEnCurso] = useState<string | null>(null)
   const [aviso, setAviso] = useState('')
 
@@ -23,12 +24,15 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
     const q = busqueda.trim().toLowerCase()
     return inscriptas.filter(persona => {
       const coincideBusqueda = !q || `${persona.nombre ?? ''} ${persona.email}`.toLowerCase().includes(q)
-      const coincideAcceso = filtroAcceso === 'todas' || persona.desafio_socias_habilitada === (filtroAcceso === 'habilitadas')
+      const coincideAcceso = filtroAcceso === 'todas'
+        || (filtroAcceso === 'habilitadas' && persona.desafio_socias_habilitada)
+        || (filtroAcceso === 'pendientes' && !persona.desafio_socias_habilitada && persona.desafio_socias_estado === 'pendiente')
+        || (filtroAcceso === 'rechazadas' && ['rechazada', 'bloqueada'].includes(persona.desafio_socias_estado))
       return coincideBusqueda && coincideAcceso
     })
   }, [busqueda, filtroAcceso, inscriptas])
 
-  async function ejecutar(perfilId: string, accion: 'habilitar' | 'bloquear' | 'reenviar_bienvenida') {
+  async function ejecutar(perfilId: string, accion: 'habilitar' | 'bloquear' | 'rechazar' | 'reenviar_bienvenida') {
     setEnCurso(perfilId)
     setAviso('')
     try {
@@ -50,7 +54,8 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
   }
 
   const habilitadas = inscriptas.filter(persona => persona.desafio_socias_habilitada).length
-  const pendientes = inscriptas.length - habilitadas
+  const pendientes = inscriptas.filter(persona => !persona.desafio_socias_habilitada && persona.desafio_socias_estado === 'pendiente').length
+  const rechazadas = inscriptas.filter(persona => ['rechazada', 'bloqueada'].includes(persona.desafio_socias_estado)).length
 
   return (
     <main className="min-h-screen px-5 py-8 md:px-10" style={{ background: '#F4EFEA', color: '#211c19' }}>
@@ -77,6 +82,7 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
             {([
               ['pendientes', `Pendientes · ${pendientes}`],
               ['habilitadas', `Habilitadas · ${habilitadas}`],
+              ['rechazadas', `Rechazadas · ${rechazadas}`],
               ['todas', `Todas · ${inscriptas.length}`],
             ] as const).map(([valor, etiqueta]) => (
               <button key={valor} type="button" onClick={() => setFiltroAcceso(valor)}
@@ -101,7 +107,7 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${persona.desafio_socias_habilitada ? 'bg-[#eaf1ec] text-[#294A38]' : 'bg-[#f5f0eb] text-neutral-600'}`}>
-                    {persona.desafio_socias_habilitada ? 'Habilitada' : 'Pendiente'}
+                    {persona.desafio_socias_habilitada ? 'Habilitada' : persona.desafio_socias_estado === 'rechazada' ? 'Rechazada' : persona.desafio_socias_estado === 'bloqueada' ? 'Bloqueada' : 'Pendiente'}
                   </span>
                   {persona.desafio_socias_habilitada ? (
                     <>
@@ -114,10 +120,17 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
                         Bloquear
                       </button>
                     </>
+                  ) : persona.desafio_socias_estado === 'rechazada' || persona.desafio_socias_estado === 'bloqueada' ? (
+                    <button disabled={busy} onClick={() => ejecutar(persona.id, 'habilitar')} className="rounded-full bg-[#294A38] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
+                      {busy ? 'Habilitando…' : 'Reactivar y habilitar'}
+                    </button>
                   ) : (
                     <button disabled={busy} onClick={() => ejecutar(persona.id, 'habilitar')} className="rounded-full bg-[#294A38] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
                       {busy ? 'Habilitando…' : 'Habilitar y dar bienvenida'}
                     </button>
+                  )}
+                  {!persona.desafio_socias_habilitada && persona.desafio_socias_estado === 'pendiente' && (
+                    <button disabled={busy} onClick={() => ejecutar(persona.id, 'rechazar')} className="rounded-full border border-[#e7ddd5] px-4 py-2 text-xs text-[#746a64] disabled:opacity-50">Rechazar</button>
                   )}
                 </div>
               </article>

@@ -21,9 +21,14 @@ export default async function ClassroomPage() {
     .eq('activo', true)
     .order('orden')
 
+  const clasesParaVista = (clases ?? []).map(({ video_key, ...clase }) => ({
+    ...clase,
+    tiene_video_privado: Boolean(video_key),
+  }))
+
   return (
     <ClassroomCliente
-      clases={clases ?? []}
+      clases={clasesParaVista}
       esAdmin={perfil?.rol === 'admin'}
       perfil={perfil}
     />

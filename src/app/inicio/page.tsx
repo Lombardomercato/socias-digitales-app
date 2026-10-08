@@ -9,27 +9,29 @@ export default async function InicioPage() {
 
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('nombre, avatar_url, rol, desafio_socias_habilitada')
+    .select('nombre, avatar_url, rol, tipo_usuario, desafio_socias_habilitada')
     .eq('id', user.id)
     .maybeSingle()
 
   if (perfil?.rol === 'admin') redirect('/admin')
   const nombre = perfil?.nombre?.trim().split(' ')[0] || user.user_metadata?.nombre || 'Socia'
 
+  const tipoUsuario = perfil?.tipo_usuario ?? (perfil?.rol === 'afiliada' || perfil?.rol === 'afiliada_lanzamiento' ? 'socia' : 'gratuito')
   const habilitada = Boolean(perfil?.desafio_socias_habilitada)
+  const esDesafio = tipoUsuario === 'desafio'
   return (
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
       <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
         <Link href="/inicio" aria-label="Socias Digitales, inicio">
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto object-contain" />
         </Link>
-        <Link href="/perfil" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold text-[#211c19]" aria-label="Mi perfil">
+        {tipoUsuario !== 'gratuito' && <Link href="/perfil" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold text-[#211c19]" aria-label="Mi perfil">
           {nombre.slice(0, 1).toUpperCase()}
-        </Link>
+        </Link>}
       </header>
 
-      <div className="mx-auto grid max-w-[1400px] lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
+      <div className={`mx-auto grid max-w-[1400px] ${habilitada ? 'lg:grid-cols-[220px_minmax(0,1fr)]' : ''}`}>
+        {habilitada && <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Mi espacio</p>
           <nav className="mt-5 space-y-1.5" aria-label="Navegación principal">
             <Link href="/inicio" aria-current="page" className="flex items-center gap-3 rounded-xl bg-[#F4CAD8] px-3 py-3 text-sm font-semibold">Inicio</Link>
@@ -44,23 +46,28 @@ export default async function InicioPage() {
             <p className="mt-3 font-serif text-xl">Desafío Socias</p>
             <p className="mt-2 text-xs leading-5 text-white/70">Clases y espacio de lanzamiento habilitados.</p>
           </div> : null}
-        </aside>
+        </aside>}
 
         <main className="min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">{habilitada ? 'Desafío Socias' : 'Tu espacio'}</p>
-              <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">{habilitada ? <>Hola, {nombre}.</> : <>Tu lugar en el <span className="text-[#b05e7c]">Desafío</span></>}</h1>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">{habilitada ? 'Desafío Socias' : esDesafio ? 'Desafío Socias' : 'Acceso gratuito'}</p>
+              <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Hola, {nombre}.</h1>
             </div>
             <Link href="/perfil" className="text-sm font-medium text-[#294A38]">Mi perfil&nbsp; ↗</Link>
           </div>
 
-          {!habilitada ? (
+          {!habilitada && esDesafio ? (
             <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Inscripción recibida</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold">Tu acceso está en revisión.</h2>
               <p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/70">Cuando Flor habilite tu inscripción, vas a recibir el email de bienvenida para entrar a tus clases y al espacio de lanzamiento.</p>
               <Link href="/perfil" className="mt-6 inline-flex rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Revisar mi perfil&nbsp; →</Link>
+            </section>
+          ) : !habilitada ? (
+            <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">{tipoUsuario === 'socia' ? 'Espacio de socia' : 'Bienvenida'}</p>
+              <h2 className="mt-3 font-serif text-3xl font-semibold">Tu cuenta está lista.</h2>
             </section>
           ) : (
             <>

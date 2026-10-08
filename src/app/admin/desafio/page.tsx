@@ -14,7 +14,7 @@ export default async function AdminDesafioPage() {
 
   const admin = createAdminClient()
   const [{ data: perfiles }, { data: users }] = await Promise.all([
-    admin.from('perfiles').select('id, nombre, rol, created_at, desafio_socias_habilitada, desafio_socias_bienvenida_enviada_at').neq('rol', 'admin').order('created_at', { ascending: false }),
+    admin.from('perfiles').select('id, nombre, rol, tipo_usuario, desafio_socias_estado, created_at, desafio_socias_habilitada, desafio_socias_bienvenida_enviada_at').eq('tipo_usuario', 'desafio').order('created_at', { ascending: false }),
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ])
   const emails = new Map((users?.users ?? []).map(item => [item.id, item.email ?? '']))

@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     const { error } = await admin.auth.admin.inviteUserByEmail(trimmed, {
       redirectTo: `${siteUrl}/auth/callback`,
-      data: { password_set: false },
+      data: { password_set: false, tipo_usuario: 'desafio' },
     })
 
     if (error) {

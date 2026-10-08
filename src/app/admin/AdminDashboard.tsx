@@ -10,6 +10,11 @@ interface Alumna {
   avatar_url: string | null
   progreso: number
   rol: string
+  tipo_usuario: string | null
+  desafio_socias_habilitada: boolean
+  desafio_socias_estado: string
+  desafio_socias_habilitada_at: string | null
+  desafio_socias_habilitada_por: string | null
   estado: string
   plan: string
   whatsapp: string | null
@@ -48,6 +53,12 @@ function diasSinIngresar(ultimoAcceso: string | null) {
 
 function formatFecha(fecha: string) {
   return new Date(fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+}
+
+function etiquetaTipoUsuario(tipo: string | null | undefined) {
+  if (tipo === 'desafio') return 'Desafío Socias'
+  if (tipo === 'socia') return 'Socia'
+  return 'Gratuito'
 }
 
 export default function AdminDashboard({ alumnas, stats }: Props) {
@@ -90,8 +101,35 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
   async function guardarFicha() {
     if (!alumnaSeleccionada) return
     setGuardando(true)
-    await supabase.from('perfiles').update(editando).eq('id', alumnaSeleccionada.id)
+    const tipoUsuario = editando.tipo_usuario ?? alumnaSeleccionada.tipo_usuario ?? 'gratuito'
+    const cambioTipo = tipoUsuario !== alumnaSeleccionada.tipo_usuario
+    const patch: Record<string, unknown> = {
+      nombre: editando.nombre,
+      whatsapp: editando.whatsapp,
+      pais: editando.pais,
+      estado: editando.estado,
+      plan: editando.plan,
+      tipo_usuario: tipoUsuario,
+    }
+    if (cambioTipo) {
+      patch.rol = tipoUsuario === 'socia' ? 'afiliada' : 'alumna'
+      patch.desafio_socias_estado = tipoUsuario === 'desafio'
+        ? alumnaSeleccionada.tipo_usuario === 'desafio' ? alumnaSeleccionada.desafio_socias_estado : 'pendiente'
+        : 'no_aplica'
+      patch.desafio_socias_habilitada = tipoUsuario === 'desafio' && alumnaSeleccionada.tipo_usuario === 'desafio'
+        ? Boolean(alumnaSeleccionada.desafio_socias_habilitada)
+        : false
+      if (!patch.desafio_socias_habilitada) {
+        patch.desafio_socias_habilitada_at = null
+        patch.desafio_socias_habilitada_por = null
+      }
+    }
+    const { error } = await supabase.from('perfiles').update(patch).eq('id', alumnaSeleccionada.id)
     setGuardando(false)
+    if (error) {
+      window.alert('No se pudieron guardar los cambios. Revisá la conexión e intentá de nuevo.')
+      return
+    }
     setAlumnaSeleccionada(null)
     router.refresh()
   }
@@ -145,7 +183,10 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
         <main className="min-w-0 space-y-4 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Vista general</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Panel de Flor</h1></div>
-            <a href="/admin/invitar" className="inline-flex w-fit items-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Invitar alumna <span aria-hidden="true">+</span></a>
+            <div className="flex flex-wrap gap-2">
+              <a href="/preview/usuario" className="inline-flex w-fit items-center gap-2 rounded-full border border-[#294A38]/25 bg-white px-5 py-3 text-sm font-semibold text-[#294A38] transition hover:bg-[#F4EFEA]">Vista de usuaria <span aria-hidden="true">↗</span></a>
+              <a href="/admin/invitar" className="inline-flex w-fit items-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Invitar al Desafío <span aria-hidden="true">+</span></a>
+            </div>
           </div>
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -199,7 +240,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
           ))}
             </div>
 
-            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead><tr className="border-b border-[#e7ddd5] text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#746a64]"><th className="pb-3">Alumna</th><th className="pb-3">Estado</th><th className="pb-3">Plan</th><th className="pb-3">País</th><th className="pb-3">Ingreso</th><th className="pb-3">Actividad</th><th className="pb-3">Progreso</th><th className="pb-3"></th></tr></thead><tbody className="divide-y divide-[#e7ddd5]">
+            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead><tr className="border-b border-[#e7ddd5] text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#746a64]"><th className="pb-3">Alumna</th><th className="pb-3">Estado</th><th className="pb-3">Tipo</th><th className="pb-3">País</th><th className="pb-3">Ingreso</th><th className="pb-3">Actividad</th><th className="pb-3">Progreso</th><th className="pb-3"></th></tr></thead><tbody className="divide-y divide-[#e7ddd5]">
                 {alumnasFiltradas.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-10 text-center text-[#746a64]">
@@ -224,7 +265,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                     <td className="py-3.5"><span className="flex items-center gap-2 text-xs font-medium text-[#211c19]"><span className={`h-2 w-2 rounded-full ${alumna.estado === 'activa' ? 'bg-[#294A38]' : alumna.estado === 'pausada' ? 'bg-[#EC9BB6]' : 'bg-[#211c19]/25'}`} />
                         {alumna.estado ?? 'activa'}</span>
                     </td>
-                    <td className="py-3.5"><span className="rounded-full bg-[#F4EFEA] px-2.5 py-1 text-xs font-medium capitalize">{alumna.plan ?? '—'}</span></td>
+                    <td className="py-3.5"><span className="rounded-full bg-[#F4EFEA] px-2.5 py-1 text-xs font-medium">{etiquetaTipoUsuario(alumna.tipo_usuario)}</span></td>
                     <td className="py-3.5 text-xs text-[#746a64]">{alumna.pais ?? '—'}</td>
                     <td className="py-3.5 text-xs text-[#746a64]">{formatFecha(alumna.created_at)}</td>
                     <td className="py-3.5 text-xs text-[#746a64]">{diasSinIngresar(alumna.ultimo_acceso)}</td>
@@ -306,15 +347,22 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
 
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Plan</label>
+                  <select value={editando.plan ?? 'basico'} onChange={e => setEditando(prev => ({ ...prev, plan: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
+                    <option value="basico">Básico</option><option value="premium">Premium</option><option value="vip">VIP</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Tipo de usuaria</label>
                   <select
-                    value={editando.plan ?? 'basico'}
-                    onChange={e => setEditando(prev => ({ ...prev, plan: e.target.value }))}
+                    value={editando.tipo_usuario ?? 'gratuito'}
+                    onChange={e => setEditando(prev => ({ ...prev, tipo_usuario: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
                   >
-                    <option value="basico">Básico</option>
-                    <option value="premium">Premium</option>
-                    <option value="vip">VIP</option>
+                    <option value="gratuito">Gratuito</option>
+                    <option value="desafio">Desafío Socias</option>
+                    <option value="socia">Socia</option>
                   </select>
+                  {editando.tipo_usuario === 'desafio' && !alumnaSeleccionada.desafio_socias_habilitada && <p className="mt-2 text-xs leading-5 text-[#746a64]">Quedará pendiente. Flor habilita el acceso y envía la bienvenida desde Solicitudes del Desafío.</p>}
                 </div>
               </div>
 
@@ -330,7 +378,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 </div>
                 <div>
                   <p className="text-xs text-gray-400">Rol</p>
-                  <p className="font-semibold text-gray-800 capitalize">{alumnaSeleccionada.rol}</p>
+                  <p className="font-semibold text-gray-800">{etiquetaTipoUsuario(alumnaSeleccionada.tipo_usuario)}</p>
                 </div>
               </div>
             </div>

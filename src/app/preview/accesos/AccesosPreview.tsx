@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { ACCESOS, type NivelAcceso } from '@/lib/access'
 
-const NIVELES: NivelAcceso[] = ['gratuita', 'socia', 'admin']
+const NIVELES: NivelAcceso[] = ['gratuito', 'desafio', 'socia', 'admin']
 
 function RoleIcon({ nivel }: { nivel: NivelAcceso }) {
   if (nivel === 'admin') return <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 20 7v5c0 4.7-3.2 7.8-8 9-4.8-1.2-8-4.3-8-9V7l8-4Z" stroke="currentColor" strokeWidth="1.8" /><path d="m8.5 12 2.2 2.2 4.8-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -23,7 +23,7 @@ function ModuleIcon({ id }: { id: string }) {
 }
 
 export default function AccesosPreview() {
-  const [nivel, setNivel] = useState<NivelAcceso>('gratuita')
+  const [nivel, setNivel] = useState<NivelAcceso>('gratuito')
   const acceso = ACCESOS[nivel]
 
   return (
