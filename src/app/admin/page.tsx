@@ -43,7 +43,7 @@ export default async function AdminPage() {
     afiliadasActivas: alumnas?.filter(a => a.rol === 'afiliada').length ?? 0,
     ventasMes: ventasAfiliadas?.length ?? 0,
     comisionesMes: ventasAfiliadas?.reduce((acc, v) => acc + Number(v.comision), 0) ?? 0,
-    solicitudesDesafioPendientes: alumnas?.filter(a => a.rol !== 'admin' && a.tipo_usuario === 'desafio' && !a.desafio_socias_habilitada).length ?? 0,
+    solicitudesDesafioPendientes: alumnas?.filter(a => a.rol !== 'admin' && a.tipo_usuario === 'desafio' && a.desafio_socias_estado === 'pendiente' && !a.desafio_socias_habilitada).length ?? 0,
   }
 
   const retencion = stats.totalAlumnas > 0
