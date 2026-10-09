@@ -12,6 +12,8 @@ interface Clase {
   plan: '27' | '97'
   modulo: string
   activo: boolean
+  acceso_gratuito?: boolean
+  puede_ver?: boolean
 }
 
 interface Perfil {
@@ -20,6 +22,7 @@ interface Perfil {
   rol: string
   plan: string | null
   desafio_socias_habilitada?: boolean
+  tipo_usuario?: string | null
 }
 
 interface Props {
@@ -47,10 +50,11 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
   const [cargandoVideo, setCargandoVideo] = useState<string | null>(null)
   const [errorVideo, setErrorVideo] = useState('')
 
-  const tieneAcceso = esAdmin || Boolean(perfil?.desafio_socias_habilitada)
+  const tieneAcceso = esAdmin || Boolean(perfil?.desafio_socias_habilitada) || perfil?.tipo_usuario === 'socia'
   const modulos = [...new Set(clases.map(clase => clase.modulo))]
 
   async function abrirClase(clase: Clase) {
+    if (!(clase.puede_ver ?? tieneAcceso)) return
     setErrorVideo('')
     setVideoSeguroUrl(null)
     if (clase.tiene_video_privado) {
@@ -95,17 +99,17 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
           <div>
             <p className="font-impact text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Tu programa</p>
             <h1 className="mt-2 max-w-3xl font-serif text-4xl leading-[1.04] tracking-[-0.04em] sm:text-5xl">Programa Socias Digitales</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">Desafío Socias · Clases grabadas</p>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">{tieneAcceso?'Tus clases grabadas':'Empezá con las clases gratuitas y explorá el plan Socias.'}</p>
           </div>
           <div className="flex items-center gap-4 rounded-[22px] bg-[#294A38] p-5 text-white">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/12 text-[#F4CAD8]"><Icon name="book" className="h-6 w-6" /></span>
-            <div><p className="font-impact text-3xl font-semibold leading-none">{clases.length}</p><p className="mt-1.5 text-xs text-white/65">clases disponibles</p></div>
+            <div><p className="font-impact text-3xl font-semibold leading-none">{clases.filter(c=>(c.puede_ver??tieneAcceso) && (c.tiene_video_privado||c.vimeo_url)).length}</p><p className="mt-1.5 text-xs text-white/65">clases disponibles</p></div>
           </div>
         </section>
 
-        {!esAdmin && (
+        {!esAdmin && tieneAcceso && (
           <section className="mt-7 flex flex-col gap-3 rounded-[22px] bg-[#F4CAD8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#294A38]">Acceso habilitado</p><p className="mt-1 font-semibold">Desafío Socias</p></div>
+            <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#294A38]">Acceso habilitado</p><p className="mt-1 font-semibold">{perfil?.desafio_socias_habilitada?'Desafío Socias':'Socias Digitales'}</p></div>
             <p className="text-sm text-[#211C19]/65">Tus clases grabadas están listas para ver.</p>
           </section>
         )}
@@ -128,19 +132,19 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
                     {clasesDelModulo.map((clase, index) => {
-                      const disponible = tieneAcceso && Boolean(clase.vimeo_url || clase.tiene_video_privado)
+                      const disponible = (clase.puede_ver ?? tieneAcceso) && Boolean(clase.vimeo_url || clase.tiene_video_privado)
                       return (
                         <article key={clase.id} className={`flex min-h-[118px] items-center gap-4 rounded-[22px] p-4 sm:p-5 ${disponible ? 'bg-[#FAF7F3]' : 'bg-[#FAF7F3]/65'}`}>
                           <span className={`font-impact flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${disponible ? index % 2 === 0 ? 'bg-[#EC9BB6] text-[#211C19]' : 'bg-[#F4CAD8] text-[#211C19]' : 'bg-[#F4EFEA] text-[#746A64]'}`}>{String(clase.orden + 1).padStart(2, '0')}</span>
                           <div className="min-w-0 flex-1">
                             <p className={`font-semibold leading-snug ${disponible ? 'text-[#211C19]' : 'text-[#746A64]'}`}>{clase.titulo}</p>
                             {clase.descripcion && <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#746A64]">{clase.descripcion}</p>}
-                            <p className="mt-2 font-impact text-[9px] font-semibold uppercase tracking-[0.14em] text-[#294A38]">Clase grabada</p>
+                            <p className="mt-2 font-impact text-[9px] font-semibold uppercase tracking-[0.14em] text-[#294A38]">{disponible?(clase.acceso_gratuito?'Clase gratuita':'Clase grabada'):'Acceso con Socias Digitales'}</p>
                           </div>
                           {disponible ? (
                             <button type="button" onClick={() => abrirClase(clase)} disabled={cargandoVideo === clase.id} aria-label={`Reproducir ${clase.titulo}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#294A38] text-white transition hover:bg-[#203B2D] disabled:opacity-60"><Icon name="play" className="h-5 w-5" /></button>
                           ) : (
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F4EFEA] text-[#746A64]" aria-label="Clase no disponible"><Icon name="lock" className="h-4 w-4" /></span>
+                            <a href="/inicio#plan-socias" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F4EFEA] text-[#294A38]" aria-label={`Conocer el plan Socias para ${clase.titulo}`}><Icon name="lock" className="h-4 w-4" /></a>
                           )}
                         </article>
                       )

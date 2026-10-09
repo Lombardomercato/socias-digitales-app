@@ -15,6 +15,7 @@ interface Clase {
   plan: '27' | '97'
   modulo: string
   activo: boolean
+  acceso_gratuito: boolean
 }
 
 interface Alumna {
@@ -36,6 +37,7 @@ const CLASE_VACIA = {
   plan: '27' as '27' | '97',
   modulo: 'Módulo 1',
   activo: true,
+  acceso_gratuito: false,
   orden: 0,
 }
 
@@ -134,12 +136,12 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
                 <p className="mt-1 text-[10px] text-white/60 sm:text-xs">Clases cargadas</p>
               </div>
               <div className="rounded-[20px] bg-[#F4CAD8] p-4 text-center sm:p-5">
-                <p className="font-impact text-2xl font-semibold sm:text-3xl">{clases.filter(c => c.plan === '27').length}</p>
-                <p className="mt-1 text-[10px] text-[#211C19]/55 sm:text-xs">Acceso $27</p>
+                <p className="font-impact text-2xl font-semibold sm:text-3xl">{clases.filter(c => c.acceso_gratuito).length}</p>
+                <p className="mt-1 text-[10px] text-[#211C19]/55 sm:text-xs">Acceso gratuito</p>
               </div>
               <div className="rounded-[20px] bg-[#EC9BB6] p-4 text-center sm:p-5">
-                <p className="font-impact text-2xl font-semibold sm:text-3xl">{clases.filter(c => c.plan === '97').length}</p>
-                <p className="mt-1 text-[10px] text-[#211C19]/55 sm:text-xs">Acceso $97</p>
+                <p className="font-impact text-2xl font-semibold sm:text-3xl">{clases.filter(c => !c.acceso_gratuito).length}</p>
+                <p className="mt-1 text-[10px] text-[#211C19]/55 sm:text-xs">Acceso Socias / Desafío</p>
               </div>
             </div>
 
@@ -162,11 +164,11 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
                           <p className="mt-2 font-impact text-[9px] font-semibold uppercase tracking-[0.14em] text-[#294A38]">{clase.video_key ? 'Video privado conectado' : clase.vimeo_url ? 'Vimeo conectado' : 'Sin video'}</p>
                         </div>
                         <span className="hidden shrink-0 rounded-full bg-[#F4EFEA] px-3 py-1.5 text-xs font-medium text-[#746A64] sm:inline-flex">
-                          ${clase.plan}
+                          {clase.acceso_gratuito?'Gratuita':'Socias / Desafío'}
                         </span>
                         <div className="flex shrink-0 gap-1.5 sm:gap-2">
                           <button onClick={() => {
-                            setEditando({ titulo: clase.titulo, descripcion: clase.descripcion ?? '', vimeo_url: clase.vimeo_url ?? '', video_key: clase.video_key ?? '', plan: clase.plan, modulo: clase.modulo, activo: clase.activo, orden: clase.orden, id: clase.id })
+                            setEditando({ titulo: clase.titulo, descripcion: clase.descripcion ?? '', vimeo_url: clase.vimeo_url ?? '', video_key: clase.video_key ?? '', plan: clase.plan, modulo: clase.modulo, activo: clase.activo, acceso_gratuito:clase.acceso_gratuito, orden: clase.orden, id: clase.id })
                             setModal(true)
                           }} className="rounded-full border border-[#294A38]/25 px-3 py-2 text-xs font-medium text-[#294A38] transition hover:bg-[#F4CAD8]">Editar</button>
                           <button onClick={() => eliminarClase(clase.id)}
@@ -264,6 +266,10 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
                     <option value="97">$97 — Completo</option>
                   </select>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="acceso-gratuito" checked={editando.acceso_gratuito} onChange={e=>setEditando(p=>({...p,acceso_gratuito:e.target.checked}))} className="rounded" />
+                <label htmlFor="acceso-gratuito" className="text-sm text-[#655B56]">Disponible en acceso gratuito, sin aprobación</label>
               </div>
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="activo" checked={editando.activo}

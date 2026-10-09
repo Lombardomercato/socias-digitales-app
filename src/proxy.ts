@@ -89,7 +89,8 @@ export async function proxy(request: NextRequest) {
   if (userId && perfil?.rol !== 'admin' && rutasProtegidas.some(r => pathname.startsWith(r))) {
     const permitida = [...rutasIniciales, ...rutasDesafio].some(r => pathname.startsWith(r))
     if (!permitida) return redirectConCookies('/inicio?acceso=bloqueado')
-    if (rutasDesafio.some(r => pathname.startsWith(r)) && !perfil?.desafio_socias_habilitada) {
+    const requiereDesafio = pathname.startsWith('/lanzamiento') || pathname.startsWith('/classroom/')
+    if (requiereDesafio && !perfil?.desafio_socias_habilitada) {
       return redirectConCookies('/inicio?acceso=pendiente')
     }
   }

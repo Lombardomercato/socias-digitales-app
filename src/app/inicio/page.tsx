@@ -5,6 +5,8 @@ import ProximaClase from './ProximaClase'
 import ArrowIcon from '@/components/ArrowIcon'
 import NavigationIcon from '@/components/NavigationIcon'
 import LockedModules from '@/components/LockedModules'
+import FreeStart from '@/components/FreeStart'
+import { leerCatalogoClases } from '@/lib/class-catalog'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -31,6 +33,8 @@ export default async function InicioPage() {
   const { data: accesoEstrategia } = await supabase.from('accesos_estrategia').select('habilitada').eq('usuaria_id', user.id).maybeSingle()
   const estrategiaHabilitada = habilitada && Boolean(accesoEstrategia?.habilitada)
   const ahoraInicial = await leerHoraServidor()
+  const esGratuito = tipoUsuario === 'gratuito' && !habilitada
+  const clasesGratuitas = esGratuito && perfil ? await leerCatalogoClases(perfil) : []
   const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
   return (
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
@@ -69,7 +73,7 @@ export default async function InicioPage() {
 
           {mostrarClase && <div className="mt-6"><ProximaClase ahoraInicial={ahoraInicial} /></div>}
 
-          {!habilitada && esDesafio ? (
+          {esGratuito ? <FreeStart clases={clasesGratuitas} /> : !habilitada && esDesafio ? (
             <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Inscripción recibida</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold">{accesoCerrado ? 'Tu acceso no está habilitado.' : 'Tu acceso está en revisión.'}</h2>
@@ -107,7 +111,7 @@ export default async function InicioPage() {
             </>
           )}
           <Link href="/notificaciones" className="mt-5 flex items-center justify-between gap-4 rounded-[20px] border border-[#e7ddd5] bg-[#FAF7F3] p-5"><span className="flex items-center gap-3 text-sm font-semibold"><NavigationIcon name="notificaciones" />Mis notificaciones</span><ArrowIcon /></Link>
-          <LockedModules />
+          <LockedModules venta={esGratuito} />
         </main>
       </div>
     </div>

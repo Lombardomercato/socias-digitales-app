@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClassroomCliente from './ClassroomCliente'
+import { leerCatalogoClases } from '@/lib/class-catalog'
 
 export default async function ClassroomPage() {
   const supabase = await createClient()
@@ -9,22 +10,12 @@ export default async function ClassroomPage() {
 
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('nombre, avatar_url, rol, plan, desafio_socias_habilitada')
+    .select('nombre, avatar_url, rol, tipo_usuario, plan, desafio_socias_habilitada')
     .eq('id', user.id)
     .single()
 
-  if (perfil?.rol !== 'admin' && !perfil?.desafio_socias_habilitada) redirect('/inicio?acceso=pendiente')
-
-  const { data: clases } = await supabase
-    .from('clases')
-    .select('*')
-    .eq('activo', true)
-    .order('orden')
-
-  const clasesParaVista = (clases ?? []).map(({ video_key, ...clase }) => ({
-    ...clase,
-    tiene_video_privado: Boolean(video_key),
-  }))
+  if (!perfil) redirect('/login')
+  const clasesParaVista = await leerCatalogoClases(perfil)
 
   return (
     <ClassroomCliente

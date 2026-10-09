@@ -1,6 +1,7 @@
 import { createHash, createHmac } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { puedeVerClase } from '@/lib/class-access'
 
 function encodeRfc3986(value: string) {
   return encodeURIComponent(value).replace(/[!'()*]/g, character => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
@@ -48,12 +49,11 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Iniciá sesión para reproducir esta clase.' }, { status: 401 })
 
-  const { data: perfil } = await supabase.from('perfiles').select('rol, desafio_socias_habilitada').eq('id', user.id).maybeSingle()
+  const { data: perfil } = await supabase.from('perfiles').select('rol, tipo_usuario, desafio_socias_habilitada').eq('id', user.id).maybeSingle()
   const esAdmin = perfil?.rol === 'admin'
-  if (!esAdmin && !perfil?.desafio_socias_habilitada) return NextResponse.json({ error: 'Tu acceso al Desafío Socias todavía no está habilitado.' }, { status: 403 })
-
-  const { data: clase } = await supabase.from('clases').select('video_key, activo').eq('id', id).maybeSingle()
+  const { data: clase } = await supabase.from('clases').select('video_key, activo, acceso_gratuito').eq('id', id).maybeSingle()
   if (!clase || (!clase.activo && !esAdmin) || !clase.video_key) return NextResponse.json({ error: 'Esta clase todavía no tiene un video disponible.' }, { status: 404 })
+  if (!puedeVerClase(perfil,clase)) return NextResponse.json({ error: 'Esta clase requiere acceso Socias Digitales.' }, { status: 403 })
 
   const url = firmarUrlR2(clase.video_key)
   if (!url) return NextResponse.json({ error: 'El reproductor todavía no está configurado.' }, { status: 503 })
