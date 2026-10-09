@@ -3,11 +3,11 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { OCUPACIONES, INGRESOS, PASOS_PERFIL, pasosVisibles, normalizarRespuesta, type RespuestasPerfil, type ValorPerfil } from '@/lib/perfil-preguntas'
+import { OCUPACIONES, INGRESOS, PASOS_PERFIL, pasosVisibles, normalizarRespuestaBienvenida, normalizarNombre, type RespuestasPerfil, type ValorPerfil } from '@/lib/perfil-preguntas'
 import ArrowIcon from '@/components/ArrowIcon'
 
 export default function BienvenidaCliente({userId,datosIniciales,pasoInicial}: {userId:string;datosIniciales:RespuestasPerfil;pasoInicial:number}) {
-  const [datos,setDatos] = useState(datosIniciales)
+  const [datos,setDatos] = useState({...datosIniciales,nombre:normalizarNombre(String(datosIniciales.nombre ?? ''))})
   const [paso,setPaso] = useState(Math.max(0,Math.min(pasoInicial,PASOS_PERFIL.length-1)))
   const [guardando,setGuardando] = useState(false)
   const [subiendo,setSubiendo] = useState(false)
@@ -30,11 +30,11 @@ export default function BienvenidaCliente({userId,datosIniciales,pasoInicial}: {
     window.addEventListener('beforeunload',avisar)
     return ()=>window.removeEventListener('beforeunload',avisar)
   },[guardando])
-  async function avanzar(omitir=false) {
+  async function avanzar(eleccionExplicita=false) {
     if (guardadoEnCurso.current || subiendo) return
     setError('')
-    const respuesta = omitir && pregunta.campo !== 'avatar_url' ? null : valor
-    try { normalizarRespuesta(pregunta.campo,respuesta,{userId,supabaseUrl:process.env.NEXT_PUBLIC_SUPABASE_URL!,anterior:datosIniciales[pregunta.campo]}) }
+    let respuesta: ValorPerfil
+    try { respuesta = normalizarRespuestaBienvenida(pregunta.campo,eleccionExplicita ? null : valor,{userId,supabaseUrl:process.env.NEXT_PUBLIC_SUPABASE_URL!,anterior:datosIniciales[pregunta.campo]},eleccionExplicita) }
     catch (causa) { setError(causa instanceof Error ? causa.message : 'Revisá tu respuesta.');return }
     const pasoAnterior = paso
     const campo = pregunta.campo
@@ -52,7 +52,7 @@ export default function BienvenidaCliente({userId,datosIniciales,pasoInicial}: {
     const controlador = new AbortController()
     const limite = setTimeout(()=>controlador.abort(),20000)
     try {
-      const res=await fetch('/api/cuenta/bienvenida',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({campo,valor:respuesta}),keepalive:true,signal:controlador.signal})
+      const res=await fetch('/api/cuenta/bienvenida',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({campo,valor:respuesta,eleccion_explicita:eleccionExplicita}),keepalive:true,signal:controlador.signal})
       const body=await res.json()
       if(!res.ok) throw new Error(body.error || 'No pudimos guardar.')
       if(ultimo && body.completado) {window.location.assign('/inicio');return}
@@ -96,7 +96,7 @@ export default function BienvenidaCliente({userId,datosIniciales,pasoInicial}: {
     <section className="mx-auto mt-9 w-full max-w-xl sm:mt-14">
       <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Tu bienvenida</p>
       <h1 className="mt-3 font-serif text-3xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl">Hola, bienvenida a Socias Digitales.</h1>
-      <p className="mt-4 max-w-lg text-sm leading-6 text-[#655B56]">Conocer tu perfil es muy importante para personalizar tu experiencia y acompañarte mejor. Después podés editar tus respuestas en “Mi perfil”.</p>
+      <p className="mt-4 max-w-lg text-sm leading-6 text-[#655B56]">Completá tu perfil para entrar a la plataforma. Esta información nos ayuda a personalizar tu experiencia y acompañarte mejor. Después podés editar tus respuestas en “Mi perfil”.</p>
       <div className="mt-7 flex items-center gap-4">
         <div role="progressbar" aria-label="Progreso de tu bienvenida" aria-valuemin={0} aria-valuemax={visibles.length} aria-valuenow={posicion} className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F4CAD8]"><div className="h-full rounded-full bg-[#294A38] transition-[width] duration-200" style={{width:`${posicion/visibles.length*100}%`}} /></div>
         <p className="text-[11px] font-medium tabular-nums text-[#655B56]">{posicion+1} de {visibles.length}</p>
@@ -114,7 +114,7 @@ export default function BienvenidaCliente({userId,datosIniciales,pasoInicial}: {
           <button type="button" disabled={posicion===0||guardando||subiendo} onClick={volver} className="text-sm font-medium text-[#655B56] disabled:opacity-30">Atrás</button>
           <button type="submit" disabled={guardando||subiendo} className="inline-flex items-center gap-3 rounded-full bg-[#294A38] px-6 py-3 text-sm font-semibold text-white disabled:opacity-50">{finalizando?'Guardando…':ultimo?'Entrar a mi espacio':'Continuar'}<ArrowIcon /></button>
         </div>
-        {pregunta.opcional && <button type="button" disabled={guardando||subiendo} onClick={()=>void avanzar(true)} className="mt-5 block w-full text-center text-xs text-[#655B56] underline underline-offset-4">{['fecha_nacimiento','es_mama','ingresos_actuales'].includes(pregunta.campo)?'Prefiero no responder':ultimo?'Agregar después y entrar':'Completar después'}</button>}
+        {pregunta.opcional && <button type="button" disabled={guardando||subiendo} onClick={()=>void avanzar(true)} className="mt-5 block w-full text-center text-xs text-[#655B56] underline underline-offset-4">{ultimo?'Usar mi inicial como foto':'Prefiero no responder'}</button>}
       </form>
       <p role="status" aria-live="polite" className="mt-4 text-center text-[11px] text-[#655B56]">{guardando?'Guardando tu respuesta… Podés completar la siguiente.':'Las respuestas se guardan al avanzar.'}</p>
     </section>

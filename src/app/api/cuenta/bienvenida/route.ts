@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
-import { PASOS_PERFIL, pasosVisibles, normalizarRespuesta, type CampoPerfil, type RespuestasPerfil } from '@/lib/perfil-preguntas'
+import { PASOS_PERFIL, pasosVisibles, normalizarRespuestaBienvenida, type CampoPerfil, type RespuestasPerfil } from '@/lib/perfil-preguntas'
 
 export async function POST(request: Request) {
   if (request.headers.get('origin') !== new URL(request.url).origin) return NextResponse.json({ error: 'Solicitud no permitida.' }, { status: 403 })
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Ingresá a tu cuenta para continuar.' }, { status: 401 })
   if (!isAdminSupabaseConfigured()) return NextResponse.json({ error: 'El guardado no está disponible.' }, { status: 503 })
-  let body: { campo?: string; valor?: unknown }
+  let body: { campo?: string; valor?: unknown; eleccion_explicita?: boolean }
   try { body = await request.json() } catch { return NextResponse.json({ error: 'Revisá tu respuesta.' }, { status: 400 }) }
   const indice = PASOS_PERFIL.findIndex(paso => paso.campo === body.campo)
   if (indice < 0) return NextResponse.json({ error: 'Pregunta no válida.' }, { status: 400 })
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (perfil.rol === 'admin' || estado?.completado_at) return NextResponse.json({ error: 'Tu perfil se edita desde Mi perfil.' }, { status: 409 })
   if (indice > (estado?.paso ?? 0)) return NextResponse.json({ error: 'Completá las preguntas anteriores primero.' }, { status: 409 })
   let valor
-  try { valor = normalizarRespuesta(campo, body.valor, { userId:user.id, supabaseUrl:process.env.NEXT_PUBLIC_SUPABASE_URL!, anterior:perfil[campo] }) }
+  try { valor = normalizarRespuestaBienvenida(campo, body.valor, { userId:user.id, supabaseUrl:process.env.NEXT_PUBLIC_SUPABASE_URL!, anterior:perfil[campo] }, body.eleccion_explicita === true) }
   catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Revisá tu respuesta.' }, { status: 400 }) }
   const respuestas = { ...perfil, [campo]: valor } as RespuestasPerfil
   const respondidas = [...new Set<string>([...(estado?.respondidas ?? []),campo])]
@@ -30,8 +30,8 @@ export async function POST(request: Request) {
   const final = campo === 'avatar_url'
   if (final && !visibles.every(paso => respondidas.includes(paso.campo))) return NextResponse.json({ error: 'Faltan preguntas por completar.' }, { status: 409 })
   if (final) {
-    try { for (const clave of ['nombre','ocupacion','pais'] as CampoPerfil[]) normalizarRespuesta(clave,respuestas[clave],{userId:user.id,supabaseUrl:process.env.NEXT_PUBLIC_SUPABASE_URL!,anterior:perfil[clave]}) }
-    catch { return NextResponse.json({error:'Revisá tu nombre, ocupación y país antes de terminar.'},{status:400}) }
+    try { for (const paso of visibles) normalizarRespuestaBienvenida(paso.campo,respuestas[paso.campo],{userId:user.id,supabaseUrl:process.env.NEXT_PUBLIC_SUPABASE_URL!,anterior:perfil[paso.campo]}, Boolean(paso.opcional && respondidas.includes(paso.campo))) }
+    catch { return NextResponse.json({error:'Faltan respuestas obligatorias. Volvé atrás para completarlas antes de entrar.'},{status:400}) }
   }
   const siguiente = final ? PASOS_PERFIL.length : PASOS_PERFIL.findIndex(paso => paso.campo === visibles.find(paso => PASOS_PERFIL.findIndex(original => original.campo === paso.campo) > indice)?.campo)
   const { data: guardado, error } = await supabase.from('perfiles').update({ [campo]: valor }).eq('id',user.id).select('id').maybeSingle()

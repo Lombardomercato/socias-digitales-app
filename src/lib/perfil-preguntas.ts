@@ -5,14 +5,14 @@ export type ValorPerfil = string | boolean | null
 export type RespuestasPerfil = Record<CampoPerfil, ValorPerfil>
 export const PASOS_PERFIL: readonly { campo: CampoPerfil; pregunta: string; opcional?: boolean; tipo: 'texto' | 'telefono' | 'fecha' | 'opciones' | 'mama' | 'foto' }[] = [
   { campo: 'nombre', pregunta: '¿Cuál es tu nombre?', tipo: 'texto' },
-  { campo: 'whatsapp', pregunta: '¿Cuál es tu WhatsApp?', tipo: 'telefono', opcional: true },
+  { campo: 'whatsapp', pregunta: '¿Cuál es tu WhatsApp?', tipo: 'telefono' },
   { campo: 'fecha_nacimiento', pregunta: '¿Cuándo naciste?', tipo: 'fecha', opcional: true },
   { campo: 'ocupacion', pregunta: '¿A qué te dedicás?', tipo: 'opciones' },
-  { campo: 'titulo_profesional', pregunta: '¿Cuál es tu título profesional?', tipo: 'texto', opcional: true },
+  { campo: 'titulo_profesional', pregunta: '¿Cuál es tu título profesional?', tipo: 'texto' },
   { campo: 'es_mama', pregunta: '¿Sos mamá?', tipo: 'mama', opcional: true },
   { campo: 'ingresos_actuales', pregunta: '¿Cuáles son tus ingresos actuales?', tipo: 'opciones', opcional: true },
   { campo: 'pais', pregunta: '¿En qué país vivís?', tipo: 'texto' },
-  { campo: 'provincia', pregunta: '¿En qué provincia o estado vivís?', tipo: 'texto', opcional: true },
+  { campo: 'provincia', pregunta: '¿En qué provincia o estado vivís?', tipo: 'texto' },
   { campo: 'avatar_url', pregunta: '¿Sumamos tu foto?', tipo: 'foto', opcional: true },
 ]
 
@@ -21,7 +21,20 @@ export function pasosVisibles(datos: RespuestasPerfil) {
 }
 
 export function necesitaBienvenida(estado: { exenta?: boolean; completado_at?: string | null } | null, rol?: string | null) {
-  return rol !== 'admin' && !estado?.exenta && !estado?.completado_at
+  return rol !== 'admin' && !estado?.completado_at
+}
+
+export function normalizarNombre(nombre: string): string {
+  return nombre.normalize('NFC').trim().replace(/\s+/gu, ' ').toLocaleLowerCase('es-AR')
+    .replace(/(^|[\s\-'’])(\p{L})/gu, (_, separador: string, letra: string) => separador + letra.toLocaleUpperCase('es-AR'))
+}
+
+export function normalizarRespuestaBienvenida(campo: CampoPerfil, valor: unknown, contexto: Parameters<typeof normalizarRespuesta>[2], eleccionExplicita = false): ValorPerfil {
+  const respuesta = normalizarRespuesta(campo, valor, contexto)
+  if (respuesta === null && !(eleccionExplicita && PASOS_PERFIL.find(paso => paso.campo === campo)?.opcional)) {
+    throw new Error('Completá esta respuesta para continuar.')
+  }
+  return respuesta
 }
 
 export function normalizarRespuesta(campo: CampoPerfil, valor: unknown, contexto: { userId: string; supabaseUrl: string; anterior?: ValorPerfil }): ValorPerfil {
@@ -44,5 +57,5 @@ export function normalizarRespuesta(campo: CampoPerfil, valor: unknown, contexto
   if (campo === 'ingresos_actuales' && !INGRESOS.includes(texto) && texto !== contexto.anterior) throw new Error('Elegí un rango de ingresos.')
   if (['pais','provincia','titulo_profesional'].includes(campo) && (texto.length > 160 || (campo === 'pais' && texto.length < 2))) throw new Error('Revisá esta respuesta.')
   if (campo === 'avatar_url' && texto !== contexto.anterior && !texto.startsWith(`${contexto.supabaseUrl.replace(/\/$/,'')}/storage/v1/object/public/avatars/${contexto.userId}/`)) throw new Error('Subí tu foto desde este formulario.')
-  return texto
+  return campo === 'nombre' ? normalizarNombre(texto) : texto
 }

@@ -3,6 +3,7 @@ import { EMAIL_HEADER } from '@/lib/email-brand'
 import { NextResponse } from 'next/server'
 import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
 import { enviarConfirmacion } from '@/lib/registration-mail'
+import { normalizarNombre } from '@/lib/perfil-preguntas'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   let input: Record<string, unknown>
   try { input = await request.json() } catch { return NextResponse.json({ error: 'Revisá tus datos.' }, { status: 400 }) }
   const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : ''
-  const nombre = typeof input.nombre === 'string' ? input.nombre.trim() : ''
+  const nombre = typeof input.nombre === 'string' ? normalizarNombre(input.nombre) : ''
   const password = typeof input.password === 'string' ? input.password : ''
   const resend = input.resend === true
   const recovery = input.recovery === true
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
   // clicks Confirmar before consuming it, so email link scanners cannot burn it.
   const link = `${site}/confirmar#token_hash=${encodeURIComponent(data.properties.hashed_token)}${recovery ? '&flow=recovery' : ''}`
   const challenge = data.user?.user_metadata?.tipo_usuario === 'desafio'
-  const firstName = escapeHtml((data.user?.user_metadata?.nombre || nombre || 'Socia').split(' ')[0])
+  const firstName = escapeHtml(normalizarNombre(data.user?.user_metadata?.nombre || nombre || 'Socia').split(' ')[0])
   const heading = recovery ? 'Recuperá tu acceso' : 'Confirmá tu cuenta'
   const description = recovery ? 'Recibimos un pedido para recuperar tu acceso. Desde este enlace podés elegir una contraseña nueva.' : challenge ? 'Confirmá tu email para completar tu registro al Desafío Socias. Flor revisará tu inscripción y te enviará la bienvenida cuando habilite tu acceso.' : 'Confirmá tu email para entrar a tu cuenta de Socias Digitales.'
   const html = `<div style="background:#FAF7F3;padding:32px 16px;font-family:Arial,sans-serif;color:#171413"><div style="max-width:560px;margin:auto">${EMAIL_HEADER}<h1 style="font-size:28px;color:#294A38">${heading}</h1><p>Hola, ${firstName}.</p><p>${description}</p><a href="${link}" style="display:block;text-align:center;background:#294A38;color:white;padding:18px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:18px;margin:28px 0">${recovery ? 'RECUPERAR MI ACCESO' : 'CONFIRMAR MI CUENTA'}</a><p style="font-size:13px;color:#655B56">Si no hiciste este pedido, ignorá este correo.</p><p>Un abrazo,<br>Flor</p></div></div>`

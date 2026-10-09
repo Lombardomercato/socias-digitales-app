@@ -42,14 +42,23 @@ test('un error vuelve al paso pendiente sin borrar lo escrito en la pregunta sig
   try{
     const ui=fixture();ui.submit(ui.render());ui.find(ui.render(),e=>e.type==='input'&&e.props.type==='tel').props.onChange({target:{value:'+54 351 555 1234'}})
     response.resolve({ok:false,json:async()=>({error:'Servidor no disponible'})});await tick()
-    assert.equal(ui.cells[1],0);assert.equal(ui.cells[0].nombre,'Alumna de prueba');assert.equal(ui.cells[0].whatsapp,'+54 351 555 1234');assert.match(ui.cells[4],/Tus respuestas siguen acá/)
+    assert.equal(ui.cells[1],0);assert.equal(ui.cells[0].nombre,'Alumna De Prueba');assert.equal(ui.cells[0].whatsapp,'+54 351 555 1234');assert.match(ui.cells[4],/Tus respuestas siguen acá/)
   }finally{global.fetch=oldFetch;global.requestAnimationFrame=oldFrame}
 })
 test('la última pregunta no abre inicio hasta confirmar el guardado real',async()=>{
   const oldFetch=global.fetch,oldFrame=global.requestAnimationFrame,oldWindow=global.window;const response=deferred();const destinos=[]
   global.fetch=()=>response.promise;global.requestAnimationFrame=f=>f();global.window={location:{assign:x=>destinos.push(x)}}
   try{
-    const ui=fixture(9);ui.submit(ui.render());assert.deepEqual(destinos,[])
+    const ui=fixture(9);ui.find(ui.render(),e=>e.type==='button'&&e.props.children==='Usar mi inicial como foto').props.onClick();assert.deepEqual(destinos,[])
     response.resolve({ok:true,json:async()=>({completado:true,paso:10})});await tick();assert.deepEqual(destinos,['/inicio'])
   }finally{global.fetch=oldFetch;global.requestAnimationFrame=oldFrame;global.window=oldWindow}
+})
+test('no aparece completar después y una respuesta vacía no avanza ni llama al servidor',()=>{
+  const oldFetch=global.fetch;let requests=0;global.fetch=()=>{requests++}
+  try {
+    const ui=fixture(1);const tree=ui.render()
+    assert.equal(ui.find(tree,e=>e.type==='button'&&/Completar después|Agregar después/.test(String(e.props.children))),null)
+    ui.submit(tree)
+    assert.equal(ui.cells[1],1);assert.equal(requests,0);assert.match(ui.cells[4],/Completá esta respuesta/)
+  }finally{global.fetch=oldFetch}
 })

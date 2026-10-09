@@ -12,6 +12,11 @@ function endpoint(reservation = { allowed: true, exists: false, confirmed: false
   const exports = {}
   new Function('require', 'exports', ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../src/app/api/registro/route.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText)(name => {
     if (name === 'node:crypto') return require(name)
+    if (name === '@/lib/perfil-preguntas') {
+      const module = {exports:{}}
+      new Function('module','exports',ts.transpileModule(fs.readFileSync(path.resolve(__dirname,'../src/lib/perfil-preguntas.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText)(module,module.exports)
+      return module.exports
+    }
     if (name === '@/lib/email-brand') return { EMAIL_HEADER: '<img alt="Socias" />' }
     if (name === 'next/server') return { NextResponse: { json: (body, options = {}) => ({ body, status: options.status ?? 200 }) } }
     if (name === '@/lib/registration-mail') return { enviarConfirmacion: async mail => { sent = mail; return mailOK ? { ok: true, messageId: 'unit-test', attempts: 1 } : { ok: false, status: 503 } } }
@@ -34,6 +39,12 @@ test('un error de consentimiento opcional no bloquea el email de acceso', async 
   const api = endpoint(undefined, { code: 'unit-test-error' })
   assert.equal((await api.POST(req(input))).status, 200)
   assert.ok(api.sent())
+})
+test('registro y email guardan el nombre normalizado',async()=>{
+  const api=endpoint()
+  assert.equal((await api.POST(req({...input,nombre:'  MARÍA   péREZ '}))).status,200)
+  assert.equal(api.generated().options.data.nombre,'María Pérez')
+  assert.match(api.sent().html,/Hola, María\./)
 })
 test('reenvío usa enlace de cuenta existente, nunca cambia contraseña o membresía', async () => {
   const api = endpoint({ allowed: true, exists: true, confirmed: false })

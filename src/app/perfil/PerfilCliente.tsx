@@ -8,7 +8,7 @@ import type { User } from '@supabase/supabase-js'
 import EmailPreference from '@/components/EmailPreference'
 import PushPreference from '@/components/PushPreference'
 import InvitationLinks from '@/components/InvitationLinks'
-import { OCUPACIONES, INGRESOS } from '@/lib/perfil-preguntas'
+import { OCUPACIONES, INGRESOS, normalizarNombre } from '@/lib/perfil-preguntas'
 
 interface Perfil {
   id: string
@@ -36,7 +36,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
-  const [nombre, setNombre] = useState(perfil?.nombre ?? '')
+  const [nombre, setNombre] = useState(normalizarNombre(perfil?.nombre ?? ''))
   const [telefono, setTelefono] = useState(perfil?.whatsapp ?? perfil?.telefono ?? '')
   const [fechaNacimiento, setFechaNacimiento] = useState(perfil?.fecha_nacimiento ?? '')
   const [ocupacion, setOcupacion] = useState(perfil?.ocupacion ?? '')
@@ -74,7 +74,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
     const { data, error } = await supabase
       .from('perfiles')
       .update({
-        nombre,
+        nombre: normalizarNombre(nombre),
         whatsapp: telefono || null,
         avatar_url: avatarUrl,
         fecha_nacimiento: fechaNacimiento || null,
@@ -90,6 +90,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
     if (error || !data) {
       setMensaje('Error al guardar. Intentá de nuevo.')
     } else {
+      setNombre(normalizarNombre(nombre))
       setMensaje('¡Perfil guardado con éxito!')
       router.refresh()
     }

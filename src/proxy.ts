@@ -63,8 +63,8 @@ export async function proxy(request: NextRequest) {
     return redirectConCookies('/crear-contrasena')
   }
 
-  // La bienvenida es previa al panel para cuentas nuevas, no un permiso de
-  // clases ni de administración. Las cuentas existentes se conservan exentas.
+  // Toda alumna completa la encuesta antes del panel; las exenciones antiguas
+  // no permiten saltearla. Completarla no habilita clases ni administración.
   if (userId && perfil?.rol !== 'admin' && pathname !== '/bienvenida'
     && (rutasProtegidas.some(r => pathname.startsWith(r)) || ['/login','/registro','/registro/desafio','/registro/socias'].includes(pathname))) {
     const { data: bienvenida, error } = await supabase.from('bienvenida_perfiles').select('exenta,completado_at').eq('usuaria_id',userId).maybeSingle()
