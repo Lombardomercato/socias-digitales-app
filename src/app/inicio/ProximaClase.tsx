@@ -54,10 +54,10 @@ export default function ProximaClase({ ahoraInicial, hitos = AGENDA_SOCIAS, vari
         <h2 className="font-serif text-xl font-semibold leading-tight">{hito.titulo} <span className="ml-1 hidden font-sans text-xs font-medium text-[#655B56] sm:inline">· Agendá tu clase</span></h2>
         <p className="mt-1 text-[11px] leading-5 text-[#51443F]">{fecha.dia} {fecha.fecha} · <time dateTime={hito.fecha}>{fecha.hora} hora Argentina</time></p>
       </div>
-      <div>
-        {enlace ? <a href={enlace} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-[#294A38] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#203B2D]">{hito.accion} <ArrowIcon /></a>
-          : <button type="button" disabled title="Flor todavía no publicó el enlace" className="rounded-full border border-[#294A38]/20 bg-[#FAF7F3] px-4 py-2 text-xs font-semibold text-[#294A38]/65">{hito.accion}</button>}
-        {!enlace && <p className="mt-1 text-[9px] text-[#655B56]">Enlace por confirmar.</p>}
+      <div className="flex shrink-0 flex-col items-center text-center">
+        {enlace ? <a href={enlace} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#EC9BB6] bg-[#EC9BB6] px-4 py-2 text-xs font-semibold text-[#171413] transition hover:bg-[#F4CAD8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#294A38]">{hito.accion} <ArrowIcon /></a>
+          : <button type="button" disabled title="Flor todavía no publicó el enlace" className="rounded-full border border-[#EC9BB6] bg-[#EC9BB6] px-4 py-2 text-xs font-semibold text-[#171413] disabled:cursor-not-allowed">{hito.accion}</button>}
+        {!enlace && <p className="mt-1 w-full text-center text-[9px] text-[#655B56]">Enlace por confirmar.</p>}
       </div>
     </div>
   </section>

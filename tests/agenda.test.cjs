@@ -39,3 +39,10 @@ test('contador en la barra izquierda y banner fino antes de estrategia; móvil m
   assert.ok(componente.includes('type="button" disabled'))
   assert.equal(actual.enlace, null)
 })
+test('botón y aviso del encuentro centrados; rosa oficial sin activar un enlace pendiente', () => {
+  const componente = fs.readFileSync(path.resolve(__dirname,'../src/app/inicio/ProximaClase.tsx'),'utf8')
+  assert.ok(componente.includes('flex shrink-0 flex-col items-center text-center'))
+  assert.ok(componente.includes('mt-1 w-full text-center text-[9px]'))
+  assert.equal((componente.match(/border-\[#EC9BB6\] bg-\[#EC9BB6\]/g) || []).length,2)
+  assert.ok(componente.includes('type="button" disabled title="Flor todavía no publicó el enlace"'))
+})
