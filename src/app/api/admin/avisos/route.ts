@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { after, NextRequest, NextResponse } from 'next/server'
+import { emailAvisosConfigurado, procesarEmailsAviso } from '@/lib/notice-email'
 import { createClient } from '@/lib/supabase/server'
 import { AUDIENCIAS, esDestinoValido } from '@/lib/notifications'
+
+export const maxDuration = 300
+function programarEmail(id: string, solicitado: boolean) {
+  if (solicitado) after(() => procesarEmailsAviso(id))
+}
 
 export async function POST(req: NextRequest) {
   if (req.headers.get('origin') !== req.nextUrl.origin) return NextResponse.json({ error: 'Origen no permitido.' }, { status: 403 })
@@ -20,29 +26,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
   if (entrada.accion === 'publicar') {
-    const { data, error } = await supabase.from('avisos').update({ publicado: true }).eq('id', entrada.id).eq('archivado', false).select('id').maybeSingle()
+    const { data, error } = await supabase.from('avisos').update({ publicado: true }).eq('id', entrada.id).eq('archivado', false).select('id,email_solicitado').maybeSingle()
     if (error || !data) return NextResponse.json({ error: 'No se pudo publicar el borrador.' }, { status: 500 })
+    programarEmail(data.id, data.email_solicitado)
     return NextResponse.json({ ok: true })
   }
   if (entrada.accion !== undefined) return NextResponse.json({ error: 'Acción no válida.' }, { status: 400 })
   const titulo = typeof entrada.titulo === 'string' ? entrada.titulo.trim() : ''
   const mensaje = typeof entrada.mensaje === 'string' ? entrada.mensaje.trim() : ''
   const audiencias = entrada.audiencias
+  const emailSolicitado = entrada.email_solicitado === true
+  if (entrada.email_solicitado !== undefined && typeof entrada.email_solicitado !== 'boolean') return NextResponse.json({ error: 'Preferencia de envío no válida.' }, { status: 400 })
+  if (emailSolicitado && !emailAvisosConfigurado()) return NextResponse.json({ error: 'El envío por email no está configurado.' }, { status: 503 })
   if (!titulo || titulo.length > 120 || !mensaje || mensaje.length > 4000 || !Array.isArray(audiencias) || !audiencias.length || !audiencias.every(a => AUDIENCIAS.some(item => item.id === a)) || (entrada.destino !== null && !esDestinoValido(entrada.destino)) || typeof entrada.publicado !== 'boolean') {
     return NextResponse.json({ error: 'Revisá el título, mensaje y destinatarias.' }, { status: 400 })
   }
-  const { data, error } = await supabase.from('avisos').insert({ id: entrada.id, titulo, mensaje, audiencias: [...new Set(audiencias)], destino: entrada.destino, publicado: entrada.publicado, autora_id: user.id }).select('id').single()
+  const { data, error } = await supabase.from('avisos').insert({ id: entrada.id, titulo, mensaje, audiencias: [...new Set(audiencias)], destino: entrada.destino, publicado: entrada.publicado, email_solicitado: emailSolicitado, autora_id: user.id }).select('id').single()
   if (error) {
     // Una respuesta perdida no debe provocar una segunda publicación.
     if (error.code === '23505') {
-      const { data: existente } = await supabase.from('avisos').select('id,titulo,mensaje,audiencias,destino,publicado,archivado').eq('id', entrada.id).eq('autora_id', user.id).maybeSingle()
+      const { data: existente } = await supabase.from('avisos').select('id,titulo,mensaje,audiencias,destino,publicado,archivado,email_solicitado').eq('id', entrada.id).eq('autora_id', user.id).maybeSingle()
       if (existente) {
         const mismasAudiencias = JSON.stringify([...existente.audiencias].sort()) === JSON.stringify([...new Set(audiencias)].sort())
-        if (!existente.archivado && existente.titulo === titulo && existente.mensaje === mensaje && existente.destino === entrada.destino && existente.publicado === entrada.publicado && mismasAudiencias) return NextResponse.json({ ok: true, id: existente.id })
+        if (!existente.archivado && existente.titulo === titulo && existente.mensaje === mensaje && existente.destino === entrada.destino && existente.publicado === entrada.publicado && existente.email_solicitado === emailSolicitado && mismasAudiencias) {
+          if (existente.publicado) programarEmail(existente.id, emailSolicitado)
+          return NextResponse.json({ ok: true, id: existente.id })
+        }
         return NextResponse.json({ error: 'Este aviso ya fue guardado con otros datos. Revisá el historial antes de volver a publicar.' }, { status: 409 })
       }
     }
     return NextResponse.json({ error: 'No se pudo guardar el aviso. Intentá nuevamente.' }, { status: 500 })
   }
+  if (entrada.publicado) programarEmail(data.id, emailSolicitado)
   return NextResponse.json({ ok: true, id: data.id })
 }

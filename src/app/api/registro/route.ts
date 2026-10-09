@@ -39,6 +39,10 @@ export async function POST(request: Request) {
     ? { type: 'magiclink', email, options: { redirectTo: `${site}/auth/callback` } }
     : { type: 'signup', email, password, options: { data: { nombre, tipo_usuario: input.tipo_usuario === 'desafio' ? 'desafio' : 'gratuito' }, redirectTo: `${site}/auth/callback` } })
   if (error || !data.properties?.hashed_token) return NextResponse.json({ error: 'No pudimos crear el acceso. Intentá nuevamente.' }, { status: 503 })
+  if (!reservation.exists && data.user?.id && !recovery && !resend) {
+    const { error: consentError } = await admin.from('preferencias_email').insert({ usuaria_id: data.user.id, acepta_email: input.acepta_email === true, origen: 'registro' })
+    if (consentError) return NextResponse.json({ error: 'Tu cuenta quedó guardada, pero no pudimos guardar la preferencia de email. No recibirás novedades hasta activarlas desde tu perfil. Reintentá la confirmación en un minuto.' }, { status: 502 })
+  }
   // Fragment keeps the one-time token out of server request/access logs. A human
   // clicks Confirmar before consuming it, so email link scanners cannot burn it.
   const link = `${site}/confirmar#token_hash=${encodeURIComponent(data.properties.hashed_token)}${recovery ? '&flow=recovery' : ''}`

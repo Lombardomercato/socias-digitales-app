@@ -16,6 +16,7 @@ export interface Aviso {
   archivado: boolean
   created_at: string
   leido?: boolean
+  email_solicitado?: boolean
 }
 
 export function perteneceAudiencia(perfil: { rol?: string; tipo_usuario?: string; desafio_socias_habilitada?: boolean }, audiencias: Audiencia[]) {

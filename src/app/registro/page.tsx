@@ -17,6 +17,7 @@ export default function RegistroPage() {
   const [reenviando, setReenviando] = useState(false)
   const [requiereConfirmacion, setRequiereConfirmacion] = useState(false)
   const [registroEnviado, setRegistroEnviado] = useState(false)
+  const [aceptaEmail, setAceptaEmail] = useState(false)
 
   async function handleRegistro(e: React.FormEvent) {
     e.preventDefault()
@@ -27,7 +28,7 @@ export default function RegistroPage() {
     setRegistroEnviado(false)
 
     try {
-      const response = await fetch('/api/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, email, password, tipo_usuario: esDesafio ? 'desafio' : 'gratuito' }) })
+      const response = await fetch('/api/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, email, password, acepta_email: aceptaEmail, tipo_usuario: esDesafio ? 'desafio' : 'gratuito' }) })
       const result = await response.json()
       if (!response.ok) { setRequiereConfirmacion(response.status === 502); setError(result.error || 'No pudimos crear la cuenta. Intentá nuevamente.'); return }
       setRequiereConfirmacion(true)
@@ -107,6 +108,11 @@ export default function RegistroPage() {
               </button>}
             </div>}
 
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#EC9BB6]/50 p-4 text-sm leading-6 text-[#51443F]">
+              <input type="checkbox" checked={aceptaEmail} disabled={loading || registroEnviado} onChange={e => setAceptaEmail(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#294A38]" />
+              <span>Acepto recibir por email avisos de clases, recordatorios y novedades de Socias Digitales.<span className="mt-1 block text-xs leading-5 text-[#655B56]">Es opcional. Podés cambiarlo desde tu perfil o darte de baja en cada correo.</span></span>
+            </label>
+            <p className="text-xs leading-5 text-[#655B56]">Los avisos también aparecen dentro de la plataforma. Los correos para confirmar o recuperar tu cuenta se envían aunque no marques esta casilla.</p>
             <div className={`sd-registration-submit ${registroEnviado ? 'sd-registration-success' : ''}`}>
               <button type="submit" disabled={loading || registroEnviado} className="mt-2 w-full rounded-xl bg-[#294A38] px-5 py-3.5 font-impact text-sm font-semibold text-white transition-colors hover:bg-[#203B2D] disabled:opacity-80">
                 {loading ? 'Creando cuenta…' : registroEnviado ? 'Registro enviado ✓' : 'Crear mi cuenta'}

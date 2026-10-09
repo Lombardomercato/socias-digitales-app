@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
+import EmailPreference from '@/components/EmailPreference'
 
 interface Perfil {
   id: string
@@ -154,6 +155,8 @@ export default function PerfilCliente({ user, perfil }: Props) {
           <div><h2 className="text-sm font-semibold">Seguridad de tu cuenta</h2><p className="mt-1 text-xs text-[#655B56]">Tu contraseña es personal.</p></div>
           <Link href="/cuenta/contrasena" className="text-sm font-semibold text-[#294A38] underline underline-offset-4">Cambiar contraseña</Link>
         </section>
+
+        <EmailPreference />
 
         {/* Banner próximamente */}
         {bannerProximamente && (
