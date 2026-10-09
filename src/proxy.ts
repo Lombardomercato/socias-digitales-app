@@ -66,7 +66,7 @@ export async function proxy(request: NextRequest) {
   // La bienvenida es previa al panel para cuentas nuevas, no un permiso de
   // clases ni de administración. Las cuentas existentes se conservan exentas.
   if (userId && perfil?.rol !== 'admin' && pathname !== '/bienvenida'
-    && (rutasProtegidas.some(r => pathname.startsWith(r)) || ['/login','/registro','/registro/desafio'].includes(pathname))) {
+    && (rutasProtegidas.some(r => pathname.startsWith(r)) || ['/login','/registro','/registro/desafio','/registro/socias'].includes(pathname))) {
     const { data: bienvenida, error } = await supabase.from('bienvenida_perfiles').select('exenta,completado_at').eq('usuaria_id',userId).maybeSingle()
     if (error) return new NextResponse('No pudimos cargar tu perfil. Intentá nuevamente.', { status:503 })
     if (necesitaBienvenida(bienvenida,perfil?.rol)) return redirectConCookies('/bienvenida')

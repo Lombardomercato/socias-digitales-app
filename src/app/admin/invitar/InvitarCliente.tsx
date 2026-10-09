@@ -1,5 +1,6 @@
 'use client'
 import AdminSectionMenu from '@/components/AdminSectionMenu'
+import InvitationLinks from '@/components/InvitationLinks'
 
 import { useState } from 'react'
 
@@ -49,6 +50,7 @@ export default function InvitarCliente() {
       <AdminSectionMenu />
 
       <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+        <InvitationLinks />
         <div>
           <h1 className="text-3xl font-semibold text-gray-900">Invitar al Desafío Socias</h1>
           <p className="text-gray-500 mt-1">Pegá los emails y les llegará una invitación para crear su cuenta del Desafío Socias.</p>

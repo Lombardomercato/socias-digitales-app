@@ -8,6 +8,7 @@ import RegistrationPlane from '@/components/RegistrationPlane'
 export default function RegistroPage() {
   const pathname = usePathname()
   const esDesafio = pathname === '/registro/desafio'
+  const esSocias = pathname === '/registro/socias'
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,7 +36,9 @@ export default function RegistroPage() {
       setRegistroEnviado(true)
       setMensaje(esDesafio
         ? 'Revisá tu correo para confirmar la cuenta. Flor habilitará tu acceso al Desafío Socias; cuando lo haga, vas a recibir la bienvenida y podrás entrar a lanzamiento y clases.'
-        : 'Revisá tu correo para confirmar la cuenta. ¡Bienvenida! Tu cuenta gratuita queda creada; los accesos se habilitarán cuando corresponda.')
+        : esSocias
+          ? 'Revisá tu correo para confirmar la cuenta. Tu cuenta se crea con acceso gratuito; Flor activará tu plan Socias desde tu ficha.'
+          : 'Revisá tu correo para confirmar la cuenta. ¡Bienvenida! Tu cuenta gratuita queda creada; los accesos se habilitarán cuando corresponda.')
     } catch { setError('Revisá tu conexión e intentá nuevamente.') }
     finally { setLoading(false) }
   }
@@ -67,7 +70,7 @@ export default function RegistroPage() {
             Un paso a la vez. <span className="text-[#294A38]">A tu manera.</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-7 text-[#51443F]">
-            {esDesafio ? 'Registrate para participar del Desafío Socias.' : 'Creá tu cuenta gratuita y recibí la bienvenida.'}
+            {esDesafio ? 'Registrate para participar del Desafío Socias.' : esSocias ? 'Creá tu cuenta para que Flor pueda habilitar tu plan Socias.' : 'Creá tu cuenta gratuita y recibí la bienvenida.'}
           </p>
         </div>
       </section>
@@ -79,9 +82,9 @@ export default function RegistroPage() {
           </div>
 
           <div className="mb-8">
-            <p className="mb-3 font-impact text-xs font-semibold uppercase tracking-[0.16em] text-[#294A38]">{esDesafio ? 'Desafío Socias' : 'Acceso gratuito'}</p>
+            <p className="mb-3 font-impact text-xs font-semibold uppercase tracking-[0.16em] text-[#294A38]">{esDesafio ? 'Desafío Socias' : esSocias ? 'Plan Socias' : 'Acceso gratuito'}</p>
             <h2 className="font-serif text-4xl leading-tight tracking-[-0.035em] text-[#171413]">Crear <span className="italic text-[#294A38]">cuenta.</span></h2>
-            <p className="mt-3 text-sm leading-6 text-[#655B56]">Completá tus datos para registrarte.</p>
+            <p className="mt-3 text-sm leading-6 text-[#655B56]">{esSocias ? 'Completá tus datos. El plan Socias se activa cuando Flor lo habilita; registrarte no realiza una compra.' : 'Completá tus datos para registrarte.'}</p>
           </div>
 
           <form onSubmit={handleRegistro} className="space-y-4">
@@ -124,7 +127,7 @@ export default function RegistroPage() {
           <p className="mt-8 text-center text-sm text-[#655B56]">
             ¿Ya tenés cuenta? <a href="/login" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Ingresá acá</a>
           </p>
-          {!esDesafio && <p className="mt-3 text-center text-sm text-[#655B56]">¿Te inscribís al Desafío Socias? <a href="/registro/desafio" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Registrate por acá</a></p>}
+          {!esDesafio && !esSocias && <p className="mt-3 text-center text-sm text-[#655B56]">¿Te inscribís al Desafío Socias? <a href="/registro/desafio" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Registrate por acá</a></p>}
         </div>
       </section>
     </main>

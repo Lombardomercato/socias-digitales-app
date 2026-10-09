@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import EmailPreference from '@/components/EmailPreference'
+import InvitationLinks from '@/components/InvitationLinks'
 import { OCUPACIONES, INGRESOS } from '@/lib/perfil-preguntas'
 
 interface Perfil {
@@ -136,6 +137,8 @@ export default function PerfilCliente({ user, perfil }: Props) {
           <h1 className="mt-2 font-serif text-4xl text-[#171413]">Mi perfil</h1>
           <p className="mt-2 text-sm leading-6 text-[#655B56]">Tus datos y preferencias.</p>
         </header>
+
+        {esAdmin && <InvitationLinks />}
 
         {/* Banner próximamente */}
         {bannerProximamente && (

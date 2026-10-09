@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import NavigationIcon from '@/components/NavigationIcon'
+import InvitationLinks from '@/components/InvitationLinks'
 
 interface Alumna {
   id: string
@@ -191,6 +192,8 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               <a href="/admin/invitar" className="inline-flex w-fit items-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Invitar al Desafío <span aria-hidden="true">+</span></a>
             </div>
           </div>
+
+          <InvitationLinks />
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
