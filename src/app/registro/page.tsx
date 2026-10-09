@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
+import RegistrationPlane from '@/components/RegistrationPlane'
 
 export default function RegistroPage() {
   const pathname = usePathname()
@@ -15,6 +16,7 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false)
   const [reenviando, setReenviando] = useState(false)
   const [requiereConfirmacion, setRequiereConfirmacion] = useState(false)
+  const [registroEnviado, setRegistroEnviado] = useState(false)
 
   async function handleRegistro(e: React.FormEvent) {
     e.preventDefault()
@@ -22,12 +24,14 @@ export default function RegistroPage() {
     setError('')
     setMensaje('')
     setRequiereConfirmacion(false)
+    setRegistroEnviado(false)
 
     try {
       const response = await fetch('/api/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, email, password, tipo_usuario: esDesafio ? 'desafio' : 'gratuito' }) })
       const result = await response.json()
+      if (!response.ok) { setRequiereConfirmacion(response.status === 502); setError(result.error || 'No pudimos crear la cuenta. Intentá nuevamente.'); return }
       setRequiereConfirmacion(true)
-      if (!response.ok) { setError(result.error || 'No pudimos crear la cuenta. Intentá nuevamente.'); return }
+      setRegistroEnviado(true)
       setMensaje(esDesafio
         ? 'Revisá tu correo para confirmar la cuenta. Flor habilitará tu acceso al Desafío Socias; cuando lo haga, vas a recibir la bienvenida y podrás entrar a lanzamiento y clases.'
         : 'Revisá tu correo para confirmar la cuenta. ¡Bienvenida! Tu cuenta gratuita queda creada; los accesos se habilitarán cuando corresponda.')
@@ -75,7 +79,7 @@ export default function RegistroPage() {
 
           <div className="mb-8">
             <p className="mb-3 font-impact text-xs font-semibold uppercase tracking-[0.16em] text-[#294A38]">{esDesafio ? 'Desafío Socias' : 'Acceso gratuito'}</p>
-            <h2 className="font-serif text-4xl leading-tight tracking-[-0.035em] text-[#171413]">Crear <span className="italic text-[#B01B30]">cuenta.</span></h2>
+            <h2 className="font-serif text-4xl leading-tight tracking-[-0.035em] text-[#171413]">Crear <span className="italic text-[#294A38]">cuenta.</span></h2>
             <p className="mt-3 text-sm leading-6 text-[#655B56]">Completá tus datos para registrarte.</p>
           </div>
 
@@ -103,9 +107,12 @@ export default function RegistroPage() {
               </button>}
             </div>}
 
-            <button type="submit" disabled={loading} className="mt-2 w-full rounded-xl bg-[#294A38] px-5 py-3.5 font-impact text-sm font-semibold text-white transition-colors hover:bg-[#203B2D] disabled:opacity-60">
-              {loading ? 'Creando cuenta…' : 'Crear mi cuenta'}
-            </button>
+            <div className={`sd-registration-submit ${registroEnviado ? 'sd-registration-success' : ''}`}>
+              <button type="submit" disabled={loading || registroEnviado} className="mt-2 w-full rounded-xl bg-[#294A38] px-5 py-3.5 font-impact text-sm font-semibold text-white transition-colors hover:bg-[#203B2D] disabled:opacity-80">
+                {loading ? 'Creando cuenta…' : registroEnviado ? 'Registro enviado ✓' : 'Crear mi cuenta'}
+              </button>
+              {registroEnviado && <RegistrationPlane />}
+            </div>
           </form>
 
           <p className="mt-8 text-center text-sm text-[#655B56]">

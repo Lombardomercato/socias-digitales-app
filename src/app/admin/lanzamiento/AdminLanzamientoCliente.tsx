@@ -51,7 +51,7 @@ export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) 
 
   function exportarCSV() {
     const filas = [
-      ['Nombre', 'Email', 'Instagram', 'País', 'Registrada', 'Tráfico', 'Inversión USD', 'En grupo', 'En seguimiento', 'Ventas', 'Objetivo sep USD', 'Ventas necesarias']
+      ['Nombre', 'Email', 'Instagram', 'País', 'Registrada', 'Tráfico', 'Inversión USD', 'En grupo', 'En seguimiento', 'Ventas', 'Objetivo USD', 'Ventas necesarias']
     ]
 
     afiliadas.forEach(a => {
@@ -73,7 +73,11 @@ export default function AdminLanzamientoCliente({ metricas, afiliadas }: Props) 
       ])
     })
 
-    const csv = filas.map(f => f.map(v => `"${v}"`).join(',')).join('\n')
+    const csv = filas.map(f => f.map(v => {
+      const texto = String(v ?? '')
+      const seguro = /^[\s]*[=+@-]/.test(texto) ? `'${texto}` : texto
+      return `"${seguro.replaceAll('"', '""')}"`
+    }).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import ModuleLocked from '@/components/ModuleLocked'
+import { esAdministradora } from '@/lib/module-guard'
 import { redirect } from 'next/navigation'
 import ResultadosCliente from './ResultadosCliente'
 
@@ -6,6 +8,7 @@ export default async function ResultadosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  if (!await esAdministradora(user.id)) return <ModuleLocked id="resultados" />
 
   const [{ data: misResultados }, { data: productos }] = await Promise.all([
     supabase

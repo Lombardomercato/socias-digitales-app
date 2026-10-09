@@ -26,6 +26,30 @@ body {
   font-family: var(--font-dm-sans), Arial, Helvetica, sans-serif;
 }
 
+.sd-registration-submit { position: relative; isolation: isolate; }
+.sd-registration-plane {
+  position: absolute;
+  pointer-events: none;
+  left: 50%;
+  top: 0;
+  width: 64px;
+  height: 52px;
+  opacity: 0;
+  animation: sd-plane-flight 1.4s linear both;
+}
+@keyframes sd-plane-flight {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(.7); }
+  15% { opacity: 1; transform: translate(-50%, -1px) rotate(-3deg); }
+  30% { opacity: 1; transform: translate(-70%, -7px) rotate(-12deg); }
+  50% { opacity: 1; transform: translate(-40%, -33px) scale(.96) rotate(14deg); }
+  70% { opacity: 1; transform: translate(35%, -85px) scale(.85) rotate(30deg); }
+  90% { opacity: .7; transform: translate(115%, -155px) scale(.65) rotate(38deg); }
+  100% { opacity: 0; transform: translate(160%, -200px) scale(.5) rotate(42deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sd-registration-plane { display: none; animation: none; }
+}
+
 /* Socias Digitales · una misma experiencia visual en el panel y el espacio de las alumnas. */
 .platform-design {
   --sd-paper: #f4efea;
@@ -145,6 +169,23 @@ body {
 .platform-design select:focus {
   --tw-ring-color: var(--sd-rose) !important;
   border-color: var(--sd-rose) !important;
+}
+
+/* Campos integrados: el fondo pertenece a la tarjeta, no al input. */
+.platform-design input.sd-input-integrated {
+  background-color: transparent;
+  border-radius: 0 !important;
+}
+
+.platform-design--member section.bg-\[\#F4EFEA\],
+.platform-design--admin section.bg-white,
+.platform-design--admin article.bg-white {
+  border: 1px solid var(--sd-line);
+}
+
+.platform-design--admin .sd-section-return {
+  background: transparent !important;
+  border: 0;
 }
 
 .platform-design table thead {

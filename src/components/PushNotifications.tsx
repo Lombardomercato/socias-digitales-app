@@ -60,12 +60,7 @@ export default function PushNotifications() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || cancelado || Notification.permission === 'denied') return
 
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('rol, desafio_socias_habilitada')
-        .eq('id', user.id)
-        .maybeSingle()
-      if (cancelado || (!perfil?.desafio_socias_habilitada && perfil?.rol !== 'admin')) return
+      if (cancelado) return
 
       if (Notification.permission === 'granted') {
         await registrar(false)

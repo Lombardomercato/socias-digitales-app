@@ -43,7 +43,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Rutas que requieren login
-  const rutasProtegidas = ['/inicio', '/perfil', '/admin', '/metricas', '/classroom', '/clases', '/productos', '/ranking', '/logros', '/comunidad', '/resultados', '/checklist', '/objetivos', '/lanzamiento']
+  const rutasProtegidas = ['/inicio', '/perfil', '/admin', '/metricas', '/classroom', '/clases', '/productos', '/ranking', '/logros', '/comunidad', '/resultados', '/checklist', '/objetivos', '/lanzamiento', '/notificaciones']
   if (!userId && rutasProtegidas.some(r => pathname.startsWith(r))) {
     const destino = `${pathname}${request.nextUrl.search}`
     return redirectConCookies(`/login?next=${encodeURIComponent(destino)}`)
@@ -72,9 +72,9 @@ export async function proxy(request: NextRequest) {
     return redirectConCookies('/inicio')
   }
 
-  // Primera etapa: únicamente Inicio, Perfil, Lanzamiento y Clases están disponibles.
+  // Las páginas de módulos pendientes muestran su bloqueo; nunca su contenido.
   // La autorización efectiva también se vuelve a comprobar en cada página/consulta.
-  const rutasIniciales = ['/inicio', '/perfil']
+  const rutasIniciales = ['/inicio', '/perfil', '/notificaciones', '/productos', '/resultados', '/comunidad', '/metricas', '/objetivos', '/checklist', '/ranking', '/logros']
   const rutasDesafio = ['/lanzamiento', '/classroom', '/clases']
   if (userId && perfil?.rol !== 'admin' && rutasProtegidas.some(r => pathname.startsWith(r))) {
     const permitida = [...rutasIniciales, ...rutasDesafio].some(r => pathname.startsWith(r))
@@ -82,12 +82,6 @@ export async function proxy(request: NextRequest) {
     if (rutasDesafio.some(r => pathname.startsWith(r)) && !perfil?.desafio_socias_habilitada) {
       return redirectConCookies('/inicio?acceso=pendiente')
     }
-  }
-
-  // Rutas aún no habilitadas — redirigir a perfil con aviso
-  const rutasProximamente = ['/ranking', '/logros']
-  if (userId && rutasProximamente.some(r => pathname.startsWith(r))) {
-    return redirectConCookies('/inicio?proximamente=1')
   }
 
   return supabaseResponse

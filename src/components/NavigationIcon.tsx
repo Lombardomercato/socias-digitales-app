@@ -9,6 +9,10 @@ const paths = {
   resultados: 'M4 20V10m8 10V4m8 16v-7',
   notificaciones: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',
   configuracion: 'M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6M8 15v6',
+  objetivos: 'M21 12a9 9 0 1 1-9-9m5 9a5 5 0 1 1-5-5m0 5 9-9m-5 0h5v5',
+  checklist: 'M9 5h12M9 12h12M9 19h12M2 5l2 2 3-4M2 12l2 2 3-4M2 19l2 2 3-4',
+  logros: 'M8 3h8v8a4 4 0 0 1-8 0ZM8 5H3v3a5 5 0 0 0 5 5m8-8h5v3a5 5 0 0 1-5 5m-4 2v6m-4 0h8',
+  bloqueo: 'M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5Zm7 4v3',
 }
 
 export default function NavigationIcon({ name }: { name: keyof typeof paths }) {

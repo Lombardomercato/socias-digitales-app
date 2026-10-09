@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import ModuleLocked from '@/components/ModuleLocked'
+import { esAdministradora } from '@/lib/module-guard'
 import { redirect } from 'next/navigation'
 import RankingCliente from './RankingCliente'
 
@@ -6,6 +8,7 @@ export default async function RankingPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  if (!await esAdministradora(user.id)) return <ModuleLocked id="ranking" />
 
   const mes = new Date()
   const inicioMes = new Date(mes.getFullYear(), mes.getMonth(), 1).toISOString()

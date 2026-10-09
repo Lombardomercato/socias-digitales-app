@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 interface Producto {
@@ -71,8 +72,8 @@ export default function ProductosCliente({ productos, misLinks, userId, cotizaci
       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
         <h1 className="text-lg font-bold text-rose-600">Socias Digitales</h1>
         <div className="flex items-center gap-4">
-          <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">Mi perfil</a>
-          <a href="/classroom" className="text-sm text-rose-600 hover:text-rose-800 font-medium">Classroom</a>
+          <Link href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">Mi perfil</Link>
+          <Link href="/clases" className="text-sm text-rose-600 hover:text-rose-800 font-medium">Clases</Link>
         </div>
       </nav>
 

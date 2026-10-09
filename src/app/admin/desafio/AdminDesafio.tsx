@@ -61,12 +61,12 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
   return (
     <main className="min-h-screen px-5 py-8 md:px-10" style={{ background: '#F4EFEA', color: '#211c19' }}>
       <div className="mx-auto max-w-5xl">
-        <nav className="mb-8 flex items-center justify-between">
+        <nav className="sd-section-return mb-5 flex items-center justify-between">
           <a href="/admin" className="text-sm font-medium" style={{ color: '#294A38' }}>← Panel de Flor</a>
           <a href="/admin/classroom" className="text-sm text-neutral-500">Gestionar clases</a>
         </nav>
         <AdminSectionMenu />
-        <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <header className="mt-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: '#294A38' }}>Desafío Socias</p>
             <h1 className="mt-2 text-4xl md:text-5xl" style={{ fontFamily: 'var(--font-playfair)' }}>Solicitudes de acceso</h1>

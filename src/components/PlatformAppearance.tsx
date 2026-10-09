@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 const PLATFORM_PATHS = [
   '/inicio', '/perfil', '/classroom', '/clases', '/lanzamiento', '/comunidad',
   '/resultados', '/productos', '/objetivos', '/checklist', '/ranking', '/logros',
-  '/metricas', '/admin',
+  '/metricas', '/admin', '/notificaciones',
 ]
 
 export default function PlatformAppearance({ children }: { children: React.ReactNode }) {

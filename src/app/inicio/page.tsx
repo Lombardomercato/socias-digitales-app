@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import ProximaClase from './ProximaClase'
 import ArrowIcon from '@/components/ArrowIcon'
 import NavigationIcon from '@/components/NavigationIcon'
+import LockedModules from '@/components/LockedModules'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -35,9 +36,10 @@ export default async function InicioPage() {
         <Link href="/inicio" aria-label="Socias Digitales, inicio">
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto object-contain" />
         </Link>
-        {tipoUsuario !== 'gratuito' && <Link href="/perfil" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold text-[#211c19]" aria-label="Mi perfil">
+        <div className="flex items-center gap-4"><Link href="/notificaciones" className="flex items-center gap-2 text-sm text-[#294A38]" aria-label="Mis notificaciones"><NavigationIcon name="notificaciones" /><span className="hidden sm:inline">Avisos</span></Link>
+        <Link href="/perfil" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold text-[#211c19]" aria-label="Mi perfil">
           {nombre.slice(0, 1).toUpperCase()}
-        </Link>}
+        </Link></div>
       </header>
 
       <div className={`mx-auto grid max-w-[1400px] ${habilitada ? 'lg:grid-cols-[220px_minmax(0,1fr)]' : ''}`}>
@@ -50,6 +52,7 @@ export default async function InicioPage() {
               <Link href="/clases" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="clases" />Programa</Link>
             </> : null}
             <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="perfil" />Mi perfil</Link>
+            <Link href="/notificaciones" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="notificaciones" />Notificaciones</Link>
           </nav>
           {mostrarClase && <div className="mt-8"><ProximaClase ahoraInicial={ahoraInicial} /></div>}
         </aside>}
@@ -102,6 +105,8 @@ export default async function InicioPage() {
               </section>
             </>
           )}
+          <Link href="/notificaciones" className="mt-5 flex items-center justify-between gap-4 rounded-[20px] border border-[#e7ddd5] bg-[#FAF7F3] p-5"><span className="flex items-center gap-3 text-sm font-semibold"><NavigationIcon name="notificaciones" />Mis notificaciones</span><ArrowIcon /></Link>
+          <LockedModules />
         </main>
       </div>
     </div>
