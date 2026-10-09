@@ -38,7 +38,7 @@ export default function RegistroPage() {
         ? 'Revisá tu correo para confirmar la cuenta. Flor habilitará tu acceso al Desafío Socias; cuando lo haga, vas a recibir la bienvenida y podrás entrar a lanzamiento y clases.'
         : esSocias
           ? 'Revisá tu correo para confirmar la cuenta. Tu cuenta se crea con acceso gratuito; Flor activará tu plan Socias desde tu ficha.'
-          : 'Revisá tu correo para confirmar la cuenta. ¡Bienvenida! Tu cuenta gratuita queda creada; los accesos se habilitarán cuando corresponda.')
+          : 'Revisá tu correo para confirmar la cuenta. Si ya te registraste y confirmaste antes, ingresá con tu contraseña desde el login.')
     } catch { setError('Revisá tu conexión e intentá nuevamente.') }
     finally { setLoading(false) }
   }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
 import { perteneceAudiencia } from '@/lib/notifications'
 import webpush from 'web-push'
+import { esEndpointPushValido } from '@/lib/push-validation'
 
 export async function POST(req: NextRequest) {
   if (req.headers.get('origin') !== req.nextUrl.origin) return NextResponse.json({ error: 'Origen no permitido.' }, { status: 403 })
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   ])
   if (errorPerfiles || errorSubs) return NextResponse.json({ error: 'No se pudieron preparar los destinatarios.' }, { status: 500 })
   const destinatarias = new Set((perfiles ?? []).filter(p => perteneceAudiencia(p, aviso.audiencias)).map(p => p.id))
-  const subs = (suscripciones ?? []).filter(s => destinatarias.has(s.alumna_id))
+  const subs = (suscripciones ?? []).filter(s => destinatarias.has(s.alumna_id) && esEndpointPushValido(s.endpoint))
   // Evita repetir el envío cuando el navegador reintenta una petición.
   const { data: tomada, error: errorToma } = await admin.from('avisos').update({ push_started_at: new Date().toISOString() }).eq('id', aviso.id).is('push_started_at', null).select('id').maybeSingle()
   if (errorToma) return NextResponse.json({ error: 'No se pudo preparar el envío.' }, { status: 500 })

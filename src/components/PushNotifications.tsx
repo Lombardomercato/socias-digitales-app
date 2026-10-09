@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { registrarPush } from '@/lib/push-client'
 
 const POSPONER_NOTIFICACIONES = 'notificaciones-pospuestas-hasta'
 const RUTAS_SIN_AVISO = ['/preview', '/login', '/registro', '/auth', '/crear-contrasena']
@@ -15,22 +16,7 @@ export default function PushNotifications() {
 
   const registrar = useCallback(async (mostrarError = true) => {
     try {
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!vapidPublicKey) throw new Error('Las notificaciones todavía no están configuradas.')
-
-      const reg = await navigator.serviceWorker.register('/sw.js')
-      await navigator.serviceWorker.ready
-      const existente = await reg.pushManager.getSubscription()
-      const sub = existente ?? await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      })
-      const respuesta = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sub),
-      })
-      if (!respuesta.ok) throw new Error('No pudimos guardar la activación.')
+      await registrarPush()
       setError('')
       return true
     } catch (causa) {
@@ -43,6 +29,7 @@ export default function PushNotifications() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
     if (!('Notification' in window)) return
     if (RUTAS_SIN_AVISO.some(ruta => pathname.startsWith(ruta))) return
+    if (pathname.startsWith('/bienvenida') || localStorage.getItem('socias-push-desactivado')) return
 
     let cancelado = false
     let temporizador: ReturnType<typeof setTimeout> | undefined
@@ -58,7 +45,7 @@ export default function PushNotifications() {
 
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user || cancelado || Notification.permission === 'denied') return
+      if (!user || cancelado || Notification.permission === 'denied' || localStorage.getItem('socias-push-desactivado')) return
 
       if (cancelado) return
 
@@ -75,23 +62,36 @@ export default function PushNotifications() {
     }
 
     void preparar()
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
+      if (event === 'SIGNED_OUT') {
+        void navigator.serviceWorker.getRegistration('/sw.js').then(reg => reg?.pushManager.getSubscription()).then(sub => sub?.unsubscribe()).catch(() => {})
+        setMostrar(false)
+      }
+    })
     return () => {
       cancelado = true
       if (temporizador) clearTimeout(temporizador)
+      subscription.unsubscribe()
     }
   }, [pathname, registrar])
 
   async function activar() {
     setCargando(true)
     setError('')
-    const permiso = await Notification.requestPermission()
-    if (permiso === 'granted') {
-      const registrada = await registrar()
-      if (registrada) setMostrar(false)
-    } else {
-      setError('El navegador no autorizó las notificaciones.')
+    try {
+      const permiso = await Notification.requestPermission()
+      if (permiso === 'granted') {
+        const registrada = await registrar()
+        if (registrada) setMostrar(false)
+      } else {
+        setError('El navegador no autorizó las notificaciones.')
+      }
+    } catch {
+      setError('No pudimos activar las notificaciones. Podés volver a intentar desde Mi perfil.')
+    } finally {
+      setCargando(false)
     }
-    setCargando(false)
   }
 
   function posponer() {
@@ -127,11 +127,4 @@ export default function PushNotifications() {
 
 function BellIcon() {
   return <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6.7 15.2h6.6M8.3 17a2 2 0 0 0 3.4 0M4.8 14c1-1 1.3-2.3 1.3-4.4 0-2.5 1.6-4.3 3.9-4.3s3.9 1.8 3.9 4.3c0 2.1.3 3.4 1.3 4.4H4.8ZM10 3.2V2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-}
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
 }

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import EmailPreference from '@/components/EmailPreference'
+import PushPreference from '@/components/PushPreference'
 import InvitationLinks from '@/components/InvitationLinks'
 import { OCUPACIONES, INGRESOS } from '@/lib/perfil-preguntas'
 
@@ -139,6 +140,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
         </header>
 
         {esAdmin && <InvitationLinks />}
+        <PushPreference />
 
         {/* Banner próximamente */}
         {bannerProximamente && (

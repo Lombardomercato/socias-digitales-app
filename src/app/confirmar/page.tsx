@@ -13,10 +13,16 @@ export default function ConfirmarPage() {
     const tokenHash = params.get('token_hash')
     const recovery = params.get('flow') === 'recovery'
     if (!tokenHash) { setError('El enlace no es válido. Pedí otro correo desde el registro.'); setLoading(false); return }
-    const { error } = await createClient().auth.verifyOtp({ token_hash: tokenHash, type: recovery ? 'recovery' : 'email' })
-    if (error) { setError('El enlace venció o ya fue usado. Podés ingresar o pedir otro correo desde el registro.'); setLoading(false); return }
-    window.history.replaceState(null, '', '/confirmar')
-    window.location.replace(recovery ? '/crear-contrasena' : '/')
+    try {
+      const { error } = await createClient().auth.verifyOtp({ token_hash: tokenHash, type: recovery ? 'recovery' : 'email' })
+      if (error) { setError('El enlace venció o ya fue usado. Pedí otro correo desde Ingresar → Reenviar confirmación.'); return }
+      window.history.replaceState(null, '', '/confirmar')
+      window.location.replace(recovery ? '/crear-contrasena' : '/')
+    } catch {
+      setError('No pudimos conectar. Volvé a intentar; si el enlace venció, reenviá la confirmación desde Ingresar.')
+    } finally {
+      setLoading(false)
+    }
   }
   return <main className="flex min-h-screen items-center justify-center bg-[#FAF7F3] px-5 text-[#171413]">
     <section className="w-full max-w-md text-center">

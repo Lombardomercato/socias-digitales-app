@@ -18,6 +18,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [recuperando, setRecuperando] = useState(false)
   const [mensaje, setMensaje] = useState('')
+  const [reenviando, setReenviando] = useState(false)
 
   function destinoSeguro() {
     const destino = searchParams.get('next')
@@ -29,16 +30,30 @@ function LoginForm() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
+      if (error) {
+        setError(error.code === 'email_not_confirmed'
+          ? 'Te falta confirmar tu email. Usá “Reenviar confirmación” debajo para recibir otro correo.'
+          : 'Email o contraseña incorrectos. Si todavía no confirmaste tu cuenta, podés reenviar el correo debajo.')
+        return
+      }
+      router.push(destinoSeguro())
+      router.refresh()
+    } catch { setError('No pudimos conectar. Revisá tu conexión e intentá de nuevo.') }
+    finally { setLoading(false) }
+  }
 
-    if (error) {
-      setError('Email o contraseña incorrectos. Verificá tus datos.')
-      setLoading(false)
-      return
-    }
-
-    router.push(destinoSeguro())
-    router.refresh()
+  async function reenviarConfirmacion() {
+    if (!email.trim()) { setError('Escribí tu email para reenviar la confirmación.'); return }
+    setReenviando(true); setError(''); setMensaje('')
+    try {
+      const response = await fetch('/api/registro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim(), resend: true }) })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'No pudimos enviar el correo.')
+      setMensaje('Si tu cuenta está pendiente, enviamos un nuevo correo. Revisá Spam y Promociones. Si ya confirmaste, ingresá con tu contraseña; si no tenés cuenta, registrate primero.')
+    } catch (causa) { setError(causa instanceof Error ? causa.message : 'Revisá tu conexión.') }
+    finally { setReenviando(false) }
   }
 
   async function recuperarContrasena() {
@@ -114,9 +129,11 @@ function LoginForm() {
           <button type="button" onClick={recuperarContrasena} disabled={recuperando} className="mx-auto mt-5 block text-sm text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4 disabled:opacity-60">
             {recuperando ? 'Enviando enlace…' : 'Olvidé mi contraseña'}
           </button>
+          <button type="button" onClick={reenviarConfirmacion} disabled={reenviando || loading} className="mx-auto mt-3 block text-sm text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4 disabled:opacity-60">{reenviando ? 'Reenviando…' : 'No me llegó el email: reenviar confirmación'}</button>
           <p className="mt-8 text-center text-sm text-[#655B56]">
             ¿Todavía no tenés cuenta? <a href="/registro" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Crear cuenta</a>
           </p>
+          <p className="mt-3 text-center text-sm text-[#655B56]">¿Venís al Desafío? <a href="/registro/desafio" className="font-medium text-[#294A38] underline decoration-[#EC9BB6] underline-offset-4">Registrate al Desafío Socias</a></p>
           <p className="mt-5 text-center text-xs leading-5 text-[#7B716B]">¿Problemas para ingresar? Contactá a tu administradora.</p>
         </div>
       </section>
