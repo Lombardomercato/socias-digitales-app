@@ -16,16 +16,18 @@ test('admite proveedores web push oficiales y rechaza destinos externos o locale
   assert.equal(validation.esSuscripcionPushValida(valid), true)
   assert.equal(validation.esSuscripcionPushValida({ ...valid, keys: { auth: 'invalid' } }), false)
 })
-function api(user = { id: 'sesion-real' }) {
-  let written, deleted = []
+function api(user = { id: 'sesion-real' }, conflict = false) {
+  let written, deleted = [], ownership = [], ownerUpdate
   const chain = { eq: (key, value) => { deleted.push([key, value]); return chain }, then: resolve => resolve({ error: null }) }
+  const transfer = { eq: (key, value) => { ownership.push([key, value]); return transfer }, select: () => transfer, maybeSingle: async () => ({ data: { id: 'owned-device' }, error: null }) }
   return { ...load('../src/app/api/push/subscribe/route.ts', name => {
     if (name === 'node:crypto') return require(name)
+    if (name === '@/lib/supabase/admin') return { isAdminSupabaseConfigured: () => conflict, createAdminClient: () => ({ from: () => ({ update: input => { ownerUpdate = input; return transfer } }) }) }
     if (name === '@/lib/push-validation') return validation
     if (name === 'next/server') return { NextResponse: { json: (body, options = {}) => ({ body, status: options.status ?? 200 }) } }
-    if (name === '@/lib/supabase/server') return { createClient: async () => ({ auth: { getUser: async () => ({ data: { user } }) }, from: () => ({ upsert: async (input, options) => { written = { input, options }; return { error: null } }, delete: () => chain }) }) }
+    if (name === '@/lib/supabase/server') return { createClient: async () => ({ auth: { getUser: async () => ({ data: { user } }) }, from: () => ({ upsert: async (input, options) => { written = { input, options }; return { error: conflict ? { code: '23505' } : null } }, delete: () => chain }) }) }
     throw new Error(name)
-  }), written: () => written, deleted: () => deleted }
+  }), written: () => written, deleted: () => deleted, ownership: () => ownership, ownerUpdate: () => ownerUpdate }
 }
 const req = (body, origin = 'https://app.sociasdigitales.com') => ({ headers: new Headers({ origin }), nextUrl: { origin: 'https://app.sociasdigitales.com' }, json: async () => body })
 test('guarda varios dispositivos usando solo la identidad de la sesión', async () => {
@@ -43,4 +45,10 @@ test('rechaza origen ajeno, sesión ausente y datos inválidos', async () => {
   assert.equal((await api().POST(req(valid, 'https://otro.com'))).status, 403)
   assert.equal((await api(null).POST(req(valid))).status, 401)
   assert.equal((await api().POST(req({ endpoint: 'https://localhost' }))).status, 400)
+})
+test('un navegador compartido solo cambia de cuenta demostrando posesión de ambas claves', async () => {
+  const endpoint = api({ id: 'sesion-real' }, true)
+  assert.equal((await endpoint.POST(req({ ...valid, alumna_id: 'otra' }))).status, 200)
+  assert.deepEqual(endpoint.ownerUpdate(), { alumna_id: 'sesion-real' })
+  assert.deepEqual(endpoint.ownership(), [['endpoint', valid.endpoint], ['p256dh', valid.keys.p256dh], ['auth', valid.keys.auth]])
 })
