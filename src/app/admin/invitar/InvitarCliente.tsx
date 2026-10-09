@@ -42,31 +42,34 @@ export default function InvitarCliente() {
   const fallidas = resultados.filter(r => !r.ok).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-100">
-      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+    <div className="min-h-screen bg-[#FAF7F3] text-[#171413]">
+      <nav className="flex items-center justify-between border-b border-[#e7ddd5] px-6 py-4">
         <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
-        <a href="/admin" className="text-sm text-rose-600 hover:text-rose-800 font-medium">← Volver al panel</a>
+        <a href="/admin" className="text-sm font-medium text-[#294A38]">← Volver al panel</a>
       </nav>
       <AdminSectionMenu />
 
-      <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+      <main className="mx-auto max-w-3xl space-y-6 px-5 py-8 sm:px-8">
+        <header>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Tu comunidad</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em]">Invitaciones</h1>
+        </header>
         <InvitationLinks />
-        <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Invitar al Desafío Socias</h1>
-          <p className="text-gray-500 mt-1">Pegá los emails y les llegará una invitación para crear su cuenta del Desafío Socias.</p>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+        <details className="rounded-2xl border border-[#EC9BB6]/50 bg-white p-5 sm:p-6">
+          <summary className="cursor-pointer text-sm font-semibold text-[#294A38]">Enviar invitaciones al Desafío por email</summary>
+          <p className="mt-3 text-sm leading-6 text-[#655B56]">Pegá los emails y les llegará una invitación para crear su cuenta del Desafío Socias.</p>
+        <div className="mt-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="emails-invitaciones" className="mb-2 block text-sm font-medium text-[#171413]">
               Emails (uno por línea, o separados por coma)
             </label>
             <textarea
+              id="emails-invitaciones"
               value={texto}
               onChange={e => setTexto(e.target.value)}
               rows={10}
               placeholder={"alumna1@gmail.com\nalumna2@gmail.com\nalumna3@hotmail.com"}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm font-mono text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-400 resize-none"
+              className="w-full resize-none rounded-xl border border-[#e7ddd5] bg-[#FAF7F3] px-4 py-3 text-sm text-[#171413] focus:outline-none focus:ring-2 focus:ring-[#EC9BB6]"
             />
           </div>
 
@@ -79,7 +82,7 @@ export default function InvitarCliente() {
           <button
             onClick={enviar}
             disabled={enviando || emails.length === 0}
-            className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-colors bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300"
+            className="w-full rounded-full bg-[#294A38] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#203a2c] disabled:opacity-50"
           >
             {enviando ? `Enviando invitaciones...` : `Enviar ${emails.length} invitación${emails.length !== 1 ? 'es' : ''}`}
           </button>
@@ -103,7 +106,8 @@ export default function InvitarCliente() {
             </div>
           </div>
         )}
-      </div>
+        </details>
+      </main>
     </div>
   )
 }

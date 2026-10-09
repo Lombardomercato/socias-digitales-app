@@ -4,6 +4,7 @@ const paths = {
   clases: 'M12 5v15m0-15C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Z',
   perfil: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 8 0 0 1 16 0v2',
   solicitudes: 'M15 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 21v-2a8 8 0 0 1 12-7m1 5 2 2 4-4',
+  invitaciones: 'M3 5h18v14H3Zm0 0 9 7 9-7',
   productos: 'M3 7h18v14H3Zm0 0 3-4h12l3 4M9 11h6',
   comunidad: 'M4 4h16v12H9l-5 4Zm4 5h8m-8 3h5',
   resultados: 'M4 20V10m8 10V4m8 16v-7',

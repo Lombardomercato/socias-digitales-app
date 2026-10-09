@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import NavigationIcon from '@/components/NavigationIcon'
-import InvitationLinks from '@/components/InvitationLinks'
 
 interface Alumna {
   id: string
@@ -164,9 +163,10 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
         <nav className="col-span-full flex gap-2 overflow-x-auto border-b border-[#e7ddd5] px-4 py-2 lg:hidden" aria-label="Navegación de administración">
           {[
             { href: '/admin', label: 'Inicio' }, { href: '/admin/desafio', label: 'Solicitudes' },
+            { href: '/admin/invitar', label: 'Invitaciones' },
             { href: '/admin/classroom', label: 'Clases' }, { href: '/admin/lanzamiento', label: 'Avances de alumnas' },
             { href: '/admin/productos', label: 'Productos' }, { href: '/admin/notificaciones', label: 'Avisos' },
-          ].map(item => <a key={item.href} href={item.href} className={`flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold ${item.href === '/admin' ? 'bg-[#294A38] text-white' : 'bg-[#F4EFEA] text-[#746a64]'}`}><NavigationIcon name={item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</a>)}
+          ].map(item => <a key={item.href} href={item.href} className={`flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold ${item.href === '/admin' ? 'bg-[#294A38] text-white' : 'bg-[#F4EFEA] text-[#746a64]'}`}><NavigationIcon name={item.href === '/admin/invitar' ? 'invitaciones' : item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</a>)}
         </nav>
         <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Panel de Flor</p>
@@ -174,6 +174,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
             {[
               { href: '/admin', label: 'Vista general', active: true },
               { href: '/admin/desafio', label: 'Solicitudes del Desafío' },
+              { href: '/admin/invitar', label: 'Invitaciones' },
               { href: '/admin/classroom', label: 'Clases' },
               { href: '/admin/lanzamiento', label: 'Avances de alumnas' },
               { href: '/admin/productos', label: 'Productos' },
@@ -181,19 +182,14 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               { href: '/admin/resultados', label: 'Resultados' },
               { href: '/admin/notificaciones', label: 'Notificaciones' },
               { href: '/admin/configuracion', label: 'Configuración' },
-            ].map(item => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${item.active ? 'bg-[#F4CAD8] font-semibold' : 'text-[#746a64] hover:bg-[#F4EFEA] hover:text-[#211c19]'}`}><span className="flex items-center gap-3"><NavigationIcon name={item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</span>{item.href === '/admin/desafio' && stats.solicitudesDesafioPendientes > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#211c19]">{stats.solicitudesDesafioPendientes}</span> : null}</a>)}
+            ].map(item => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${item.active ? 'bg-[#F4CAD8] font-semibold' : 'text-[#746a64] hover:bg-[#F4EFEA] hover:text-[#211c19]'}`}><span className="flex items-center gap-3"><NavigationIcon name={item.href === '/admin/invitar' ? 'invitaciones' : item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</span>{item.href === '/admin/desafio' && stats.solicitudesDesafioPendientes > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#211c19]">{stats.solicitudesDesafioPendientes}</span> : null}</a>)}
           </nav>
         </aside>
 
         <main className="min-w-0 space-y-4 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Vista general</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Panel de Flor</h1></div>
-            <div className="flex flex-wrap gap-2">
-              <a href="/admin/invitar" className="inline-flex w-fit items-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Invitar al Desafío <span aria-hidden="true">+</span></a>
-            </div>
           </div>
-
-          <InvitationLinks />
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[

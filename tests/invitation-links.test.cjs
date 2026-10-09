@@ -34,8 +34,14 @@ test('tres invitaciones del dominio final, con copia real y recuperación si fal
   }
 })
 
-test('invitaciones visibles en panel y perfil admin; el registro público no concede Socias', () => {
-  assert.match(read('src/app/admin/AdminDashboard.tsx'), /<InvitationLinks \/>/)
+test('invitaciones en apartado propio y perfil admin, no ocupan la vista general', () => {
+  const dashboard = read('src/app/admin/AdminDashboard.tsx')
+  assert.doesNotMatch(dashboard, /<InvitationLinks \/>/)
+  assert.doesNotMatch(dashboard, /Invitar al Desafío/)
+  assert.equal((dashboard.match(/href: '\/admin\/invitar', label: 'Invitaciones'/g) || []).length, 2)
+  assert.match(read('src/components/AdminSectionMenu.tsx'), /href: '\/admin\/invitar', label: 'Invitaciones', icon: 'invitaciones'/)
+  assert.match(read('src/app/admin/invitar/InvitarCliente.tsx'), /<InvitationLinks \/>/)
+  assert.match(read('src/app/admin/invitar/InvitarCliente.tsx'), /Enviar invitaciones al Desafío por email/)
   assert.match(read('src/app/perfil/PerfilCliente.tsx'), /esAdmin && <InvitationLinks \/>/)
   assert.match(read('src/app/registro/socias/page.tsx'), /export default RegistroPage/)
   assert.match(read('src/app/registro/page.tsx'), /tipo_usuario: esDesafio \? 'desafio' : 'gratuito'/)

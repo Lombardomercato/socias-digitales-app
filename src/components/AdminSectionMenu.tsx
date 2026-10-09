@@ -7,6 +7,7 @@ import NavigationIcon from './NavigationIcon'
 const items = [
   { href: '/admin', label: 'Vista general', icon: 'inicio' },
   { href: '/admin/desafio', label: 'Solicitudes', icon: 'solicitudes' },
+  { href: '/admin/invitar', label: 'Invitaciones', icon: 'invitaciones' },
   { href: '/admin/classroom', label: 'Clases', icon: 'clases' },
   { href: '/admin/lanzamiento', label: 'Avances', icon: 'lanzamiento' },
   { href: '/admin/productos', label: 'Productos', icon: 'productos' },
