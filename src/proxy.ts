@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { obtenerRutaInicio } from '@/lib/access'
+import { necesitaBienvenida } from '@/lib/perfil-preguntas'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -43,7 +44,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Rutas que requieren login
-  const rutasProtegidas = ['/inicio', '/perfil', '/admin', '/metricas', '/classroom', '/clases', '/productos', '/ranking', '/logros', '/comunidad', '/resultados', '/checklist', '/objetivos', '/lanzamiento', '/notificaciones']
+  const rutasProtegidas = ['/bienvenida', '/inicio', '/perfil', '/admin', '/metricas', '/classroom', '/clases', '/productos', '/ranking', '/logros', '/comunidad', '/resultados', '/checklist', '/objetivos', '/lanzamiento', '/notificaciones']
   if (!userId && rutasProtegidas.some(r => pathname.startsWith(r))) {
     const destino = `${pathname}${request.nextUrl.search}`
     return redirectConCookies(`/login?next=${encodeURIComponent(destino)}`)
@@ -62,6 +63,15 @@ export async function proxy(request: NextRequest) {
     return redirectConCookies('/crear-contrasena')
   }
 
+  // La bienvenida es previa al panel para cuentas nuevas, no un permiso de
+  // clases ni de administración. Las cuentas existentes se conservan exentas.
+  if (userId && perfil?.rol !== 'admin' && pathname !== '/bienvenida'
+    && (rutasProtegidas.some(r => pathname.startsWith(r)) || ['/login','/registro','/registro/desafio'].includes(pathname))) {
+    const { data: bienvenida, error } = await supabase.from('bienvenida_perfiles').select('exenta,completado_at').eq('usuaria_id',userId).maybeSingle()
+    if (error) return new NextResponse('No pudimos cargar tu perfil. Intentá nuevamente.', { status:503 })
+    if (necesitaBienvenida(bienvenida,perfil?.rol)) return redirectConCookies('/bienvenida')
+  }
+
   // Si ya está logueada, llevarla al espacio asignado.
   if (userId && (pathname === '/login' || pathname === '/registro')) {
     return redirectConCookies(obtenerRutaInicio(perfil?.rol))
@@ -74,7 +84,7 @@ export async function proxy(request: NextRequest) {
 
   // Las páginas de módulos pendientes muestran su bloqueo; nunca su contenido.
   // La autorización efectiva también se vuelve a comprobar en cada página/consulta.
-  const rutasIniciales = ['/inicio', '/perfil', '/notificaciones', '/productos', '/resultados', '/comunidad', '/metricas', '/objetivos', '/checklist', '/ranking', '/logros']
+  const rutasIniciales = ['/bienvenida', '/inicio', '/perfil', '/notificaciones', '/productos', '/resultados', '/comunidad', '/metricas', '/objetivos', '/checklist', '/ranking', '/logros']
   const rutasDesafio = ['/lanzamiento', '/classroom', '/clases']
   if (userId && perfil?.rol !== 'admin' && rutasProtegidas.some(r => pathname.startsWith(r))) {
     const permitida = [...rutasIniciales, ...rutasDesafio].some(r => pathname.startsWith(r))

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import EmailPreference from '@/components/EmailPreference'
+import { OCUPACIONES, INGRESOS } from '@/lib/perfil-preguntas'
 
 interface Perfil {
   id: string
@@ -28,22 +29,6 @@ interface Props {
   user: User
   perfil: Perfil | null
 }
-
-const OCUPACIONES = [
-  'Estudiante',
-  'Trabajo en relación de dependencia',
-  'Emprendedora',
-  'Profesional',
-  'Desocupada',
-]
-
-const INGRESOS = [
-  'Sin ingresos',
-  'Menos de USD 500/mes',
-  'USD 500 - 1.000/mes',
-  'USD 1.000 - 3.000/mes',
-  'Más de USD 3.000/mes',
-]
 
 export default function PerfilCliente({ user, perfil }: Props) {
   const router = useRouter()
@@ -114,7 +99,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
     if (!archivo) return
     setSubiendoFoto(true)
     const extension = archivo.name.split('.').pop()
-    const nombreArchivo = `${user.id}.${extension}`
+    const nombreArchivo = `${user.id}/avatar-${Date.now()}.${extension}`
     const { error } = await supabase.storage.from('avatars').upload(nombreArchivo, archivo, { upsert: true })
     if (!error) {
       const { data } = supabase.storage.from('avatars').getPublicUrl(nombreArchivo)
