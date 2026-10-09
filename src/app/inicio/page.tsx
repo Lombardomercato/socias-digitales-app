@@ -56,7 +56,6 @@ export default async function InicioPage() {
             <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="perfil" />Mi perfil</Link>
             <Link href="/notificaciones" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="notificaciones" />Notificaciones</Link>
           </nav>
-          {mostrarClase && <div className="mt-8"><ProximaClase ahoraInicial={ahoraInicial} /></div>}
         </aside>}
 
         <main className="min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
@@ -68,7 +67,7 @@ export default async function InicioPage() {
             <Link href="/perfil" className="inline-flex items-center gap-2 text-sm font-medium text-[#294A38]">Mi perfil <ArrowIcon diagonal /></Link>
           </div>
 
-          {mostrarClase && <div className={`mt-6 ${habilitada ? 'lg:hidden' : ''}`}><ProximaClase ahoraInicial={ahoraInicial} /></div>}
+          {mostrarClase && <div className="mt-6"><ProximaClase ahoraInicial={ahoraInicial} /></div>}
 
           {!habilitada && esDesafio ? (
             <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
