@@ -20,7 +20,7 @@ export default async function AdminPage() {
   const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString()
 
   const [
-    { data: alumnas },
+    { data: perfiles },
     { data: pagosDelMes },
     { data: todosLosPagos },
     { data: ventasAfiliadas },
@@ -30,6 +30,9 @@ export default async function AdminPage() {
     supabase.from('pagos').select('monto').eq('estado', 'completado'),
     supabase.from('ventas_afiliadas').select('*').gte('fecha', inicioMes),
   ])
+
+  // Administración no es un tipo de alumna ni forma parte de estos indicadores.
+  const alumnas = perfiles?.filter(perfil => perfil.rol !== 'admin') ?? []
 
   const stats = {
     fechaReferencia: hoy.getTime(),

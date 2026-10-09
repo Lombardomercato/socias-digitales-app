@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import NavigationIcon from '@/components/NavigationIcon'
+import { TIPOS_ACCESO, tipoAcceso, contarTipos, filtrarUsuarias, type TipoAcceso } from '@/lib/admin-usuarias'
 
 interface Alumna {
   id: string
@@ -68,6 +69,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
   const supabase = createClient()
   const [busqueda, setBusqueda] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('todas')
+  const [filtroTipo, setFiltroTipo] = useState<TipoAcceso | 'todas'>('todas')
   const [alumnaSeleccionada, setAlumnaSeleccionada] = useState<Alumna | null>(null)
   const [editando, setEditando] = useState<Partial<Alumna>>({})
   const [guardando, setGuardando] = useState(false)
@@ -80,15 +82,18 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
     router.refresh()
   }
 
-  const consulta = busqueda.trim().toLowerCase()
-  const alumnasFiltradas = alumnas.filter(a => {
-    const coincideBusqueda =
-      !consulta ||
-      (a.nombre ?? '').toLowerCase().includes(consulta) ||
-      (a.pais ?? '').toLowerCase().includes(consulta)
-    const coincideEstado = filtroEstado === 'todas' || a.estado === filtroEstado
-    return coincideBusqueda && coincideEstado
-  })
+  const alumnasFiltradas = filtrarUsuarias(alumnas, { busqueda, estado: filtroEstado, tipo: filtroTipo })
+  const cantidadesTipo = contarTipos(alumnas)
+  const baseTipos = filtrarUsuarias(alumnas, { busqueda, estado: filtroEstado, tipo: 'todas' })
+  const cantidadesFiltroTipo = contarTipos(baseTipos)
+  const baseEstados = filtrarUsuarias(alumnas, { busqueda, estado: 'todas', tipo: filtroTipo })
+
+  function filtrarDesdeResumen(tipo: TipoAcceso) {
+    setFiltroTipo(tipo)
+    setFiltroEstado('todas')
+    setBusqueda('')
+    document.getElementById('acceso-actividad')?.scrollIntoView({ block: 'start' })
+  }
 
   const inactivasMes = alumnas.filter(a => {
     if (!a.ultimo_acceso) return true
@@ -200,6 +205,13 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
             ].map(kpi => <article key={kpi.label} className={`rounded-[22px] border p-5 ${kpi.tone}`}><p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-65">{kpi.label}</p><p className="mt-3 font-impact text-4xl font-semibold tracking-[-0.04em]">{kpi.value}</p><p className="mt-2 text-xs font-medium opacity-65">{kpi.note}</p></article>)}
           </section>
 
+          <section aria-label="Alumnas por tipo de acceso" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {TIPOS_ACCESO.map(tipo => <button key={tipo.id} type="button" onClick={() => filtrarDesdeResumen(tipo.id)} aria-label={`Ver ${tipo.etiqueta}: ${cantidadesTipo[tipo.id]}`} className="flex items-center justify-between gap-4 rounded-[20px] border border-[#EC9BB6]/55 bg-[#F4EFEA] px-5 py-4 text-left transition-colors hover:bg-[#F4CAD8]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#294A38]">
+              <span className="text-sm font-medium">{tipo.etiqueta}</span>
+              <span className="font-impact text-3xl font-semibold tabular-nums text-[#294A38]">{cantidadesTipo[tipo.id]}</span>
+            </button>)}
+          </section>
+
           <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
             <article className="rounded-[24px] border border-[#EC9BB6]/55 bg-[#F4EFEA] p-5 sm:p-6">
               <div className="flex items-center justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Estado de la comunidad</p><h2 className="mt-1.5 font-serif text-2xl font-semibold">Actividad de alumnas</h2></div><span className="font-impact text-sm font-semibold text-[#294A38]">{stats.totalAlumnas}</span></div>
@@ -212,7 +224,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
             </article>
           </section>
 
-          <section className="rounded-[24px] bg-white p-5 sm:p-6">
+          <section id="acceso-actividad" className="scroll-mt-5 rounded-[24px] bg-white p-5 sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Usuarias</p><h2 className="mt-1 font-serif text-2xl font-semibold">Acceso y actividad</h2></div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -221,15 +233,17 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-1.5 rounded-full bg-[#F4EFEA] p-1 sm:w-fit">
+            <div role="group" aria-label="Filtrar por estado" className="mt-4 flex flex-wrap gap-1.5 rounded-2xl border border-[#EC9BB6]/40 bg-[#F4EFEA] p-1 sm:w-fit sm:rounded-full">
           {[
-            { label: 'Todas', valor: 'todas', count: stats.totalAlumnas },
-            { label: 'Activas', valor: 'activa', count: stats.activas },
-            { label: 'Pausadas', valor: 'pausada', count: stats.pausadas },
-            { label: 'Canceladas', valor: 'cancelada', count: stats.canceladas },
+            { label: 'Todas', valor: 'todas', count: baseEstados.length },
+            { label: 'Activas', valor: 'activa', count: baseEstados.filter(a => a.estado === 'activa').length },
+            { label: 'Pausadas', valor: 'pausada', count: baseEstados.filter(a => a.estado === 'pausada').length },
+            { label: 'Canceladas', valor: 'cancelada', count: baseEstados.filter(a => a.estado === 'cancelada').length },
           ].map(f => (
             <button
               key={f.valor}
+              type="button"
+              aria-pressed={filtroEstado === f.valor}
               onClick={() => setFiltroEstado(f.valor)}
               className={`rounded-full px-3.5 py-2 text-xs font-semibold transition-colors ${
                 filtroEstado === f.valor
@@ -240,6 +254,12 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               {f.label} <span className="ml-1 opacity-70">({f.count})</span>
             </button>
           ))}
+            </div>
+
+            <div role="group" aria-label="Filtrar por tipo de acceso" className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-[11px] font-medium text-[#746a64]">Tipo de acceso</span>
+              {[{ id: 'todas' as const, etiqueta: 'Todos', cantidad: baseTipos.length }, ...TIPOS_ACCESO.map(tipo => ({ ...tipo, cantidad: cantidadesFiltroTipo[tipo.id] }))].map(tipo => <button key={tipo.id} type="button" aria-pressed={filtroTipo === tipo.id} onClick={() => setFiltroTipo(tipo.id)} className={`rounded-full border px-3.5 py-2 text-xs font-medium transition-colors ${filtroTipo === tipo.id ? 'border-[#294A38] bg-[#294A38] text-white' : 'border-[#EC9BB6]/55 bg-[#FAF7F3] text-[#655B56] hover:bg-[#F4CAD8]/40'}`}>{tipo.etiqueta} <span className="ml-1 tabular-nums opacity-75">({tipo.cantidad})</span></button>)}
+              <span role="status" aria-live="polite" className="ml-auto text-xs text-[#746a64]">{alumnasFiltradas.length} de {stats.totalAlumnas} alumnas</span>
             </div>
 
             <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead><tr className="border-b border-[#e7ddd5] text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#746a64]"><th className="pb-3">Alumna</th><th className="pb-3">Estado</th><th className="pb-3">Tipo</th><th className="pb-3">País</th><th className="pb-3">Ingreso</th><th className="pb-3">Actividad</th><th className="pb-3">Progreso</th><th className="pb-3"></th></tr></thead><tbody className="divide-y divide-[#e7ddd5]">
@@ -267,7 +287,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                     <td className="py-3.5"><span className="flex items-center gap-2 text-xs font-medium text-[#211c19]"><span className={`h-2 w-2 rounded-full ${alumna.estado === 'activa' ? 'bg-[#294A38]' : alumna.estado === 'pausada' ? 'bg-[#EC9BB6]' : 'bg-[#211c19]/25'}`} />
                         {alumna.estado ?? 'activa'}</span>
                     </td>
-                    <td className="py-3.5"><span className="rounded-full bg-[#F4EFEA] px-2.5 py-1 text-xs font-medium">{etiquetaTipoUsuario(alumna.tipo_usuario)}</span></td>
+                    <td className="py-3.5"><span className="rounded-full bg-[#F4EFEA] px-2.5 py-1 text-xs font-medium">{etiquetaTipoUsuario(tipoAcceso(alumna))}</span></td>
                     <td className="py-3.5 text-xs text-[#746a64]">{alumna.pais ?? '—'}</td>
                     <td className="py-3.5 text-xs text-[#746a64]">{formatFecha(alumna.created_at)}</td>
                     <td className="py-3.5 text-xs text-[#746a64]">{diasSinIngresar(alumna.ultimo_acceso, stats.fechaReferencia)}</td>
