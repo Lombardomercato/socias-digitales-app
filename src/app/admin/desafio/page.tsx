@@ -13,12 +13,15 @@ export default async function AdminDesafioPage() {
   if (!isAdminSupabaseConfigured()) return <main className="p-8">Falta configurar el acceso seguro del panel.</main>
 
   const admin = createAdminClient()
-  const [{ data: perfiles }, { data: users }] = await Promise.all([
+  const [{ data: perfiles }, { data: users }, { data: accesos, error: accesosError }] = await Promise.all([
     admin.from('perfiles').select('id, nombre, rol, tipo_usuario, desafio_socias_estado, created_at, desafio_socias_habilitada, desafio_socias_bienvenida_enviada_at').eq('tipo_usuario', 'desafio').order('created_at', { ascending: false }),
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    admin.from('accesos_estrategia').select('usuaria_id, habilitada'),
   ])
+  if (accesosError) return <main className="p-8">No pudimos consultar los accesos a Estrategia. Intentá nuevamente.</main>
+  const estrategias = new Map((accesos ?? []).map(item => [item.usuaria_id, item.habilitada]))
   const emails = new Map((users?.users ?? []).map(item => [item.id, item.email ?? '']))
-  const inscriptas = (perfiles ?? []).map(item => ({ ...item, email: emails.get(item.id) ?? '' }))
+  const inscriptas = (perfiles ?? []).map(item => ({ ...item, email: emails.get(item.id) ?? '', estrategia_habilitada: estrategias.get(item.id) ?? false }))
 
   return <AdminDesafio inscriptas={inscriptas} />
 }

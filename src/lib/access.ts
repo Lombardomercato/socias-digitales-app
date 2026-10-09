@@ -28,7 +28,7 @@ export const ACCESOS: Record<NivelAcceso, DefinicionAcceso> = {
     etiqueta: 'Desafío',
     resumen: 'Lanzamiento y clases del desafío, una vez habilitados por Flor.',
     modulos: [
-      { id: 'lanzamiento', nombre: 'Mi lanzamiento', descripcion: 'Etapas y tareas', href: '/lanzamiento' },
+      { id: 'lanzamiento', nombre: 'Estrategia', descripcion: 'Etapas y tareas', href: '/lanzamiento' },
       { id: 'programa', nombre: 'Clases', descripcion: 'Clases y materiales', href: '/classroom' },
     ],
   },
@@ -37,7 +37,7 @@ export const ACCESOS: Record<NivelAcceso, DefinicionAcceso> = {
     etiqueta: 'Negocio en acción',
     resumen: 'Lanzamiento, formación y resultados.',
     modulos: [
-      { id: 'lanzamiento', nombre: 'Mi lanzamiento', descripcion: 'Etapas y tareas', href: '/lanzamiento' },
+      { id: 'lanzamiento', nombre: 'Estrategia', descripcion: 'Etapas y tareas', href: '/lanzamiento' },
       { id: 'resultados', nombre: 'Mis resultados', descripcion: 'Ventas y comisiones', href: '/resultados' },
       { id: 'objetivos', nombre: 'Mis objetivos', descripcion: 'Metas personales', href: '/objetivos' },
       { id: 'programa', nombre: 'Programa', descripcion: 'Clases y materiales', href: '/classroom' },

@@ -12,6 +12,7 @@ interface Inscripta {
   desafio_socias_habilitada: boolean
   desafio_socias_estado: string
   desafio_socias_bienvenida_enviada_at: string | null
+  estrategia_habilitada: boolean
 }
 
 export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }) {
@@ -52,6 +53,22 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
     } finally {
       setEnCurso(null)
     }
+  }
+
+  async function cambiarEstrategia(perfilId: string, habilitada: boolean) {
+    if (enCurso) return
+    setEnCurso(perfilId)
+    setAviso('')
+    try {
+      const respuesta = await fetch('/api/admin/estrategia/acceso', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ perfilId, habilitada }),
+      })
+      const datos = await respuesta.json()
+      setAviso(respuesta.ok ? `Estrategia ${habilitada ? 'habilitada' : 'bloqueada'}. El acceso a las clases no cambió.` : datos.error ?? 'No pudimos cambiar el acceso.')
+      router.refresh()
+    } catch { setAviso('No pudimos conectar con el servidor.') }
+    finally { setEnCurso(null) }
   }
 
   const habilitadas = inscriptas.filter(persona => persona.desafio_socias_habilitada).length
@@ -99,7 +116,7 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
 
         <section className="space-y-3">
           {filtradas.map(persona => {
-            const busy = enCurso === persona.id
+            const busy = enCurso !== null
             return (
               <article key={persona.id} className="flex flex-col gap-4 rounded-2xl bg-white p-5 md:flex-row md:items-center">
                 <div className="min-w-0 flex-1">
@@ -113,6 +130,10 @@ export default function AdminDesafio({ inscriptas }: { inscriptas: Inscripta[] }
                   </span>
                   {persona.desafio_socias_habilitada ? (
                     <>
+                      <span className="rounded-full border border-[#EC9BB6] px-3 py-1 text-xs">Estrategia: {persona.estrategia_habilitada ? 'habilitada' : 'bloqueada'}</span>
+                      <button disabled={busy} onClick={() => cambiarEstrategia(persona.id, !persona.estrategia_habilitada)} className="rounded-full border border-[#294A38] px-4 py-2 text-xs font-semibold text-[#294A38] disabled:opacity-50">
+                        {persona.estrategia_habilitada ? 'Bloquear estrategia' : 'Habilitar estrategia'}
+                      </button>
                       {!persona.desafio_socias_bienvenida_enviada_at && (
                         <button disabled={busy} onClick={() => ejecutar(persona.id, 'reenviar_bienvenida')} className="rounded-full border border-[#294A38] px-4 py-2 text-xs font-semibold text-[#294A38] disabled:opacity-50">
                           {busy ? 'Enviando…' : 'Enviar bienvenida'}

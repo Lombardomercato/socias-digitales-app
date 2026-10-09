@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { calcularMetaVenta } from '@/lib/meta-venta'
 
 interface Metricas {
   id?: string
@@ -11,6 +12,8 @@ interface Metricas {
   personas_grupo: number
   personas_seguimiento: number
   ventas_realizadas: number
+  precio_producto?: number | null
+  comision_porcentaje?: number | null
   objetivo_septiembre: number
 }
 
@@ -70,11 +73,9 @@ const ETAPAS: Etapa[] = [
 
 const METRICAS_INICIALES: Metricas = {
   tipo_trafico: 'organico', inversion: 0, personas_grupo: 0, personas_seguimiento: 0,
-  ventas_realizadas: 0, objetivo_septiembre: 0,
+  ventas_realizadas: 0, objetivo_septiembre: 0, precio_producto: null, comision_porcentaje: null,
 }
 
-const PRECIO_PRODUCTO = 597
-const COMISION_REFERENCIA = PRECIO_PRODUCTO * 0.5
 
 function CheckIcon() {
   return <svg width="12" height="10" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M1 5.2 4.4 8.5 11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -97,7 +98,7 @@ export default function LanzamientoCliente({ nombre, userId, metricasGuardadas, 
   const [etapaActiva, setEtapaActiva] = useState(modoDemo ? 1 : 0)
   const [redSocial, setRedSocial] = useState<'instagram' | 'tiktok'>('instagram')
   const [tareasCheck, setTareasCheck] = useState<Record<string, boolean>>({})
-  const [metricas, setMetricas] = useState<Metricas>(metricasGuardadas ?? METRICAS_INICIALES)
+  const [metricas, setMetricas] = useState<Metricas>({ ...METRICAS_INICIALES, ...metricasGuardadas })
   const [metricaId, setMetricaId] = useState(metricasGuardadas?.id ?? null)
   const [guardandoMetricas, setGuardandoMetricas] = useState(false)
   const [estadoGuardado, setEstadoGuardado] = useState<'idle' | 'ok' | 'error'>('idle')
@@ -146,7 +147,8 @@ export default function LanzamientoCliente({ nombre, userId, metricasGuardadas, 
   const tareasHechas = tareasEtapa.reduce((total, _tarea, index) => total + (tareasCheck[claveTarea(index)] ? 1 : 0), 0)
   const resumen = { hechas: tareasHechas, total: tareasEtapa.length, porcentaje: Math.round((tareasHechas / tareasEtapa.length) * 100) }
 
-  const ventasNecesarias = metricas.objetivo_septiembre > 0 ? Math.ceil(metricas.objetivo_septiembre / COMISION_REFERENCIA) : 0
+  const meta = calcularMetaVenta(metricas.objetivo_septiembre, metricas.precio_producto ?? null, metricas.comision_porcentaje ?? null)
+  const ventasNecesarias = meta?.ventasNecesarias ?? 0
   const progresoObjetivo = ventasNecesarias > 0 ? Math.min(Math.round((metricas.ventas_realizadas / ventasNecesarias) * 100), 100) : 0
   const pulsoItems = [
     { label: 'Grupo', value: metricas.personas_grupo },
@@ -170,6 +172,14 @@ export default function LanzamientoCliente({ nombre, userId, metricasGuardadas, 
   }
 
   async function guardarMetricas() {
+    if (guardandoMetricas) return
+    const numeros = [metricas.inversion, metricas.objetivo_septiembre, metricas.personas_grupo, metricas.personas_seguimiento, metricas.ventas_realizadas]
+    if (numeros.some(valor => !Number.isFinite(valor) || valor < 0)
+      || [metricas.personas_grupo, metricas.personas_seguimiento, metricas.ventas_realizadas].some(valor => !Number.isInteger(valor))
+      || (metricas.precio_producto != null && (!Number.isFinite(metricas.precio_producto) || metricas.precio_producto <= 0 || metricas.precio_producto >= 1000000000))
+      || (metricas.comision_porcentaje != null && (!Number.isFinite(metricas.comision_porcentaje) || metricas.comision_porcentaje <= 0 || metricas.comision_porcentaje > 100))) {
+      setEstadoGuardado('error'); return
+    }
     setGuardandoMetricas(true)
     setEstadoGuardado('idle')
     if (modoDemo) {
@@ -180,7 +190,7 @@ export default function LanzamientoCliente({ nombre, userId, metricasGuardadas, 
     }
     const datos = { alumna_id: userId, ...metricas, actualizado_en: new Date().toISOString() }
     const respuesta = metricaId
-      ? await supabase.from('metricas_lanzamiento').update(datos).eq('id', metricaId)
+      ? await supabase.from('metricas_lanzamiento').update(datos).eq('id', metricaId).select('id').single()
       : await supabase.from('metricas_lanzamiento').insert(datos).select('id').single()
     if (!respuesta.error && 'data' in respuesta && respuesta.data?.id) setMetricaId(respuesta.data.id)
     setGuardandoMetricas(false)
@@ -239,8 +249,21 @@ export default function LanzamientoCliente({ nombre, userId, metricasGuardadas, 
           </section>
 
           <aside className="space-y-4">
-            <section className="rounded-[24px] bg-[#EC9BB6] p-5 text-[#171413]"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#171413]/60">Tu meta de venta</p><div className="mt-4 flex items-center gap-4"><div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#294A38 ${progresoObjetivo * 3.6}deg, rgba(250,247,243,.58) 0deg)` }}><div className="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-[#EC9BB6]"><span className="font-impact text-xl font-bold">{progresoObjetivo}%</span></div></div><div><p className="font-impact text-3xl font-bold tracking-[-0.04em]">{metricas.ventas_realizadas}<span className="text-base font-medium opacity-55">/{ventasNecesarias || '—'}</span></p><p className="mt-1 text-xs font-medium leading-5 text-[#171413]/65">ventas realizadas</p></div></div><label className="mt-4 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#171413]/65" htmlFor="objetivo">¿Cuánto querés ganar?</label><div className="mt-2 flex items-center rounded-xl bg-[#FAF7F3]/80 px-4 ring-1 ring-[#171413]/10 focus-within:ring-2 focus-within:ring-[#294A38]"><span className="font-impact text-sm font-semibold">$</span><input id="objetivo" type="number" min={0} value={metricas.objetivo_septiembre || ''} onChange={event => setMetricas(actual => ({ ...actual, objetivo_septiembre: Number(event.target.value) || 0 }))} placeholder="Ej. 3.000" className="sd-input-integrated font-impact min-w-0 w-full bg-transparent px-2 py-3 text-xl font-semibold outline-none" /><span className="text-xs font-medium opacity-55">USD</span></div>{ventasNecesarias > 0 ? <p className="mt-3 text-xs font-medium text-[#171413]/65">Necesitás {ventasNecesarias} ventas · comisión USD {COMISION_REFERENCIA.toLocaleString('es-AR')}.</p> : <p className="mt-3 text-xs font-medium text-[#171413]/55">USD {PRECIO_PRODUCTO} · 50% de comisión.</p>}</section>
-            <section className="rounded-[24px] bg-[#F4EFEA] p-5"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#171413]/50">Pulso del lanzamiento</p><div className="mt-4 space-y-3">{pulsoItems.map(item => <div key={item.label}><div className="flex items-baseline justify-between gap-3"><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#171413]/50">{item.label}</p><p className="font-impact text-lg font-bold tracking-[-0.03em] text-[#171413]">{item.value}</p></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#F4CAD8]/55"><div className="h-full rounded-full bg-[#294A38]" style={{ width: `${Math.max((item.value / mayorPulso) * 100, item.value > 0 ? 5 : 0)}%` }} /></div></div>)}</div></section>
+            <section className="rounded-[24px] bg-[#EC9BB6] p-5 text-[#171413]"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#171413]/60">Tu meta de venta</p><div className="mt-4 flex items-center gap-4"><div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#294A38 ${progresoObjetivo * 3.6}deg, rgba(250,247,243,.58) 0deg)` }}><div className="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-[#EC9BB6]"><span className="font-impact text-xl font-bold">{progresoObjetivo}%</span></div></div><div><p className="font-impact text-3xl font-bold tracking-[-0.04em]">{metricas.ventas_realizadas}<span className="text-base font-medium opacity-55">/{ventasNecesarias || '—'}</span></p><p className="mt-1 text-xs font-medium leading-5 text-[#171413]/65">ventas realizadas</p></div></div><label className="mt-4 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#171413]/65" htmlFor="objetivo">¿Cuánto querés ganar?</label><div className="mt-2 flex items-center rounded-xl bg-[#FAF7F3]/80 px-4 ring-1 ring-[#171413]/10 focus-within:ring-2 focus-within:ring-[#294A38]"><span className="font-impact text-sm font-semibold">$</span><input id="objetivo" type="number" min={0} value={metricas.objetivo_septiembre || ''} onChange={event => setMetricas(actual => ({ ...actual, objetivo_septiembre: Number(event.target.value) || 0 }))} placeholder="Ej. 3.000" className="sd-input-integrated font-impact min-w-0 w-full bg-transparent px-2 py-3 text-xl font-semibold outline-none" /><span className="text-xs font-medium opacity-55">USD</span></div><div className="mt-4 grid grid-cols-2 gap-3">
+  <label className="text-xs font-medium text-[#171413]/70">Valor del producto
+    <div className="mt-2 flex items-center rounded-xl bg-[#FAF7F3]/80 px-3 ring-1 ring-[#171413]/10 focus-within:ring-2 focus-within:ring-[#294A38]">
+      <input type="number" min="0.01" max="999999999" step="0.01" value={metricas.precio_producto ?? ''} onChange={e => setMetricas(actual => ({ ...actual, precio_producto: e.target.value === '' ? null : Number(e.target.value) }))} placeholder="Precio" className="sd-input-integrated font-impact min-w-0 w-full bg-transparent py-3 text-lg font-semibold outline-none" /><span className="text-[10px]">USD</span>
+    </div>
+  </label>
+  <label className="text-xs font-medium text-[#171413]/70">Tu comisión
+    <div className="mt-2 flex items-center rounded-xl bg-[#FAF7F3]/80 px-3 ring-1 ring-[#171413]/10 focus-within:ring-2 focus-within:ring-[#294A38]">
+      <input type="number" min="0.01" max="100" step="0.01" value={metricas.comision_porcentaje ?? ''} onChange={e => setMetricas(actual => ({ ...actual, comision_porcentaje: e.target.value === '' ? null : Number(e.target.value) }))} placeholder="Porcentaje" className="sd-input-integrated font-impact min-w-0 w-full bg-transparent py-3 text-lg font-semibold outline-none" /><span className="text-xs">%</span>
+    </div>
+  </label>
+</div>
+{meta ? <p className="mt-3 text-xs font-medium text-[#171413]/65">Comisión USD {meta.comision.toLocaleString('es-AR')} por venta.{ventasNecesarias > 0 ? ` Necesitás ${ventasNecesarias} ventas.` : ' Completá tu objetivo para calcular las ventas necesarias.'}</p> : <p className="mt-3 text-xs font-medium text-[#171413]/65">Completá el valor del producto y tu comisión para calcular la meta.</p>}
+<p className="mt-2 text-[10px] text-[#171413]/60">Guardá los cambios con “Guardar avance”.</p></section>
+            <section className="rounded-[24px] bg-[#F4EFEA] p-5"><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#171413]/50">Pulso de tu estrategia</p><div className="mt-4 space-y-3">{pulsoItems.map(item => <div key={item.label}><div className="flex items-baseline justify-between gap-3"><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#171413]/50">{item.label}</p><p className="font-impact text-lg font-bold tracking-[-0.03em] text-[#171413]">{item.value}</p></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#F4CAD8]/55"><div className="h-full rounded-full bg-[#294A38]" style={{ width: `${Math.max((item.value / mayorPulso) * 100, item.value > 0 ? 5 : 0)}%` }} /></div></div>)}</div></section>
           </aside>
         </div>
 

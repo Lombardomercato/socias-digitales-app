@@ -28,6 +28,8 @@ export default async function InicioPage() {
   const habilitada = Boolean(perfil?.desafio_socias_habilitada)
   const esDesafio = tipoUsuario === 'desafio'
   const mostrarClase = habilitada || tipoUsuario === 'socia'
+  const { data: accesoEstrategia } = await supabase.from('accesos_estrategia').select('habilitada').eq('usuaria_id', user.id).maybeSingle()
+  const estrategiaHabilitada = habilitada && Boolean(accesoEstrategia?.habilitada)
   const ahoraInicial = await leerHoraServidor()
   const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
   return (
@@ -48,7 +50,7 @@ export default async function InicioPage() {
           <nav className="mt-5 space-y-1.5" aria-label="Navegación principal">
             <Link href="/inicio" aria-current="page" className="flex items-center gap-3 rounded-xl bg-[#F4CAD8] px-3 py-3 text-sm font-semibold"><NavigationIcon name="inicio" />Inicio</Link>
             {habilitada ? <>
-              <Link href="/lanzamiento" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="lanzamiento" />Mi lanzamiento</Link>
+              <Link href="/lanzamiento" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="lanzamiento" />Estrategia</Link>
               <Link href="/clases" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="clases" />Programa</Link>
             </> : null}
             <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="perfil" />Mi perfil</Link>
@@ -72,7 +74,7 @@ export default async function InicioPage() {
             <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Inscripción recibida</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold">{accesoCerrado ? 'Tu acceso no está habilitado.' : 'Tu acceso está en revisión.'}</h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/70">{accesoCerrado ? 'Contactá a la administradora del Desafío Socias para consultar tu inscripción.' : 'Cuando Flor habilite tu inscripción, vas a recibir el email de bienvenida para entrar a tus clases y al espacio de lanzamiento.'}</p>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/70">{accesoCerrado ? 'Contactá a la administradora del Desafío Socias para consultar tu inscripción.' : 'Cuando Flor habilite tu inscripción, vas a recibir el email de bienvenida para entrar a tus clases. Flor habilita Estrategia por separado.'}</p>
               <Link href="/perfil" className="mt-6 inline-flex rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Revisar mi perfil&nbsp; →</Link>
             </section>
           ) : !habilitada ? (
@@ -86,10 +88,10 @@ export default async function InicioPage() {
                 <article className="flex min-h-[250px] flex-col items-start justify-between rounded-[26px] bg-[#F4CAD8] p-6 sm:p-8">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Tu próximo paso</p>
-                    <h2 className="mt-4 max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">Seguí avanzando con tu lanzamiento.</h2>
-                    <p className="mt-3 text-sm text-[#211c19]/65">Etapas, tareas y avances en un solo lugar.</p>
+                    <h2 className="mt-4 max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">Avanzá con tu estrategia.</h2>
+                    <p className="mt-3 text-sm text-[#211c19]/65">{estrategiaHabilitada ? 'Tu estrategia está habilitada.' : 'Flor habilitará este espacio para vos.'}</p>
                   </div>
-                  <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Continuar lanzamiento <ArrowIcon /></Link>
+                  {estrategiaHabilitada ? <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Ver mi estrategia <ArrowIcon /></Link> : <button type="button" disabled className="mt-7 inline-flex items-center gap-3 rounded-full border border-[#294A38]/30 bg-[#FAF7F3]/70 px-5 py-3 text-sm font-semibold text-[#294A38]"><NavigationIcon name="lanzamiento" />Pendiente de habilitación</button>}
                 </article>
                 <Link href="/clases" className="flex min-h-[250px] items-start flex-col justify-between rounded-[26px] bg-[#294A38] p-6 text-white transition hover:bg-[#203a2c] sm:p-8">
                   <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#FAF7F3]/80">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#FAF7F3]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#FAF7F3]/90">Volvé a ver las grabaciones del Desafío Socias.</p></div>
@@ -98,7 +100,7 @@ export default async function InicioPage() {
               </section>
               <section className="mt-4 grid gap-3 sm:grid-cols-3">
                 {[
-                  { label: 'Lanzamiento', href: '/lanzamiento', note: 'Etapas y tareas', tone: 'bg-white' },
+                  { label: 'Estrategia', href: '/lanzamiento', note: estrategiaHabilitada ? 'Etapas y tareas' : 'Pendiente de habilitación', tone: 'bg-white' },
                   { label: 'Clases grabadas', href: '/clases', note: 'Programa Socias', tone: 'bg-[#EC9BB6]/70' },
                   { label: 'Mi perfil', href: '/perfil', note: 'Tus datos y cuenta', tone: 'bg-[#F4EFEA] border border-[#EC9BB6]/60' },
                 ].map(item => <Link key={item.href} href={item.href} className={`group flex min-h-28 flex-col justify-between rounded-[20px] p-5 transition hover:-translate-y-0.5 ${item.tone}`}><span className="flex items-center justify-between gap-3 text-sm font-semibold">{item.label}<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FAF7F3]/80 text-[#294A38] transition group-hover:bg-[#294A38] group-hover:text-white"><ArrowIcon diagonal /></span></span><span className="text-xs text-[#746a64]">{item.note}</span></Link>)}

@@ -14,6 +14,7 @@ interface Perfil {
   progreso: number
   rol: string
   whatsapp: string | null
+  telefono?: string | null
   fecha_nacimiento: string | null
   ocupacion: string | null
   titulo_profesional: string | null
@@ -49,7 +50,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
   const supabase = createClient()
 
   const [nombre, setNombre] = useState(perfil?.nombre ?? '')
-  const [telefono, setTelefono] = useState(perfil?.whatsapp ?? '')
+  const [telefono, setTelefono] = useState(perfil?.whatsapp ?? perfil?.telefono ?? '')
   const [fechaNacimiento, setFechaNacimiento] = useState(perfil?.fecha_nacimiento ?? '')
   const [ocupacion, setOcupacion] = useState(perfil?.ocupacion ?? '')
   const [tituloProfesional, setTituloProfesional] = useState(perfil?.titulo_profesional ?? '')
@@ -61,7 +62,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
   const [mensaje, setMensaje] = useState('')
   const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(perfil?.avatar_url ?? null)
-  const [editando, setEditando] = useState(!perfil?.nombre)
+  const [editando, setEditando] = useState(true)
   const [bannerProximamente, setBannerProximamente] = useState(false)
 
   const searchParams = useSearchParams()
@@ -83,7 +84,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
     setGuardando(true)
     setMensaje('')
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('perfiles')
       .update({
         nombre,
@@ -91,19 +92,19 @@ export default function PerfilCliente({ user, perfil }: Props) {
         avatar_url: avatarUrl,
         fecha_nacimiento: fechaNacimiento || null,
         ocupacion: ocupacion || null,
-        titulo_profesional: ocupacion === 'Profesional' ? tituloProfesional : null,
+        titulo_profesional: tituloProfesional || null,
         es_mama: esMama,
         ingresos_actuales: ingresosActuales || null,
         pais: pais || null,
         provincia: provincia || null,
       })
-      .eq('id', user.id)
+      .eq('id', user.id).select('id').maybeSingle()
 
-    if (error) {
+    if (error || !data) {
       setMensaje('Error al guardar. Intentá de nuevo.')
     } else {
       setMensaje('¡Perfil guardado con éxito!')
-      setTimeout(() => { setEditando(false); setMensaje('') }, 1200)
+      router.refresh()
     }
     setGuardando(false)
   }
@@ -128,8 +129,8 @@ export default function PerfilCliente({ user, perfil }: Props) {
     router.refresh()
   }
 
-  const inputClass = "w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-rose-400"
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1"
+  const inputClass = "w-full border border-[#EC9BB6]/55 bg-[#FAF7F3] rounded-xl px-4 py-3 text-[#171413] focus:outline-none focus:ring-2 focus:ring-[#294A38]"
+  const labelClass = "block text-sm font-medium text-[#655B56] mb-1.5"
 
   return (
     <div className="min-h-screen bg-[#F4EFEA] text-[#171413]">
@@ -151,13 +152,6 @@ export default function PerfilCliente({ user, perfil }: Props) {
           <p className="mt-2 text-sm leading-6 text-[#655B56]">Tus datos y preferencias.</p>
         </header>
 
-        <section className="flex items-center justify-between gap-4 rounded-2xl bg-[#FAF7F3] p-5">
-          <div><h2 className="text-sm font-semibold">Seguridad de tu cuenta</h2><p className="mt-1 text-xs text-[#655B56]">Tu contraseña es personal.</p></div>
-          <Link href="/cuenta/contrasena" className="text-sm font-semibold text-[#294A38] underline underline-offset-4">Cambiar contraseña</Link>
-        </section>
-
-        <EmailPreference />
-
         {/* Banner próximamente */}
         {bannerProximamente && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-center gap-3">
@@ -174,7 +168,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
               {avatarUrl ? (
-                <img src={avatarUrl} className="w-16 h-16 rounded-full object-cover border-4 border-rose-200" alt="" />
+                <img src={avatarUrl} className="w-16 h-16 rounded-full object-cover border-4 border-[#F4CAD8]" alt="" />
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#F4CAD8] font-impact text-xl font-medium text-[#294A38]">{(nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</div>
               )}
@@ -183,21 +177,21 @@ export default function PerfilCliente({ user, perfil }: Props) {
                 {(pais || provincia) && (
                   <p className="text-sm text-gray-500">{[provincia, pais].filter(Boolean).join(', ')}</p>
                 )}
-                {ocupacion && <p className="text-xs text-rose-500 mt-0.5">{ocupacion}</p>}
+                {ocupacion && <p className="text-xs text-[#294A38] mt-0.5">{ocupacion}</p>}
               </div>
             </div>
             <button onClick={() => setEditando(true)}
-              className="text-sm text-rose-600 hover:text-rose-800 font-medium border border-rose-200 rounded-lg px-4 py-2 hover:bg-rose-50 transition-colors">
-              Editar perfil
+              className="text-sm text-[#294A38] hover:text-[#171413] font-medium border border-[#F4CAD8] rounded-lg px-4 py-2 hover:bg-rose-50 transition-colors">
+              Completá tu perfil
             </button>
           </div>
         ) : null}
 
         {/* Formulario de perfil (colapsable) */}
         {editando && (
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="rounded-2xl border border-[#EC9BB6]/50 bg-white p-5 sm:p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Mi Perfil</h2>
+            <h2 className="font-serif text-3xl font-semibold text-[#171413]">Completá tu perfil</h2>
             {nombre && (
               <button onClick={() => setEditando(false)} className="text-sm text-gray-400 hover:text-gray-600">✕ Cerrar</button>
             )}
@@ -207,12 +201,12 @@ export default function PerfilCliente({ user, perfil }: Props) {
           <div className="flex flex-col items-center mb-8">
             <div className="relative w-28 h-28 mb-3">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="Foto de perfil" className="w-28 h-28 rounded-full object-cover border-4 border-rose-200" />
+                <img src={avatarUrl} alt="Foto de perfil" className="w-28 h-28 rounded-full object-cover border-4 border-[#F4CAD8]" />
               ) : (
                 <div className="flex h-28 w-28 items-center justify-center rounded-full bg-[#F4CAD8] font-impact text-3xl font-medium text-[#294A38]">{(nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</div>
               )}
             </div>
-            <label className="cursor-pointer text-sm text-rose-600 hover:text-rose-800 font-medium">
+            <label className="cursor-pointer text-sm text-[#294A38] hover:text-[#171413] font-medium">
               {subiendoFoto ? 'Subiendo...' : 'Cambiar foto'}
               <input type="file" accept="image/*" onChange={subirFoto} className="hidden" />
             </label>
@@ -222,42 +216,43 @@ export default function PerfilCliente({ user, perfil }: Props) {
 
             {/* Nombre */}
             <div>
-              <label className={labelClass}>Nombre completo</label>
-              <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre" className={inputClass} />
+              <label htmlFor="perfil-nombre" className={labelClass}>Nombre completo</label>
+              <input id="perfil-nombre" type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre" className={inputClass} />
             </div>
 
             {/* Email */}
             <div>
-              <label className={labelClass}>Email</label>
-              <input type="email" value={user.email ?? ''} disabled className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-gray-500 bg-gray-50" />
+              <label htmlFor="perfil-email" className={labelClass}>Email</label>
+              <input id="perfil-email" type="email" value={user.email ?? ''} disabled className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-gray-500 bg-gray-50" />
             </div>
 
             {/* Teléfono */}
             <div>
-              <label className={labelClass}>Teléfono / WhatsApp (opcional)</label>
-              <input type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Con código de país" className={inputClass} autoComplete="tel" />
+              <label htmlFor="perfil-telefono" className={labelClass}>Teléfono / WhatsApp (opcional)</label>
+              <input id="perfil-telefono" type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="Con código de país" className={inputClass} autoComplete="tel" />
             </div>
 
             {/* Fecha de nacimiento */}
             <div>
-              <label className={labelClass}>Fecha de nacimiento</label>
-              <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} className={inputClass} />
+              <label htmlFor="perfil-nacimiento" className={labelClass}>Fecha de nacimiento</label>
+              <input id="perfil-nacimiento" type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} className={inputClass} />
             </div>
 
             {/* Ocupación */}
             <div>
-              <label className={labelClass}>Ocupación</label>
-              <select value={ocupacion} onChange={e => setOcupacion(e.target.value)} className={inputClass}>
+              <label htmlFor="perfil-ocupacion" className={labelClass}>Ocupación</label>
+              <select id="perfil-ocupacion" value={ocupacion} onChange={e => setOcupacion(e.target.value)} className={inputClass}>
                 <option value="">Seleccioná una opción</option>
+                {ocupacion && !OCUPACIONES.includes(ocupacion) && <option value={ocupacion}>{ocupacion}</option>}
                 {OCUPACIONES.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
 
             {/* Título profesional (solo si es Profesional) */}
-            {ocupacion === 'Profesional' && (
+            {(ocupacion === 'Profesional' || tituloProfesional) && (
               <div>
-                <label className={labelClass}>¿Cuál es tu título?</label>
-                <input type="text" value={tituloProfesional} onChange={e => setTituloProfesional(e.target.value)} placeholder="Ej: Licenciada en Administración" className={inputClass} />
+                <label htmlFor="perfil-titulo" className={labelClass}>¿Cuál es tu título?</label>
+                <input id="perfil-titulo" type="text" value={tituloProfesional} onChange={e => setTituloProfesional(e.target.value)} placeholder="Ej: Licenciada en Administración" className={inputClass} />
               </div>
             )}
 
@@ -265,12 +260,12 @@ export default function PerfilCliente({ user, perfil }: Props) {
             <div>
               <label className={labelClass}>¿Sos mamá?</label>
               <div className="flex gap-4">
-                <button type="button" onClick={() => setEsMama(true)}
-                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${esMama === true ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-500 hover:border-rose-300'}`}>
+                <button type="button" aria-pressed={esMama === true} onClick={() => setEsMama(true)}
+                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${esMama === true ? 'border-[#294A38] bg-[#F4CAD8] text-[#171413]' : 'border-gray-200 text-gray-500 hover:border-[#EC9BB6]'}`}>
                   Sí
                 </button>
-                <button type="button" onClick={() => setEsMama(false)}
-                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${esMama === false ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-500 hover:border-rose-300'}`}>
+                <button type="button" aria-pressed={esMama === false} onClick={() => setEsMama(false)}
+                  className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors ${esMama === false ? 'border-[#294A38] bg-[#F4CAD8] text-[#171413]' : 'border-gray-200 text-gray-500 hover:border-[#EC9BB6]'}`}>
                   No
                 </button>
               </div>
@@ -278,33 +273,34 @@ export default function PerfilCliente({ user, perfil }: Props) {
 
             {/* Ingresos actuales */}
             <div>
-              <label className={labelClass}>Ingresos actuales</label>
-              <select value={ingresosActuales} onChange={e => setIngresosActuales(e.target.value)} className={inputClass}>
+              <label htmlFor="perfil-ingresos" className={labelClass}>Ingresos actuales</label>
+              <select id="perfil-ingresos" value={ingresosActuales} onChange={e => setIngresosActuales(e.target.value)} className={inputClass}>
                 <option value="">Seleccioná una opción</option>
+                {ingresosActuales && !INGRESOS.includes(ingresosActuales) && <option value={ingresosActuales}>{ingresosActuales}</option>}
                 {INGRESOS.map(i => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
 
             {/* País */}
             <div>
-              <label className={labelClass}>País</label>
-              <input type="text" value={pais} onChange={e => setPais(e.target.value)} placeholder="Ej: Argentina" className={inputClass} />
+              <label htmlFor="perfil-pais" className={labelClass}>País</label>
+              <input id="perfil-pais" type="text" value={pais} onChange={e => setPais(e.target.value)} placeholder="Ej: Argentina" className={inputClass} />
             </div>
 
             {/* Provincia */}
             <div>
-              <label className={labelClass}>Provincia / Estado</label>
-              <input type="text" value={provincia} onChange={e => setProvincia(e.target.value)} placeholder="Ej: Buenos Aires" className={inputClass} />
+              <label htmlFor="perfil-provincia" className={labelClass}>Provincia / Estado</label>
+              <input id="perfil-provincia" type="text" value={provincia} onChange={e => setProvincia(e.target.value)} placeholder="Ej: Buenos Aires" className={inputClass} />
             </div>
 
             {/* Progreso */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-sm font-medium text-gray-700">Progreso del curso</label>
-                <span className="text-sm font-bold text-rose-600">{progreso}%</span>
+                <span className="text-sm font-bold text-[#294A38]">{progreso}%</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-3">
-                <div className="bg-rose-400 h-3 rounded-full transition-all" style={{ width: `${progreso}%` }} />
+                <div className="bg-[#294A38] h-3 rounded-full transition-all" style={{ width: `${progreso}%` }} />
               </div>
             </div>
 
@@ -315,12 +311,19 @@ export default function PerfilCliente({ user, perfil }: Props) {
             )}
 
             <button type="submit" disabled={guardando}
-              className="w-full bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-semibold py-2.5 rounded-lg transition-colors">
+              className="w-full bg-[#294A38] hover:bg-[#203a2c] disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-colors">
               {guardando ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </form>
         </div>
         )}
+        <section className="flex items-center justify-between gap-4 rounded-2xl border border-[#EC9BB6]/45 bg-[#FAF7F3] p-5">
+          <div><h2 className="text-sm font-semibold">Seguridad de tu cuenta</h2><p className="mt-1 text-xs text-[#655B56]">Tu contraseña es personal.</p></div>
+          <Link href="/cuenta/contrasena" className="text-sm font-semibold text-[#294A38] underline underline-offset-4">Cambiar contraseña</Link>
+        </section>
+
+        <EmailPreference />
+
       </div>
     </div>
   )
