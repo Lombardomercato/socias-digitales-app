@@ -193,15 +193,15 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Usuarias', value: stats.totalAlumnas, note: `+${stats.nuevasMes} este mes`, tone: 'bg-[#F4CAD8]' },
-              { label: 'Alumnas activas', value: stats.activas, note: `${activasPct}% del total`, tone: 'bg-[#EC9BB6]' },
-              { label: 'Solicitudes pendientes', value: stats.solicitudesDesafioPendientes, note: 'Desafío Socias', tone: 'bg-[#F4EFEA]' },
-              { label: 'Ventas del mes', value: stats.ventasMes, note: 'Registradas en la plataforma', tone: 'bg-[#294A38] text-white' },
-            ].map(kpi => <article key={kpi.label} className={`rounded-[22px] p-5 ${kpi.tone}`}><p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-65">{kpi.label}</p><p className="mt-3 font-impact text-4xl font-semibold tracking-[-0.04em]">{kpi.value}</p><p className="mt-2 text-xs font-medium opacity-65">{kpi.note}</p></article>)}
+              { label: 'Usuarias', value: stats.totalAlumnas, note: `+${stats.nuevasMes} este mes`, tone: 'bg-[#F4CAD8] border-transparent' },
+              { label: 'Alumnas activas', value: stats.activas, note: `${activasPct}% del total`, tone: 'bg-[#EC9BB6] border-transparent' },
+              { label: 'Solicitudes pendientes', value: stats.solicitudesDesafioPendientes, note: 'Desafío Socias', tone: 'bg-[#F4EFEA] border-[#EC9BB6]/55' },
+              { label: 'Ventas del mes', value: stats.ventasMes, note: 'Registradas en la plataforma', tone: 'bg-[#294A38] text-white border-transparent' },
+            ].map(kpi => <article key={kpi.label} className={`rounded-[22px] border p-5 ${kpi.tone}`}><p className="text-[10px] font-semibold uppercase tracking-[0.16em] opacity-65">{kpi.label}</p><p className="mt-3 font-impact text-4xl font-semibold tracking-[-0.04em]">{kpi.value}</p><p className="mt-2 text-xs font-medium opacity-65">{kpi.note}</p></article>)}
           </section>
 
           <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-            <article className="rounded-[24px] bg-[#F4EFEA] p-5 sm:p-6">
+            <article className="rounded-[24px] border border-[#EC9BB6]/55 bg-[#F4EFEA] p-5 sm:p-6">
               <div className="flex items-center justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Estado de la comunidad</p><h2 className="mt-1.5 font-serif text-2xl font-semibold">Actividad de alumnas</h2></div><span className="font-impact text-sm font-semibold text-[#294A38]">{stats.totalAlumnas}</span></div>
               <div className="mt-6 flex h-5 overflow-hidden rounded-full bg-white"><div className="bg-[#294A38] transition-all" style={{ width: `${activasPct}%` }} /><div className="bg-[#EC9BB6] transition-all" style={{ width: `${100 - activasPct}%` }} /></div>
               <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl bg-white px-4 py-3"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#294A38]"/><span className="text-xs font-semibold">Activas</span></div><p className="mt-2 font-impact text-2xl font-semibold">{stats.activas}</p></div><div className="rounded-xl bg-white px-4 py-3"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#EC9BB6]"/><span className="text-xs font-semibold">Otras</span></div><p className="mt-2 font-impact text-2xl font-semibold">{Math.max(stats.totalAlumnas - stats.activas, 0)}</p></div></div>
