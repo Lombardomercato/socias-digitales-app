@@ -11,7 +11,7 @@ export interface HitoAgenda {
 // No se generan encuentros semanales que Flor no haya confirmado.
 // Al agregar los siguientes hitos, la tarjeta elige el próximo por fecha.
 export const AGENDA_SOCIAS: readonly HitoAgenda[] = [{
-  id: 'desafio-socias-2026-10-12',
+  id: 'desafio-socias-2026-10-13',
   titulo: 'Desafío Socias',
   fecha: CLASE_LANZAMIENTO.fecha,
   enlace: null,

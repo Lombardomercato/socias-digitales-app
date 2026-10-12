@@ -1,6 +1,6 @@
 export const CLASE_LANZAMIENTO = {
-  fecha: '2026-10-12T20:05:00-03:00',
-  etiqueta: 'Lunes 12 de octubre',
+  fecha: '2026-10-13T20:05:00-03:00',
+  etiqueta: 'Martes 13 de octubre',
   hora: '20:05 · Argentina',
 }
 

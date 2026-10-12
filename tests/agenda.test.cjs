@@ -14,18 +14,18 @@ const actual = AGENDA_SOCIAS[0]
 const siguiente = { ...actual, id: 'semanal', titulo: 'Clase semanal', fecha: '2026-10-19T20:05:00-03:00' }
 test('muestra el primer hito futuro, incluso si la agenda está desordenada', () => {
   assert.equal(proximoHito([siguiente,actual], Date.parse('2026-10-09T12:00:00-03:00')).id, actual.id)
-  assert.equal(proximoHito([actual,siguiente], Date.parse('2026-10-13T12:00:00-03:00')).id, siguiente.id)
+  assert.equal(proximoHito([actual,siguiente], Date.parse('2026-10-14T12:00:00-03:00')).id, siguiente.id)
 })
 test('conserva el encuentro de hoy y no deja un contador vencido mañana', () => {
-  assert.equal(proximoHito([actual], Date.parse('2026-10-12T23:30:00-03:00')).id, actual.id)
-  assert.equal(proximoHito([actual], Date.parse('2026-10-13T00:00:00-03:00')), null)
+  assert.equal(proximoHito([actual], Date.parse('2026-10-13T23:30:00-03:00')).id, actual.id)
+  assert.equal(proximoHito([actual], Date.parse('2026-10-14T00:00:00-03:00')), null)
   assert.equal(proximoHito([], Date.now()), null)
   assert.equal(proximoHito([{...actual,fecha:'invalida'}], Date.now()), null)
 })
 test('fecha completa y hora usan Argentina, independientemente de la zona del dispositivo', () => {
-  assert.deepEqual(fechaHito(actual.fecha), { dia:'Lunes', fecha:'12/10/2026', hora:'20:05' })
-  assert.deepEqual(cuentaRegresiva(actual.fecha, Date.parse('2026-10-09T20:05:00-03:00')), { minutos:4320,dias:3,horas:0,mins:0 })
-  assert.equal(cuentaRegresiva(actual.fecha, Date.parse('2026-10-13T12:00:00-03:00')).minutos,0)
+  assert.deepEqual(fechaHito(actual.fecha), { dia:'Martes', fecha:'13/10/2026', hora:'20:05' })
+  assert.deepEqual(cuentaRegresiva(actual.fecha, Date.parse('2026-10-12T20:05:00-03:00')), { minutos:1440,dias:1,horas:0,mins:0 })
+  assert.equal(cuentaRegresiva(actual.fecha, Date.parse('2026-10-14T12:00:00-03:00')).minutos,0)
 })
 test('contador en la barra izquierda y banner fino antes de estrategia; móvil mantiene el contador', () => {
   const inicio = fs.readFileSync(path.resolve(__dirname,'../src/app/inicio/page.tsx'),'utf8')
