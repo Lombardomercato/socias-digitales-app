@@ -7,6 +7,8 @@ import NavigationIcon from '@/components/NavigationIcon'
 import LockedModules from '@/components/LockedModules'
 import FreeStart from '@/components/FreeStart'
 import { leerCatalogoClases } from '@/lib/class-catalog'
+import { leerAvisosSinLeer } from '@/lib/unread-notices'
+import { UnreadNoticesProvider, UnreadNoticeLink } from '@/components/UnreadNotices'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -24,6 +26,7 @@ export default async function InicioPage() {
     .maybeSingle()
 
   if (perfil?.rol === 'admin') redirect('/admin')
+  const resumenAvisos = await leerAvisosSinLeer(supabase, user.id)
   const nombre = perfil?.nombre?.trim().split(' ')[0] || user.user_metadata?.nombre || 'Socia'
 
   const tipoUsuario = perfil?.tipo_usuario ?? (perfil?.rol === 'afiliada' || perfil?.rol === 'afiliada_lanzamiento' ? 'socia' : 'gratuito')
@@ -37,12 +40,13 @@ export default async function InicioPage() {
   const clasesGratuitas = esGratuito && perfil ? await leerCatalogoClases(perfil) : []
   const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
   return (
+    <UnreadNoticesProvider inicial={resumenAvisos}>
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
       <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
         <Link href="/inicio" aria-label="Socias Digitales, inicio">
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto object-contain" />
         </Link>
-        <div className="flex items-center gap-4"><Link href="/notificaciones" className="flex items-center gap-2 text-sm text-[#294A38]" aria-label="Mis notificaciones"><NavigationIcon name="notificaciones" /><span className="hidden sm:inline">Avisos</span></Link>
+        <div className="flex items-center gap-4"><UnreadNoticeLink variante="header" />
         <Link href="/perfil" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold text-[#211c19]" aria-label="Mi perfil">
           {nombre.slice(0, 1).toUpperCase()}
         </Link></div>
@@ -58,7 +62,7 @@ export default async function InicioPage() {
               <Link href="/clases" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="clases" />Programa</Link>
             </> : null}
             <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="perfil" />Mi perfil</Link>
-            <Link href="/notificaciones" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="notificaciones" />Notificaciones</Link>
+            <UnreadNoticeLink variante="menu" />
           </nav>
           <ProximaClase ahoraInicial={ahoraInicial} variante="contador" />
         </aside>}
@@ -72,6 +76,7 @@ export default async function InicioPage() {
             <Link href="/perfil" className="inline-flex items-center gap-2 text-sm font-medium text-[#294A38]">Mi perfil <ArrowIcon diagonal /></Link>
           </div>
 
+          <UnreadNoticeLink variante="banner" />
           {mostrarClase && <div className="mt-5"><ProximaClase ahoraInicial={ahoraInicial} variante="banner" /></div>}
 
           {esGratuito ? <FreeStart clases={clasesGratuitas} /> : !habilitada && esDesafio ? (
@@ -111,10 +116,11 @@ export default async function InicioPage() {
               </section>
             </>
           )}
-          <Link href="/notificaciones" className="mt-5 flex items-center justify-between gap-4 rounded-[20px] border border-[#e7ddd5] bg-[#FAF7F3] p-5"><span className="flex items-center gap-3 text-sm font-semibold"><NavigationIcon name="notificaciones" />Mis notificaciones</span><ArrowIcon /></Link>
+          <UnreadNoticeLink variante="tarjeta" />
           <LockedModules venta={esGratuito} />
         </main>
       </div>
     </div>
+    </UnreadNoticesProvider>
   )
 }

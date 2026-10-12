@@ -22,6 +22,7 @@ export default function BandejaAvisos({ userId, iniciales, errorCarga }: { userI
       const { error } = await createClient().from('avisos_lecturas').upsert({ aviso_id: id, usuaria_id: userId }, { onConflict: 'aviso_id,usuaria_id' })
       if (error) throw new Error('No se pudo marcar como leído.')
       setMarcados(actual => [...actual, id])
+      router.refresh()
     } catch (causa) { setError(causa instanceof Error ? causa.message : 'No pudimos conectar.') }
     finally { setGuardando(null) }
   }
