@@ -154,3 +154,11 @@ test('permiso real lee rol y plan del perfil, nunca metadata del navegador',asyn
     assert.equal((await permisoResultados(db,USER)).permitido,expected)
   }
 })
+test('las vistas no usan URLs públicas; solo Resultados se desbloquea individualmente',()=>{
+  const leer=f=>fs.readFileSync(path.join(ROOT,f),'utf8')
+  assert.ok(leer('src/app/comunidad/ComunidadCliente.tsx').includes('/api/resultados/'))
+  assert.ok(!leer('src/app/comunidad/ComunidadCliente.tsx').includes('src={r.archivo_url}'))
+  for(const f of ['src/app/resultados/page.tsx','src/app/admin/resultados/page.tsx','src/app/comunidad/page.tsx']) assert.ok(leer(f).includes("archivo_url: r.archivo_url ? 'privada' : null"))
+  assert.ok(leer('src/components/LockedModules.tsx').includes("modulo.id === 'resultados' && resultadosHabilitados"))
+  assert.ok(leer('src/app/resultados/page.tsx').includes("supabase\n      .from('resultados')"))
+})

@@ -26,7 +26,7 @@ export default async function ComunidadPage() {
 
   return (
     <ComunidadCliente
-      resultados={resultados ?? []}
+      resultados={(resultados ?? []).map(r => ({ ...r, archivo_url: r.archivo_url ? 'privada' : null }))}
       reacciones={reacciones ?? []}
       comentarios={comentarios ?? []}
       userId={user.id}

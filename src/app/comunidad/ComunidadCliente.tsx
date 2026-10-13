@@ -168,7 +168,7 @@ export default function ComunidadCliente({ resultados, reacciones, comentarios, 
                   {/* Foto izquierda */}
                   {r.archivo_url && (
                     <div className="flex-shrink-0" style={{ width: 160 }}>
-                      <img src={r.archivo_url} className="h-full w-full object-cover" style={{ minHeight: 160, maxHeight: 220 }} alt="" />
+                      <img src={`/api/resultados/${r.id}/archivo`} className="h-full w-full object-cover" style={{ minHeight: 160, maxHeight: 220 }} alt="Captura del resultado" />
                     </div>
                   )}
 
