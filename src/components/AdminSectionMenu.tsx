@@ -14,6 +14,7 @@ const items = [
   { href: '/admin/comunidad', label: 'Comunidad', icon: 'comunidad' },
   { href: '/admin/resultados', label: 'Resultados', icon: 'resultados' },
   { href: '/admin/metricas', label: 'Métricas', icon: 'resultados' },
+  { href: '/admin/checklist', label: 'Mi día', icon: 'checklist' },
   { href: '/admin/notificaciones', label: 'Notificaciones', icon: 'notificaciones' },
   { href: '/admin/configuracion', label: 'Configuración', icon: 'configuracion' },
 ] as const

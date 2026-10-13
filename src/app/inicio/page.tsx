@@ -11,6 +11,7 @@ import { leerAvisosSinLeer } from '@/lib/unread-notices'
 import { UnreadNoticesProvider, UnreadNoticeLink } from '@/components/UnreadNotices'
 import { permisoResultados } from '@/lib/results-server'
 import { permisoMetricas } from '@/lib/metrics-server'
+import { permisoMiDia } from '@/lib/my-day-server'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -28,7 +29,7 @@ export default async function InicioPage() {
     .maybeSingle()
 
   if (perfil?.rol === 'admin') redirect('/admin')
-  const [accesoResultados,accesoMetricas] = await Promise.all([permisoResultados(supabase,user.id),permisoMetricas(supabase,user.id)])
+  const [accesoResultados,accesoMetricas,accesoMiDia] = await Promise.all([permisoResultados(supabase,user.id),permisoMetricas(supabase,user.id),permisoMiDia(supabase,user.id)])
   const resumenAvisos = await leerAvisosSinLeer(supabase, user.id)
   const nombre = perfil?.nombre?.trim().split(' ')[0] || user.user_metadata?.nombre || 'Socia'
 
@@ -119,7 +120,7 @@ export default async function InicioPage() {
             </>
           )}
           <UnreadNoticeLink variante="tarjeta" />
-          <LockedModules venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} />
+          <LockedModules venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} />
         </main>
       </div>
     </div>

@@ -1,23 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import ModuleLocked from '@/components/ModuleLocked'
-import { esAdministradora } from '@/lib/module-guard'
+import { permisoMiDia, leerMiDia } from '@/lib/my-day-server'
+import { fechaDiaValida } from '@/lib/my-day'
+import { fechaArgentina } from '@/lib/metrics'
 import { redirect } from 'next/navigation'
 import ChecklistCliente from './ChecklistCliente'
 
-export default async function ChecklistPage() {
+export default async function ChecklistPage({ searchParams }: { searchParams: Promise<{ fecha?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  if (!await esAdministradora(user.id)) return <ModuleLocked id="checklist" />
-
-  const hoy = new Date().toISOString().split('T')[0]
-
-  const { data: tareas } = await supabase
-    .from('checklist_tareas')
-    .select('*')
-    .eq('alumna_id', user.id)
-    .eq('fecha', hoy)
-    .order('creado_en')
-
-  return <ChecklistCliente tareas={tareas ?? []} userId={user.id} fecha={hoy} />
+  const acceso = await permisoMiDia(supabase, user.id)
+  if (acceso.error) return <main className="p-8"><p role="alert">No pudimos comprobar tu acceso. Intentá nuevamente.</p><a href="/inicio">Volver a mi espacio</a></main>
+  if (!acceso.permitido) return <ModuleLocked id="checklist" />
+  const hoy = fechaArgentina()
+  const params = await searchParams
+  const fecha = fechaDiaValida(params.fecha) ? params.fecha : hoy
+  return <ChecklistCliente key={fecha} {...await leerMiDia(supabase, user.id, fecha)} fecha={fecha} hoy={hoy} admin={acceso.admin} />
 }
