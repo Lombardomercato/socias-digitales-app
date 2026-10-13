@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import NavigationIcon from '@/components/NavigationIcon'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
+import { ADMIN_SECTIONS } from '@/lib/admin-sections'
 import { TIPOS_ACCESO, tipoAcceso, contarTipos, filtrarUsuarias, type TipoAcceso } from '@/lib/admin-usuarias'
 
 interface Alumna {
@@ -55,7 +57,7 @@ function diasSinIngresar(ultimoAcceso: string | null, fechaReferencia: number) {
 }
 
 function formatFecha(fecha: string) {
-  return new Date(fecha).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  return new Date(fecha).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
 function etiquetaTipoUsuario(tipo: string | null | undefined) {
@@ -165,29 +167,11 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
       </header>
 
       <div className="mx-auto grid max-w-[1400px] lg:grid-cols-[220px_minmax(0,1fr)]">
-        <nav className="col-span-full flex gap-2 overflow-x-auto border-b border-[#e7ddd5] px-4 py-2 lg:hidden" aria-label="Navegación de administración">
-          {[
-            { href: '/admin', label: 'Inicio' }, { href: '/admin/desafio', label: 'Solicitudes' },
-            { href: '/admin/invitar', label: 'Invitaciones' },
-            { href: '/admin/classroom', label: 'Clases' }, { href: '/admin/lanzamiento', label: 'Avances de alumnas' },
-            { href: '/admin/productos', label: 'Productos' }, { href: '/admin/notificaciones', label: 'Avisos' },
-          ].map(item => <a key={item.href} href={item.href} className={`flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold ${item.href === '/admin' ? 'bg-[#294A38] text-white' : 'bg-[#F4EFEA] text-[#746a64]'}`}><NavigationIcon name={item.href === '/admin/invitar' ? 'invitaciones' : item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</a>)}
-        </nav>
+        <div className="col-span-full lg:hidden"><AdminSectionMenu /></div>
         <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Panel de Flor</p>
           <nav className="mt-5 space-y-1.5" aria-label="Navegación de administración">
-            {[
-              { href: '/admin', label: 'Vista general', active: true },
-              { href: '/admin/desafio', label: 'Solicitudes del Desafío' },
-              { href: '/admin/invitar', label: 'Invitaciones' },
-              { href: '/admin/classroom', label: 'Clases' },
-              { href: '/admin/lanzamiento', label: 'Avances de alumnas' },
-              { href: '/admin/productos', label: 'Productos' },
-              { href: '/admin/comunidad', label: 'Comunidad' },
-              { href: '/admin/resultados', label: 'Resultados' },
-              { href: '/admin/notificaciones', label: 'Notificaciones' },
-              { href: '/admin/configuracion', label: 'Configuración' },
-            ].map(item => <a key={item.href} href={item.href} aria-current={item.active ? 'page' : undefined} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${item.active ? 'bg-[#F4CAD8] font-semibold' : 'text-[#746a64] hover:bg-[#F4EFEA] hover:text-[#211c19]'}`}><span className="flex items-center gap-3"><NavigationIcon name={item.href === '/admin/invitar' ? 'invitaciones' : item.href === '/admin' ? 'inicio' : item.href === '/admin/desafio' ? 'solicitudes' : item.href === '/admin/classroom' ? 'clases' : item.href === '/admin/lanzamiento' ? 'lanzamiento' : item.href === '/admin/productos' ? 'productos' : item.href === '/admin/comunidad' ? 'comunidad' : item.href === '/admin/resultados' ? 'resultados' : item.href === '/admin/notificaciones' ? 'notificaciones' : 'configuracion'} />{item.label}</span>{item.href === '/admin/desafio' && stats.solicitudesDesafioPendientes > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#211c19]">{stats.solicitudesDesafioPendientes}</span> : null}</a>)}
+            {ADMIN_SECTIONS.map(item => <a key={item.href} href={item.href} aria-current={item.href === '/admin' ? 'page' : undefined} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm transition ${item.href === '/admin' ? 'bg-[#F4CAD8] font-semibold' : 'text-[#746a64] hover:bg-[#F4EFEA] hover:text-[#211c19]'}`}><span className="flex items-center gap-3"><NavigationIcon name={item.icon} />{item.label}</span>{item.href === '/admin/desafio' && stats.solicitudesDesafioPendientes > 0 ? <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#211c19]">{stats.solicitudesDesafioPendientes}</span> : null}</a>)}
           </nav>
         </aside>
 
@@ -229,7 +213,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               <div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Usuarias</p><h2 className="mt-1 font-serif text-2xl font-semibold">Acceso y actividad</h2></div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <a href="/api/exportar-alumnas" download className="text-sm font-medium text-[#294A38]">Descargar lista&nbsp; ↓</a>
-                <input type="text" aria-label="Buscar alumnas" placeholder="Buscar por nombre o país" value={busqueda} onChange={e => setBusqueda(e.target.value)} className="min-w-[220px] rounded-full border-0 bg-[#F4EFEA] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#EC9BB6]" />
+                <input type="text" aria-label="Buscar alumnas" placeholder="Buscar por nombre o país" value={busqueda} onChange={e => setBusqueda(e.target.value)} className="min-w-0 w-full rounded-full border-0 bg-[#F4EFEA] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#EC9BB6] sm:w-auto" />
               </div>
             </div>
 
@@ -262,7 +246,19 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               <span role="status" aria-live="polite" className="ml-auto text-xs text-[#746a64]">{alumnasFiltradas.length} de {stats.totalAlumnas} alumnas</span>
             </div>
 
-            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead><tr className="border-b border-[#e7ddd5] text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#746a64]"><th className="pb-3">Alumna</th><th className="pb-3">Estado</th><th className="pb-3">Tipo</th><th className="pb-3">País</th><th className="pb-3">Ingreso</th><th className="pb-3">Actividad</th><th className="pb-3">Progreso</th><th className="pb-3"></th></tr></thead><tbody className="divide-y divide-[#e7ddd5]">
+            <div className="mt-4 space-y-3 md:hidden" aria-label="Alumnas en vista móvil">
+              {alumnasFiltradas.map(alumna => <article key={alumna.id} className="rounded-[18px] border border-[#e7ddd5] bg-[#FAF7F3] p-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  {alumna.avatar_url ? <img src={alumna.avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F4CAD8] text-xs font-semibold">{(alumna.nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</span>}
+                  <div className="min-w-0 flex-1"><h3 className="break-words text-sm font-semibold">{alumna.nombre || 'Sin nombre'}</h3><p className="mt-1 text-xs text-[#746a64]">{alumna.whatsapp || 'Sin teléfono'}</p></div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full border border-[#e7ddd5] px-2.5 py-1 text-xs capitalize">{alumna.estado || 'activa'}</span><span className="rounded-full bg-[#F4CAD8] px-2.5 py-1 text-xs">{etiquetaTipoUsuario(tipoAcceso(alumna))}</span></div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-[#746a64]">País</dt><dd className="mt-1">{alumna.pais || '—'}</dd></div><div><dt className="text-[#746a64]">Ingreso</dt><dd className="mt-1">{formatFecha(alumna.created_at)}</dd></div><div><dt className="text-[#746a64]">Actividad</dt><dd className="mt-1">{diasSinIngresar(alumna.ultimo_acceso, stats.fechaReferencia)}</dd></div><div><dt className="text-[#746a64]">Progreso</dt><dd className="mt-1 tabular-nums">{alumna.progreso ?? 0}%</dd></div></dl>
+                <button type="button" onClick={() => abrirFicha(alumna)} className="mt-4 w-full rounded-full border border-[#294A38]/30 px-4 py-3 text-sm font-semibold text-[#294A38]">Ver ficha</button>
+              </article>)}
+              {!alumnasFiltradas.length && <p className="py-6 text-center text-sm text-[#746a64]">No hay alumnas que coincidan</p>}
+            </div>
+            <div className="sd-scroll-table mt-4 hidden overflow-x-auto md:block"><table className="w-full min-w-[860px] text-sm"><thead><tr className="border-b border-[#e7ddd5] text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-[#746a64]"><th className="pb-3">Alumna</th><th className="pb-3">Estado</th><th className="pb-3">Tipo</th><th className="pb-3">País</th><th className="pb-3">Ingreso</th><th className="pb-3">Actividad</th><th className="pb-3">Progreso</th><th className="pb-3"></th></tr></thead><tbody className="divide-y divide-[#e7ddd5]">
                 {alumnasFiltradas.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-10 text-center text-[#746a64]">
@@ -316,20 +312,20 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
 
       {/* Modal ficha de alumna */}
       {alumnaSeleccionada && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-900">Ficha de alumna</h3>
-              <button onClick={() => setAlumnaSeleccionada(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="ficha-alumna-titulo">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-white p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center gap-3">
+              <h3 id="ficha-alumna-titulo" className="text-lg font-bold text-gray-900">Ficha de alumna</h3>
+              <button type="button" aria-label="Cerrar ficha" onClick={() => setAlumnaSeleccionada(null)} className="flex h-11 w-11 shrink-0 items-center justify-center text-gray-400 hover:text-gray-600 text-xl">✕</button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               {/* Avatar */}
               <div className="flex items-center gap-4 mb-2">
                 {alumnaSeleccionada.avatar_url ? (
                   <img src={alumnaSeleccionada.avatar_url} className="w-16 h-16 rounded-full object-cover" alt="" />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-3xl">🌸</div>
+                  <div className="w-16 h-16 shrink-0 rounded-full bg-[#F4CAD8] flex items-center justify-center font-impact text-xl font-medium text-[#294A38]">{(alumnaSeleccionada.nombre || 'SD').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase()}</div>
                 )}
                 <div>
                   <p className="font-bold text-gray-900">{alumnaSeleccionada.nombre || 'Sin nombre'}</p>
@@ -337,15 +333,16 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
                   { label: 'Nombre', key: 'nombre', type: 'text' },
                   { label: 'WhatsApp', key: 'whatsapp', type: 'text' },
                   { label: 'País', key: 'pais', type: 'text' },
                 ].map(({ label, key, type }) => (
-                  <div key={key} className={key === 'nombre' ? 'col-span-2' : ''}>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                  <div key={key} className={key === 'nombre' ? 'sm:col-span-2' : ''}>
+                    <label htmlFor={`ficha-${key}`} className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
                     <input
+                      id={`ficha-${key}`}
                       type={type}
                       value={(editando as Record<string, string>)[key] ?? ''}
                       onChange={e => setEditando(prev => ({ ...prev, [key]: e.target.value }))}
@@ -355,8 +352,9 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 ))}
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
+                  <label htmlFor="ficha-estado" className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
                   <select
+                    id="ficha-estado"
                     value={editando.estado ?? 'activa'}
                     onChange={e => setEditando(prev => ({ ...prev, estado: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
@@ -368,14 +366,15 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Plan</label>
-                  <select value={editando.plan ?? 'basico'} onChange={e => setEditando(prev => ({ ...prev, plan: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
+                  <label htmlFor="ficha-plan" className="block text-xs font-medium text-gray-500 mb-1">Plan</label>
+                  <select id="ficha-plan" value={editando.plan ?? 'basico'} onChange={e => setEditando(prev => ({ ...prev, plan: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
                     <option value="basico">Básico</option><option value="premium">Premium</option><option value="vip">VIP</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Tipo de usuaria</label>
+                  <label htmlFor="ficha-tipo" className="block text-xs font-medium text-gray-500 mb-1">Tipo de usuaria</label>
                   <select
+                    id="ficha-tipo"
                     value={editando.tipo_usuario ?? 'gratuito'}
                     onChange={e => setEditando(prev => ({ ...prev, tipo_usuario: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
@@ -405,7 +404,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 space-y-3">
+            <div className="p-4 sm:p-6 border-t border-gray-100 space-y-3">
               <div className="flex gap-3">
                 <button
                   onClick={() => setAlumnaSeleccionada(null)}

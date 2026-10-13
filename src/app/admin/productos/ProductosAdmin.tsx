@@ -137,7 +137,7 @@ export default function ProductosAdmin({ productos, cotizacion }: Props) {
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 
         {/* Stats rápidas */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="bg-white rounded-xl p-5 text-center shadow-sm border border-gray-100">
             <p className="text-2xl font-bold text-gray-900">{productos.length}</p>
             <p className="text-xs text-gray-400 mt-1">Total productos</p>
@@ -238,7 +238,7 @@ export default function ProductosAdmin({ productos, cotizacion }: Props) {
       {/* Modal */}
       {modal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
               <h3 className="font-bold text-gray-900">{editando.id ? 'Editar producto' : 'Nuevo producto'}</h3>
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
@@ -273,7 +273,7 @@ export default function ProductosAdmin({ productos, cotizacion }: Props) {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300 resize-none" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Categoría</label>
                   <select value={editando.tipo}
@@ -303,7 +303,7 @@ export default function ProductosAdmin({ productos, cotizacion }: Props) {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Moneda</label>
                   <select value={editando.moneda}

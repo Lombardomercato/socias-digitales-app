@@ -102,20 +102,20 @@ export default function PushNotifications() {
   if (!mostrar) return null
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm">
+    <div className="sd-push-prompt fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm">
       <div className="flex items-start gap-3 rounded-2xl bg-[#FAF7F3] p-4 shadow-xl">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4CAD8] text-[#171413]"><BellIcon /></span>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-[#171413]">Activá las notificaciones</p>
           <p className="mt-0.5 text-xs leading-5 text-[#171413]/60">Recibí avisos de clases nuevas y novedades importantes.</p>
           {error ? <p className="mt-2 text-xs font-semibold text-[#B01B30]" role="alert">{error}</p> : null}
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={activar} disabled={cargando}
-              className="flex-1 rounded-xl bg-[#294A38] py-2 text-xs font-bold text-white disabled:opacity-60">
+              className="min-h-11 flex-1 rounded-xl bg-[#294A38] py-2 text-sm font-semibold text-white disabled:opacity-60">
               {cargando ? 'Activando...' : 'Activar'}
             </button>
             <button type="button" onClick={posponer}
-              className="rounded-xl bg-[#F4EFEA] px-3 py-2 text-xs text-[#171413]/55">
+              className="min-h-11 rounded-xl bg-[#F4EFEA] px-3 py-2 text-sm text-[#171413]/55">
               Ahora no
             </button>
           </div>

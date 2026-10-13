@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export default function CrearContrasenaCliente({ cambiar = false }: { cambiar?: boolean }) {
+export default function CrearContrasenaCliente({ cambiar = false, esAdmin = false }: { cambiar?: boolean; esAdmin?: boolean }) {
   const router = useRouter()
   const [contrasena, setContrasena] = useState('')
   const [confirmar, setConfirmar] = useState('')
@@ -39,7 +39,7 @@ export default function CrearContrasenaCliente({ cambiar = false }: { cambiar?: 
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAF7F3] text-[#171413]">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAF7F3] text-[#171413]" data-platform-role={esAdmin ? 'admin' : 'member'}>
       <div className="bg-[#F4EFEA] rounded-3xl p-8 sm:p-10 w-full max-w-md mx-4">
         <div className="text-center mb-8">
           <img src="/academy-stacked-color.png" alt="Socias Digitales Academy" style={{ width: 200, height: 'auto', objectFit: 'contain', margin: '0 auto 16px' }} />

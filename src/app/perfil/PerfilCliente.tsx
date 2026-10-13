@@ -121,7 +121,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
   const labelClass = "block text-sm font-medium text-[#655B56] mb-1.5"
 
   return (
-    <div className="min-h-screen bg-[#F4EFEA] text-[#171413]">
+    <div className="min-h-screen bg-[#F4EFEA] text-[#171413]" data-platform-role={esAdmin ? 'admin' : 'member'}>
       <nav className="flex items-center justify-between bg-[#FAF7F3] px-5 py-4 sm:px-8">
         <Link href={esAdmin ? '/admin' : '/inicio'} aria-label={esAdmin ? 'Volver al panel de Flor' : 'Volver a mi espacio'}>
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
@@ -156,14 +156,14 @@ export default function PerfilCliente({ user, perfil }: Props) {
 
         {/* Tarjeta compacta de perfil */}
         {!editando && nombre ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 items-center gap-4">
               {avatarUrl ? (
                 <img src={avatarUrl} className="w-16 h-16 rounded-full object-cover border-4 border-[#F4CAD8]" alt="" />
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#F4CAD8] font-impact text-xl font-medium text-[#294A38]">{(nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</div>
               )}
-              <div>
+              <div className="min-w-0">
                 <p className="font-bold text-gray-900 text-lg">{nombre}</p>
                 {(pais || provincia) && (
                   <p className="text-sm text-gray-500">{[provincia, pais].filter(Boolean).join(', ')}</p>
@@ -181,7 +181,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
         {/* Formulario de perfil (colapsable) */}
         {editando && (
         <div className="rounded-2xl border border-[#EC9BB6]/50 bg-white p-5 sm:p-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <h2 className="font-serif text-3xl font-semibold text-[#171413]">Completá tu perfil</h2>
             {nombre && (
               <button onClick={() => setEditando(false)} className="text-sm text-gray-400 hover:text-gray-600">✕ Cerrar</button>
@@ -308,7 +308,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
           </form>
         </div>
         )}
-        <section className="flex items-center justify-between gap-4 rounded-2xl border border-[#EC9BB6]/45 bg-[#FAF7F3] p-5">
+        <section className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-[#EC9BB6]/45 bg-[#FAF7F3] p-5 sm:flex-row sm:items-center">
           <div><h2 className="text-sm font-semibold">Seguridad de tu cuenta</h2><p className="mt-1 text-xs text-[#655B56]">Tu contraseña es personal.</p></div>
           <Link href="/cuenta/contrasena" className="text-sm font-semibold text-[#294A38] underline underline-offset-4">Cambiar contraseña</Link>
         </section>

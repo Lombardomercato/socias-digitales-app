@@ -215,7 +215,7 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
 
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171413]/55 px-4 py-6">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[26px] bg-[#FAF7F3]">
+          <div className="max-h-[calc(100dvh-3rem)] w-full max-w-md overflow-y-auto rounded-[26px] bg-[#FAF7F3]">
             <div className="flex items-center justify-between border-b border-[#E7DDD5] p-6">
               <div><p className="font-impact text-[9px] font-semibold uppercase tracking-[0.16em] text-[#294A38]">Biblioteca</p><h3 className="mt-1 text-lg font-semibold text-[#211C19]">{editando.id ? 'Editar clase' : 'Nueva clase'}</h3></div>
               <button onClick={() => setModal(false)} aria-label="Cerrar" className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F4EFEA] text-xl text-[#746A64] transition hover:bg-[#F4CAD8]">×</button>
@@ -249,7 +249,7 @@ export default function ClassroomAdmin({ clases, alumnas }: Props) {
                   onChange={e => setEditando(p => ({ ...p, video_key: e.target.value }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Módulo</label>
                   <input type="text" placeholder="Módulo 1"

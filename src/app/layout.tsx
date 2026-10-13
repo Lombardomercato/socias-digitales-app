@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Playfair_Display, Poppins } from "next/font/google";
 import "./globals.css";
 import PushNotifications from "@/components/PushNotifications";
@@ -48,6 +48,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: '#F4CAD8',
+  colorScheme: 'light',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -59,7 +68,6 @@ export default function RootLayout({
       className={`${dmSans.variable} ${poppins.variable} ${playfair.variable} h-full antialiased`}
     >
       <head>
-        <meta name="theme-color" content="#F4CAD8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Socias Digitales" />
