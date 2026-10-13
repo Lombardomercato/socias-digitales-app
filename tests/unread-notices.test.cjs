@@ -64,6 +64,13 @@ test('sin mensajes no hay banner ni falsa urgencia; 99+ no desborda el menú', (
   assert.ok(vista(137, 'menu').includes('137 comunicados sin leer'))
   assert.ok(vista(0, 'banner', true).includes('No pudimos comprobar'))
 })
+test('Notificaciones conserva el tamaño y alineación del menú, con el contador fuera del flujo del texto', () => {
+  for (const cantidad of [0, 1, 137]) {
+    const html = vista(cantidad, 'menu')
+    assert.ok(html.includes('gap-3 rounded-xl px-3 py-3 text-sm'))
+    if (cantidad > 0) assert.ok(html.includes('absolute -right-1 -top-1'))
+  }
+})
 test('actualización única con pestaña visible; no marca mensajes automáticamente ni pierde el último dato ante errores', () => {
   const ui = fs.readFileSync(path.resolve(__dirname, '../src/components/UnreadNotices.tsx'), 'utf8')
   assert.equal((ui.match(/setInterval/g) || []).length, 1)
