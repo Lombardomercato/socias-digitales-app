@@ -14,7 +14,7 @@ export const AGENDA_SOCIAS: readonly HitoAgenda[] = [{
   id: 'desafio-socias-2026-10-13',
   titulo: 'Desafío Socias',
   fecha: CLASE_LANZAMIENTO.fecha,
-  enlace: null,
+  enlace: 'https://www.youtube.com/live/ReuW2yhi0PY',
   accion: 'Entrar a la clase',
 }]
 

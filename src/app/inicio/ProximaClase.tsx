@@ -55,8 +55,8 @@ export default function ProximaClase({ ahoraInicial, hitos = AGENDA_SOCIAS, vari
         <p className="mt-1 text-[11px] leading-5 text-[#51443F]">{fecha.dia} {fecha.fecha} · <time dateTime={hito.fecha}>{fecha.hora} hora Argentina</time></p>
       </div>
       <div className="flex shrink-0 flex-col items-center text-center">
-        {enlace ? <a href={enlace} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#EC9BB6] bg-[#EC9BB6] px-4 py-2 text-xs font-semibold text-[#171413] transition hover:bg-[#F4CAD8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#294A38]">{hito.accion} <ArrowIcon /></a>
-          : <button type="button" disabled title="Flor todavía no publicó el enlace" className="rounded-full border border-[#EC9BB6] bg-[#EC9BB6] px-4 py-2 text-xs font-semibold text-[#171413] disabled:cursor-not-allowed">{hito.accion}</button>}
+        {enlace ? <a href={enlace} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#EC9BB6] bg-[#EC9BB6] px-4 py-2 text-xs font-semibold text-[#171413] transition hover:bg-[#F4CAD8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#294A38]">{hito.accion} <ArrowIcon /></a>
+          : <button type="button" disabled title="Flor todavía no publicó el enlace" className="min-h-11 rounded-full border border-[#EC9BB6] bg-[#EC9BB6] px-4 py-2 text-xs font-semibold text-[#171413] disabled:cursor-not-allowed">{hito.accion}</button>}
         {!enlace && <p className="mt-1 w-full text-center text-[9px] text-[#655B56]">Enlace por confirmar.</p>}
       </div>
     </div>
