@@ -1,0 +1,12 @@
+drop policy if exists "Flor gestiona acceso a resultados" on public.accesos_resultados;
+create policy "Flor habilita resultados" on public.accesos_resultados for insert to authenticated with check ((select public.es_admin()));
+create policy "Flor cambia acceso a resultados" on public.accesos_resultados for update to authenticated using ((select public.es_admin())) with check ((select public.es_admin()));
+drop policy if exists "Ver resultados" on public.resultados;
+drop policy if exists "Ver mis resultados" on public.resultados;
+drop policy if exists "Insertar mis resultados" on public.resultados;
+drop policy if exists "Subir resultado" on public.resultados;
+create policy "Ver resultados propios o administracion" on public.resultados for select to authenticated using (alumna_id=(select auth.uid()) or (select public.es_admin()));
+create policy "Cargar resultado propio" on public.resultados for insert to authenticated with check (alumna_id=(select auth.uid()));
+create index if not exists resultados_alumna_fecha_idx on public.resultados(alumna_id,created_at desc);
+create index if not exists resultados_producto_idx on public.resultados(producto_id);
+revoke truncate, references, trigger on public.resultados from authenticated;

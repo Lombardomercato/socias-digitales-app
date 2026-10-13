@@ -1,389 +1,105 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import ArrowIcon from '@/components/ArrowIcon'
+import NavigationIcon from '@/components/NavigationIcon'
+import { ESTADO_RESULTADO, MAX_CAPTURA, resumenResultados, dineroResultado, type Resultado, type EstadoResultado } from '@/lib/results'
 
-interface Resultado {
-  id: string
-  tipo: string
-  descripcion: string | null
-  archivo_url: string | null
-  monto: number | null
-  mes: string | null
-  producto_id: string | null
-  estado: string
-  created_at: string
+const campo = 'mt-2 w-full rounded-xl border border-[#e7ddd5] bg-[#FAF7F3] px-4 py-3 text-sm outline-none focus:border-[#294A38]'
+const boton = 'inline-flex items-center justify-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60'
+export function Estado({ estado }: { estado: string }) {
+  const estilo = ESTADO_RESULTADO[estado as EstadoResultado]
+  return <span className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-medium ${estilo?.color ?? 'border-[#e7ddd5]'}`}>{estilo?.nombre ?? estado}</span>
 }
-
-interface Producto {
-  id: string
-  nombre: string
-  tipo: string
+export function Captura({ id }: { id: string }) {
+  const [fallo, setFallo] = useState(false)
+  return fallo ? <p className="rounded-xl border border-[#e7ddd5] p-4 text-sm text-[#746a64]">No pudimos abrir la captura. <button type="button" className="underline" onClick={() => setFallo(false)}>Reintentar</button></p> :
+    <a href={`/api/resultados/${id}/archivo`} target="_blank" rel="noopener noreferrer" aria-label="Abrir captura"><img src={`/api/resultados/${id}/archivo`} alt="Captura del resultado" onError={() => setFallo(true)} className="max-h-80 w-full rounded-xl border border-[#e7ddd5] bg-[#FAF7F3] object-contain" /></a>
 }
-
-interface Props {
-  misResultados: Resultado[]
-  productos: Producto[]
-  userId: string
-}
-
-const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
-const ESTADO_STYLE: Record<string, string> = {
-  pendiente: 'bg-amber-100 text-amber-700',
-  aprobado: 'bg-green-100 text-green-700',
-  rechazado: 'bg-red-100 text-red-700',
-}
-
-const ESTADO_LABEL: Record<string, string> = {
-  pendiente: '⏳ En revisión',
-  aprobado: '✅ Aprobado',
-  rechazado: '❌ Rechazado',
-}
-
-const anioActual = new Date().getFullYear()
-const ANIOS = [anioActual - 1, anioActual, anioActual + 1]
-
-const RANGOS = [
-  { id: 1, nombre: 'Primera venta', emoji: '🌱', descripcion: 'Primera comisión', minMonto: 0, minVentas: 1, color: '#E27396', bg: '#fce7f3' },
-  { id: 2, nombre: '100 USD', emoji: '⭐', descripcion: 'USD $100', minMonto: 100, minVentas: 0, color: '#d97706', bg: '#fef3c7' },
-  { id: 3, nombre: '500 USD', emoji: '🔥', descripcion: 'USD $500', minMonto: 500, minVentas: 0, color: '#7c3aed', bg: '#ede9fe' },
-  { id: 4, nombre: '1.000 USD', emoji: '💎', descripcion: 'USD $1.000', minMonto: 1000, minVentas: 0, color: '#0ea5e9', bg: '#e0f2fe' },
-  { id: 5, nombre: 'Socia Select', emoji: '🥉', descripcion: 'USD $5.000', minMonto: 5000, minVentas: 0, color: '#92400e', bg: '#fef3c7' },
-  { id: 6, nombre: 'Socia Pro', emoji: '🥈', descripcion: 'USD $10.000', minMonto: 10000, minVentas: 0, color: '#475569', bg: '#f1f5f9' },
-  { id: 7, nombre: 'Socia Elite', emoji: '🥇', descripcion: 'USD $20.000', minMonto: 20000, minVentas: 0, color: '#b45309', bg: '#fffbeb' },
-]
-
-function calcularRango(total: number, cantidadVentas: number) {
-  let rangoActual = null
-  for (const r of RANGOS) {
-    const cumpleMonto = r.minMonto === 0 || total >= r.minMonto
-    const cumpleVentas = r.minVentas === 0 || cantidadVentas >= r.minVentas
-    if (cumpleMonto && cumpleVentas) rangoActual = r
-  }
-  return rangoActual
-}
-
-export default function ResultadosCliente({ misResultados, productos, userId }: Props) {
+export default function ResultadosCliente({ misResultados, productos, periodoInicial, errorCarga = false }: {
+  misResultados: Resultado[]; productos: { id: string; nombre: string; tipo: string }[]; periodoInicial: string; errorCarga?: boolean
+}) {
   const router = useRouter()
-  const supabase = createClient()
-
   const [mostrarForm, setMostrarForm] = useState(false)
   const [enviando, setEnviando] = useState(false)
-  const [subiendo, setSubiendo] = useState(false)
-  const [exito, setExito] = useState(false)
   const [error, setError] = useState('')
-
-  const [foto, setFoto] = useState<string>('')
-  const [comentario, setComentario] = useState('')
+  const [exito, setExito] = useState(false)
+  const [descripcion, setDescripcion] = useState('')
   const [monto, setMonto] = useState('')
-  const [mes, setMes] = useState(MESES[new Date().getMonth()])
-  const [anio, setAnio] = useState(anioActual)
-  const [productoId, setProductoId] = useState('')
-
-  async function subirFoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const archivo = e.target.files?.[0]
-    if (!archivo) return
-    setSubiendo(true)
-    const nombre = `resultado-${userId}-${Date.now()}.${archivo.name.split('.').pop()}`
-    const { error } = await supabase.storage.from('resultados').upload(nombre, archivo, { upsert: true })
-    if (!error) {
-      const { data } = supabase.storage.from('resultados').getPublicUrl(nombre)
-      setFoto(data.publicUrl)
-    }
-    setSubiendo(false)
+  const [periodo, setPeriodo] = useState(periodoInicial)
+  const [producto, setProducto] = useState('')
+  const [archivo, setArchivo] = useState<File | null>(null)
+  const [preview, setPreview] = useState('')
+  const [filtro, setFiltro] = useState('todos')
+  const intento = useRef<string | null>(null)
+  const ocupado = useRef(false)
+  const urlPreview = useRef('')
+  useEffect(() => () => { if (urlPreview.current) URL.revokeObjectURL(urlPreview.current) }, [])
+  function cambiarArchivo(file: File | null) {
+    if (urlPreview.current) URL.revokeObjectURL(urlPreview.current)
+    urlPreview.current = file ? URL.createObjectURL(file) : ''
+    setPreview(urlPreview.current); setArchivo(file)
   }
-
+  const resumen = resumenResultados(misResultados)
+  const historial = misResultados.filter(r => filtro === 'todos' || r.estado === filtro)
+  function editar() { intento.current = null; setError(''); setExito(false) }
   async function enviar(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    if (!comentario.trim()) return setError('Escribí un comentario sobre tu resultado.')
-    setEnviando(true)
-
-    const { error } = await supabase.from('resultados').insert({
-      alumna_id: userId,
-      tipo: foto ? 'captura' : 'testimonio',
-      descripcion: comentario.trim(),
-      archivo_url: foto || null,
-      monto: monto ? parseFloat(monto) : null,
-      mes: `${mes} ${anio}`,
-      producto_id: productoId || null,
-      estado: 'pendiente',
-    })
-
-    if (error) {
-      setError('Hubo un error al enviar. Intentá de nuevo.')
-    } else {
-      setExito(true)
-      setTimeout(() => {
-        setExito(false)
-        setMostrarForm(false)
-        setFoto('')
-        setComentario('')
-        setMonto('')
-        setProductoId('')
-        router.refresh()
-      }, 2500)
-    }
-    setEnviando(false)
+    if (ocupado.current) return
+    ocupado.current = true; setEnviando(true); setError(''); setExito(false)
+    try {
+      intento.current ??= crypto.randomUUID()
+      const form = new FormData()
+      form.set('datos', JSON.stringify({ id: intento.current, descripcion, monto: monto === '' ? null : Number(monto), periodo, producto_id: producto || null }))
+      if (archivo) form.set('captura', archivo)
+      const response = await fetch('/api/resultados', { method: 'POST', body: form })
+      const respuesta = await response.json()
+      if (!response.ok || !respuesta.ok) throw new Error(respuesta.error || 'No pudimos guardar el resultado.')
+      setExito(true); setMostrarForm(false); setDescripcion(''); setMonto(''); setProducto(''); cambiarArchivo(null); intento.current = null
+      router.refresh()
+    } catch (causa) { setError(causa instanceof Error ? causa.message : 'No pudimos conectarnos. Tus datos siguen en el formulario.') }
+    finally { ocupado.current = false; setEnviando(false) }
   }
-
-  return (
-    <div className="min-h-screen" style={{ background: '#f5f0eb' }}>
-      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
-        <div className="flex items-center gap-4">
-          <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">← Mi perfil</a>
-        </div>
-      </nav>
-
-      {/* Portada */}
-      <div className="relative w-full overflow-hidden" style={{ height: 315 }}>
-        <img src="/resultados.jpeg" alt="Mis resultados" className="w-full h-full object-cover" style={{ display: 'block' }} />
-        <div className="absolute inset-0 flex flex-col justify-end px-8 pb-8"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }}>
-          <h1 className="text-4xl font-black text-white">Mis resultados</h1>
-          <p className="text-base text-white/80 mt-1">Compartí tus logros y comisiones ganadas</p>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-
-        {/* Total acumulado + rangos */}
-        {(() => {
-          const aprobados = misResultados.filter(r => r.estado === 'aprobado')
-          const total = aprobados.reduce((acc, r) => acc + (r.monto ?? 0), 0)
-          const cantVentas = aprobados.filter(r => r.monto && r.monto > 0).length
-          const rangoActual = calcularRango(total, cantVentas)
-          const proximoRango = RANGOS.find(r => r.id === (rangoActual ? rangoActual.id + 1 : 1))
-
-          return (
-            <div className="bg-white rounded-3xl shadow-sm p-6 space-y-5">
-              {/* Total */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total acumulado</p>
-                  <p className="text-4xl font-black mt-1" style={{ color: '#337357' }}>
-                    ${total.toLocaleString('es-AR')} <span className="text-lg font-bold text-gray-400">USD</span>
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">{cantVentas} venta{cantVentas !== 1 ? 's' : ''} aprobada{cantVentas !== 1 ? 's' : ''}</p>
-                </div>
-                {rangoActual && (
-                  <div className="text-center px-4 py-3 rounded-2xl" style={{ background: rangoActual.bg }}>
-                    <p className="text-3xl">{rangoActual.emoji}</p>
-                    <p className="text-xs font-bold mt-1" style={{ color: rangoActual.color }}>{rangoActual.nombre}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Barra de progreso al próximo rango */}
-              {proximoRango && proximoRango.minMonto > 0 && (
-                <div>
-                  <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>Progreso hacia {proximoRango.emoji} {proximoRango.nombre}</span>
-                    <span>${total.toLocaleString('es-AR')} / ${proximoRango.minMonto.toLocaleString('es-AR')}</span>
-                  </div>
-                  <div className="w-full rounded-full h-2.5" style={{ background: '#f3f4f6' }}>
-                    <div className="h-2.5 rounded-full transition-all"
-                      style={{ width: `${Math.min((total / proximoRango.minMonto) * 100, 100)}%`, background: '#E27396' }} />
-                  </div>
-                </div>
-              )}
-
-              {/* Hitos */}
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-                {RANGOS.map(r => {
-                  const cumpleMonto = r.minMonto === 0 ? cantVentas >= r.minVentas : total >= r.minMonto
-                  const esCurrent = rangoActual?.id === r.id
-                  return (
-                    <div key={r.id} className={`rounded-2xl p-3 text-center transition-all ${cumpleMonto ? '' : 'opacity-40'}`}
-                      style={{ background: cumpleMonto ? r.bg : '#f9fafb', border: esCurrent ? `2px solid ${r.color}` : '2px solid transparent' }}>
-                      <p className="text-2xl">{cumpleMonto ? r.emoji : '🔒'}</p>
-                      <p className="text-xs font-bold mt-1 leading-tight" style={{ color: cumpleMonto ? r.color : '#9ca3af' }}>{r.nombre}</p>
-                      <p className="text-xs text-gray-400 mt-0.5 leading-tight">{r.descripcion}</p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
-
-        <div className="flex justify-end">
-          {!mostrarForm && (
-            <button onClick={() => setMostrarForm(true)}
-              className="text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"
-              style={{ background: '#E27396' }}>
-              + Cargar resultado
-            </button>
-          )}
-        </div>
-
-        {/* Formulario */}
-        {mostrarForm && (
-          <div className="bg-white rounded-3xl shadow-sm p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-gray-900 text-lg">Nuevo resultado</h2>
-              {!exito && (
-                <button onClick={() => setMostrarForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-              )}
-            </div>
-
-            {exito ? (
-              <div className="text-center py-8">
-                <p className="text-4xl mb-3">🎉</p>
-                <p className="font-bold text-green-700 text-lg">¡Resultado enviado!</p>
-                <p className="text-sm text-gray-500 mt-1">Lo vamos a revisar y aprobar pronto.</p>
-              </div>
-            ) : (
-              <form onSubmit={enviar} className="space-y-4">
-
-                {/* Foto */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-2">FOTO (opcional)</label>
-                  <div className="border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden">
-                    {foto ? (
-                      <div className="relative">
-                        <img src={foto} className="w-full max-h-64 object-cover" alt="" />
-                        <button type="button" onClick={() => setFoto('')}
-                          className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg">
-                          Cambiar
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="flex flex-col items-center justify-center py-8 cursor-pointer hover:bg-gray-50 transition-colors">
-                        <span className="text-3xl mb-2">📸</span>
-                        <span className="text-sm font-medium text-gray-600">
-                          {subiendo ? 'Subiendo...' : 'Subir captura de pantalla'}
-                        </span>
-                        <span className="text-xs text-gray-400 mt-1">JPG, PNG o WEBP</span>
-                        <input type="file" accept="image/*" onChange={subirFoto} className="hidden" disabled={subiendo} />
-                      </label>
-                    )}
-                  </div>
-                </div>
-
-                {/* Comentario */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-2">TU COMENTARIO *</label>
-                  <textarea
-                    value={comentario}
-                    onChange={e => setComentario(e.target.value)}
-                    placeholder="Contanos cómo fue tu experiencia, qué lograste, cómo te sentiste..."
-                    rows={4}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 resize-none"
-                    style={{ '--tw-ring-color': '#E27396' } as React.CSSProperties}
-                  />
-                </div>
-
-                {/* Monto y mes */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2">COMISIÓN GANADA (USD)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        placeholder="0.00"
-                        value={monto}
-                        onChange={e => setMonto(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl pl-7 pr-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2">MES</label>
-                    <div className="flex gap-2">
-                      <select value={mes} onChange={e => setMes(e.target.value)}
-                        className="flex-1 border border-gray-200 rounded-xl px-3 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2">
-                        {MESES.map(m => <option key={m}>{m}</option>)}
-                      </select>
-                      <select value={anio} onChange={e => setAnio(Number(e.target.value))}
-                        className="w-24 border border-gray-200 rounded-xl px-2 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2">
-                        {ANIOS.map(a => <option key={a}>{a}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Producto */}
-                {productos.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-2">PRODUCTO (opcional)</label>
-                    <select value={productoId} onChange={e => setProductoId(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2">
-                      <option value="">— Sin especificar —</option>
-                      {productos.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.tipo === 'fisico' ? '📦' : '💻'} {p.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2">{error}</p>}
-
-                <button type="submit" disabled={enviando || subiendo}
-                  className="w-full py-3.5 rounded-xl text-white font-bold text-sm transition-colors disabled:opacity-60"
-                  style={{ background: '#E27396' }}>
-                  {enviando ? 'Enviando...' : 'Enviar resultado'}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
-
-        {/* Mis resultados anteriores */}
-        {misResultados.length > 0 ? (
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Mis envíos</h2>
-            {misResultados.map(r => (
-              <div key={r.id} className="bg-white rounded-2xl p-4 flex gap-4 items-start shadow-sm">
-                {r.archivo_url ? (
-                  <img src={r.archivo_url} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" alt="" />
-                ) : (
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
-                    style={{ background: '#f5f0eb' }}>💬</div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    {r.mes && <span className="text-xs text-gray-400 font-medium">{r.mes}</span>}
-                    {r.monto && (
-                      <span className="text-xs font-bold" style={{ color: '#337357' }}>
-                        +${r.monto.toLocaleString('es-AR')} USD
-                      </span>
-                    )}
-                  </div>
-                  {r.descripcion && <p className="text-sm text-gray-700 line-clamp-2">{r.descripcion}</p>}
-                  <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mt-2 ${ESTADO_STYLE[r.estado]}`}>
-                    {ESTADO_LABEL[r.estado]}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          !mostrarForm && (
-            <div className="bg-white rounded-3xl p-10 text-center shadow-sm">
-              <p className="text-4xl mb-3">🏆</p>
-              <p className="font-bold text-gray-800">¡Todavía no cargaste ningún resultado!</p>
-              <p className="text-sm text-gray-400 mt-2">Compartí tu primera comisión o testimonio.</p>
-              <button onClick={() => setMostrarForm(true)}
-                className="mt-5 text-white text-sm font-bold px-6 py-3 rounded-xl"
-                style={{ background: '#E27396' }}>
-                + Cargar mi primer resultado
-              </button>
-            </div>
-          )
-        )}
-      </div>
-    </div>
-  )
+  return <div className="min-h-screen bg-[#F4EFEA] text-[#211c19]">
+    <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
+      <Link href="/inicio"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto" /></Link>
+      <Link href="/inicio" className="inline-flex items-center gap-2 text-sm text-[#294A38]">Mi espacio <ArrowIcon /></Link>
+    </header>
+    <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-[10px] font-semibold uppercase tracking-[.22em] text-[#294A38]">Socias Digitales</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Mis resultados</h1></div><button type="button" onClick={() => { setMostrarForm(true); setExito(false) }} className={boton}><NavigationIcon name="resultados" />Cargar resultado</button></div>
+      {errorCarga && <div role="alert" className="mt-6 rounded-xl border border-[#EC9BB6] bg-[#F4CAD8] p-4 text-sm">No pudimos cargar toda la información. <button type="button" onClick={() => router.refresh()} className="font-semibold underline">Reintentar</button></div>}
+      <section aria-label="Resumen de resultados" className="mt-7 grid gap-3 sm:grid-cols-3">
+        {[{ nombre: 'Comisiones reportadas', valor: dineroResultado(resumen.monto), nota: 'En resultados aprobados', fondo: 'bg-[#F4CAD8] border-[#EC9BB6]' }, { nombre: 'Resultados aprobados', valor: resumen.aprobados, nota: 'Revisados por Flor', fondo: 'bg-white border-[#e7ddd5]' }, { nombre: 'En revisión', valor: resumen.pendientes, nota: 'Pendientes de aprobación', fondo: 'bg-[#FAF7F3] border-[#e7ddd5]' }].map(s => <article key={s.nombre} className={`rounded-[22px] border p-5 ${s.fondo}`}><p className="text-[10px] font-medium uppercase tracking-[.16em] text-[#655B56]">{s.nombre}</p><p className="mt-3 font-impact text-3xl font-semibold tabular-nums">{errorCarga ? '—' : s.valor}</p><p className="mt-2 text-xs text-[#746a64]">{s.nota}</p></article>)}
+      </section>
+      {exito && <p role="status" className="mt-5 rounded-xl border border-[#294A38]/30 bg-white p-4 text-sm">Resultado enviado. Ya quedó en revisión.</p>}
+      {mostrarForm && <section className="mt-6 rounded-[24px] border border-[#e7ddd5] bg-white p-5 sm:p-7">
+        <div className="flex items-center justify-between gap-4"><h2 className="text-xl font-semibold">Nuevo resultado</h2><button type="button" disabled={enviando} onClick={() => setMostrarForm(false)} className="text-sm text-[#746a64] underline">Cerrar</button></div>
+        <form onSubmit={enviar} className="mt-5"><fieldset disabled={enviando} className="space-y-5">
+          <label className="block text-sm font-medium">¿Qué resultado querés compartir?<textarea required maxLength={2000} value={descripcion} onChange={e => { editar(); setDescripcion(e.target.value) }} rows={4} className={campo} placeholder="Contanos qué hiciste y cómo te fue." /></label>
+          <div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-medium">Comisión en USD <span className="font-normal text-[#746a64]">(opcional)</span><input type="number" min="0" max="1000000000" step=".01" value={monto} onChange={e => { editar(); setMonto(e.target.value) }} className={campo} placeholder="0,00" /></label><label className="block text-sm font-medium">Mes del resultado<input required type="month" value={periodo} onChange={e => { editar(); setPeriodo(e.target.value) }} className={campo} /></label></div>
+          <label className="block text-sm font-medium">Producto <span className="font-normal text-[#746a64]">(opcional)</span><select value={producto} onChange={e => { editar(); setProducto(e.target.value) }} className={campo}><option value="">Sin producto asociado</option>{productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></label>
+          <label className="block text-sm font-medium">Captura <span className="font-normal text-[#746a64]">(opcional)</span><input type="file" accept="image/png,image/jpeg,image/webp" className={campo} onChange={e => {
+            const file = e.target.files?.[0] ?? null
+            editar()
+            if (file && (file.size > MAX_CAPTURA || !['image/png','image/jpeg','image/webp'].includes(file.type))) { e.target.value = ''; cambiarArchivo(null); setError('Usá una imagen JPG, PNG o WEBP de hasta 3 MB.'); return }
+            cambiarArchivo(file)
+          }} /><span className="mt-2 block text-xs font-normal text-[#746a64]">JPG, PNG o WEBP · hasta 3 MB. Evitá mostrar datos de otras personas.</span></label>
+          {preview && <img src={preview} alt="Vista previa de tu captura" className="max-h-52 rounded-xl border border-[#e7ddd5] object-contain" />}
+        </fieldset>{error && <p role="alert" className="mt-4 rounded-xl border border-[#EC9BB6] bg-[#F4CAD8] p-4 text-sm">{error}</p>}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-[#746a64]">Flor revisará tu carga antes de aprobarla.</p><button type="submit" disabled={enviando || errorCarga} className={boton}>{enviando ? 'Enviando…' : 'Enviar a revisión'}<ArrowIcon /></button></div></form>
+      </section>}
+      <section className="mt-8" aria-labelledby="historial-resultados">
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 id="historial-resultados" className="text-xl font-semibold">Tu historial</h2><label className="text-xs text-[#746a64]">Estado <select value={filtro} onChange={e => setFiltro(e.target.value)} className="ml-2 rounded-full border border-[#e7ddd5] bg-white px-3 py-2 text-sm"><option value="todos">Todos</option>{Object.entries(ESTADO_RESULTADO).map(([id,s]) => <option key={id} value={id}>{s.nombre}</option>)}</select></label></div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">{historial.map(r => <article key={r.id} className="rounded-[22px] border border-[#e7ddd5] bg-white p-5">
+          <div className="flex items-center justify-between gap-2"><p className="text-xs text-[#746a64]">{r.mes || new Date(r.created_at).toLocaleDateString('es-AR')}</p><Estado estado={r.estado} /></div>
+          {r.monto !== null && <p className="mt-4 font-impact text-2xl font-semibold">{dineroResultado(Number(r.monto))}</p>}
+          {r.titulo && <h3 className="mt-3 font-semibold">{r.titulo}</h3>}<p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{r.descripcion}</p>
+          {r.archivo_url && <div className="mt-4"><Captura id={r.id} /></div>}
+        </article>)}</div>
+        {!errorCarga && !historial.length && <div className="mt-4 rounded-[22px] border border-[#e7ddd5] bg-[#FAF7F3] p-8 text-center"><p className="text-sm text-[#746a64]">{misResultados.length ? 'No hay resultados con este estado.' : 'Tu primer resultado empieza acá.'}</p>{!misResultados.length && <button type="button" onClick={() => setMostrarForm(true)} className="mt-4 text-sm font-semibold text-[#294A38] underline">Cargar resultado</button>}</div>}
+      </section>
+    </main>
+  </div>
 }

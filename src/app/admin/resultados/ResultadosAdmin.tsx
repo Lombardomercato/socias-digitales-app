@@ -1,232 +1,88 @@
 'use client'
-import AdminSectionMenu from '@/components/AdminSectionMenu'
 
-import { useState } from 'react'
+import Link from 'next/link'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import AdminSectionMenu from '@/components/AdminSectionMenu'
+import NavigationIcon from '@/components/NavigationIcon'
+import { Estado, Captura } from '@/app/resultados/ResultadosCliente'
+import { ESTADO_RESULTADO, resumenResultados, dineroResultado, type Resultado, type EstadoResultado } from '@/lib/results'
 
-interface Resultado {
-  id: string
-  tipo: string
-  titulo: string | null
-  descripcion: string | null
-  archivo_url: string | null
-  monto: number | null
-  mes: string | null
-  producto_id: string | null
-  pais: string | null
-  estrategia: string | null
-  estado: string
-  created_at: string
-  perfiles: { nombre: string; avatar_url: string | null } | null
-}
-
-interface Props {
-  resultados: Resultado[]
-}
-
-const TIPO_EMOJI: Record<string, string> = {
-  captura: '📸',
-  testimonio: '💬',
-  video: '🎥',
-  caso_exito: '🏆',
-}
-
-const ESTADO_COLOR: Record<string, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  aprobado: 'bg-green-100 text-green-700',
-  rechazado: 'bg-red-100 text-red-700',
-}
-
-function Avatar({ url, nombre }: { url?: string | null; nombre?: string | null }) {
-  if (url) return <img src={url} className="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="" />
-  return <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-lg flex-shrink-0">🌸</div>
-}
-
-export default function ResultadosAdmin({ resultados }: Props) {
+export interface AccesoResultados { id: string; nombre: string | null; habilitada: boolean; estado: string | null }
+export default function ResultadosAdmin({ resultados, socias, errorCarga = false }: { resultados: Resultado[]; socias: AccesoResultados[]; errorCarga?: boolean }) {
   const router = useRouter()
-  const supabase = createClient()
-
-  const [filtroPais, setFiltroPais] = useState('')
-  const [filtroTipo, setFiltroTipo] = useState('todos')
-  const [filtroEstado, setFiltroEstado] = useState('todos')
-  const [resultadoAbierto, setResultadoAbierto] = useState<Resultado | null>(null)
-
-  const paises = [...new Set(resultados.map(r => r.pais).filter(Boolean))] as string[]
-
-  const filtrados = resultados.filter(r => {
-    const okPais = filtroPais === '' || r.pais === filtroPais
-    const okTipo = filtroTipo === 'todos' || r.tipo === filtroTipo
-    const okEstado = filtroEstado === 'todos' || r.estado === filtroEstado
-    return okPais && okTipo && okEstado
-  })
-
-  async function cambiarEstado(id: string, estado: string) {
-    await supabase.from('resultados').update({ estado }).eq('id', id)
-    setResultadoAbierto(null)
-    router.refresh()
+  const [estado, setEstado] = useState('todos')
+  const [tipo, setTipo] = useState('todos')
+  const [pais, setPais] = useState('')
+  const [busqueda, setBusqueda] = useState('')
+  const [abierto, setAbierto] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [mensaje, setMensaje] = useState('')
+  const [ocupado, setOcupado] = useState<string | null>(null)
+  const [cambios, setCambios] = useState<Record<string, EstadoResultado>>({})
+  const [accesos, setAccesos] = useState<Record<string, boolean>>({})
+  const bloqueo = useRef(false)
+  const actuales = resultados.map(r => ({ ...r, estado: cambios[r.id] ?? r.estado }))
+  const resumen = resumenResultados(actuales)
+  const detalle = actuales.find(r => r.id === abierto)
+  const paises = [...new Set(resultados.map(r => r.pais).filter((p): p is string => Boolean(p)))]
+  const tipos = [...new Set(resultados.map(r => r.tipo))]
+  const filtrados = actuales.filter(r => (estado === 'todos' || r.estado === estado) && (tipo === 'todos' || r.tipo === tipo) && (!pais || r.pais === pais) && `${r.perfiles?.nombre ?? ''} ${r.descripcion ?? ''}`.toLocaleLowerCase('es').includes(busqueda.toLocaleLowerCase('es')))
+  async function revisar(r: Resultado, nuevo: EstadoResultado) {
+    if (bloqueo.current) return
+    bloqueo.current = true; setOcupado(r.id); setError(''); setMensaje('')
+    try {
+      const response = await fetch('/api/admin/resultados', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id, estado: nuevo, anterior: r.estado }) })
+      const data = await response.json()
+      if (!response.ok || !data.ok) { if (response.status === 409) { setCambios({}); router.refresh() } throw new Error(data.error || 'No pudimos guardar la revisión.') }
+      setCambios(prev => ({ ...prev, [r.id]: nuevo })); setMensaje('Revisión guardada.'); router.refresh()
+    } catch (causa) { setError(causa instanceof Error ? causa.message : 'No pudimos conectarnos. Reintentá la revisión.') }
+    finally { setOcupado(null); bloqueo.current = false }
   }
-
-  const pendientes = resultados.filter(r => r.estado === 'pendiente').length
-  const aprobados = resultados.filter(r => r.estado === 'aprobado').length
-  const montoTotal = resultados.filter(r => r.estado === 'aprobado').reduce((acc, r) => acc + (r.monto ?? 0), 0)
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <a href="/admin" className="text-gray-400 hover:text-gray-600 text-sm">← Admin</a>
-          <h1 className="text-lg font-bold text-rose-600">Resultados y Testimonios</h1>
-        </div>
-      </nav>
-      <AdminSectionMenu />
-
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl shadow-sm p-5 text-center border border-gray-100">
-            <p className="text-3xl font-bold text-amber-500">{pendientes}</p>
-            <p className="text-xs text-gray-400 mt-1">Pendientes de revisión</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-5 text-center border border-gray-100">
-            <p className="text-3xl font-bold text-green-500">{aprobados}</p>
-            <p className="text-xs text-gray-400 mt-1">Resultados aprobados</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-5 text-center border border-gray-100">
-            <p className="text-3xl font-bold text-rose-500">${montoTotal.toLocaleString('es-AR')}</p>
-            <p className="text-xs text-gray-400 mt-1">Monto total reportado</p>
-          </div>
-        </div>
-
-        {/* Filtros */}
-        <div className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap gap-3 items-center border border-gray-100">
-          <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-            <option value="todos">Todos los estados</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="aprobado">Aprobado</option>
-            <option value="rechazado">Rechazado</option>
-          </select>
-
-          <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-            <option value="todos">Todos los tipos</option>
-            <option value="captura">📸 Captura</option>
-            <option value="testimonio">💬 Testimonio</option>
-            <option value="video">🎥 Video</option>
-            <option value="caso_exito">🏆 Caso de éxito</option>
-          </select>
-
-          <select value={filtroPais} onChange={e => setFiltroPais(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-            <option value="">Todos los países</option>
-            {paises.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-
-          <span className="text-xs text-gray-400 ml-auto">{filtrados.length} resultados</span>
-        </div>
-
-        {/* Grid de resultados */}
-        {filtrados.length === 0
-          ? <div className="bg-white rounded-xl p-10 text-center text-gray-400">No hay resultados que coincidan</div>
-          : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtrados.map(r => (
-              <div key={r.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setResultadoAbierto(r)}>
-                {/* Imagen/preview */}
-                <div className="h-40 bg-gradient-to-br from-rose-50 to-pink-100 flex items-center justify-center relative">
-                  {r.archivo_url && (r.tipo === 'captura' || r.tipo === 'caso_exito') ? (
-                    <img src={r.archivo_url} className="w-full h-full object-cover" alt="" />
-                  ) : (
-                    <span className="text-5xl">{TIPO_EMOJI[r.tipo] ?? '📄'}</span>
-                  )}
-                  <span className={`absolute top-2 right-2 text-xs px-2 py-0.5 rounded-full font-medium ${ESTADO_COLOR[r.estado]}`}>
-                    {r.estado}
-                  </span>
-                </div>
-
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Avatar url={r.perfiles?.avatar_url} nombre={r.perfiles?.nombre} />
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{r.perfiles?.nombre ?? 'Alumna'}</p>
-                      {r.pais && <p className="text-xs text-gray-400">{r.pais}</p>}
-                    </div>
-                  </div>
-                  {r.titulo && <p className="text-sm font-semibold text-gray-900 mb-1">{r.titulo}</p>}
-                  {r.monto && <p className="text-sm text-rose-600 font-bold">${r.monto.toLocaleString('es-AR')}</p>}
-                  {r.estrategia && <p className="text-xs text-gray-400 mt-1">{r.estrategia}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        }
+  async function cambiarAcceso(socia: AccesoResultados) {
+    if (bloqueo.current) return
+    const habilitada = !(accesos[socia.id] ?? socia.habilitada)
+    bloqueo.current = true; setOcupado(socia.id); setError(''); setMensaje('')
+    try {
+      const response = await fetch('/api/admin/resultados/acceso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuaria_id: socia.id, habilitada }) })
+      const data = await response.json()
+      if (!response.ok || !data.ok) throw new Error(data.error || 'No pudimos cambiar el acceso.')
+      setAccesos(prev => ({ ...prev, [socia.id]: habilitada })); setMensaje(habilitada ? 'Acceso a Resultados habilitado.' : 'Acceso a Resultados cerrado.'); router.refresh()
+    } catch (causa) { setError(causa instanceof Error ? causa.message : 'No pudimos conectarnos. El acceso no cambió.') }
+    finally { setOcupado(null); bloqueo.current = false }
+  }
+  const selector = 'rounded-full border border-[#e7ddd5] bg-white px-4 py-2 text-sm'
+  return <div className="min-h-screen bg-[#F4EFEA] text-[#211c19]">
+    <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8"><Link href="/admin"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto" /></Link><Link href="/admin" className="text-sm text-[#294A38]">← Panel de Flor</Link></header>
+    <AdminSectionMenu />
+    <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+      <p className="text-[10px] font-semibold uppercase tracking-[.22em] text-[#294A38]">Seguimiento de Socias</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Resultados</h1>
+      {errorCarga && <p role="alert" className="mt-5 rounded-xl border border-[#EC9BB6] bg-[#F4CAD8] p-4 text-sm">No pudimos cargar toda la información. <button type="button" onClick={() => router.refresh()} className="underline">Reintentar</button></p>}
+      {error && <p role="alert" className="mt-5 rounded-xl border border-[#EC9BB6] bg-[#F4CAD8] p-4 text-sm">{error}</p>}
+      {mensaje && <p role="status" className="mt-5 rounded-xl border border-[#294A38]/30 bg-white p-4 text-sm">{mensaje}</p>}
+      <section aria-label="Resumen de resultados" className="mt-6 grid gap-3 sm:grid-cols-3">{[{ nombre: 'En revisión', valor: resumen.pendientes, fondo: 'bg-[#EC9BB6] border-[#EC9BB6]' }, { nombre: 'Resultados aprobados', valor: resumen.aprobados, fondo: 'bg-white border-[#e7ddd5]' }, { nombre: 'Comisiones reportadas aprobadas', valor: dineroResultado(resumen.monto), fondo: 'bg-[#F4CAD8] border-[#EC9BB6]/50' }].map(s => <article key={s.nombre} className={`rounded-[22px] border p-5 ${s.fondo}`}><p className="text-[10px] uppercase tracking-[.15em] text-[#655B56]">{s.nombre}</p><p className="mt-3 font-impact text-3xl font-semibold tabular-nums">{errorCarga ? '—' : s.valor}</p></article>)}</section>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <label className="sr-only" htmlFor="buscar-resultados">Buscar alumna o resultado</label><input id="buscar-resultados" value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar alumna o resultado" className={selector} />
+        <label className="sr-only" htmlFor="estado-resultados">Estado</label><select id="estado-resultados" value={estado} onChange={e => setEstado(e.target.value)} className={selector}><option value="todos">Todos los estados</option>{Object.entries(ESTADO_RESULTADO).map(([id,s]) => <option key={id} value={id}>{s.nombre}</option>)}</select>
+        <label className="sr-only" htmlFor="tipo-resultados">Tipo</label><select id="tipo-resultados" value={tipo} onChange={e => setTipo(e.target.value)} className={selector}><option value="todos">Todos los tipos</option>{tipos.map(t => <option key={t} value={t}>{t.replaceAll('_',' ')}</option>)}</select>
+        {paises.length > 0 && <label className="text-xs">País <select value={pais} onChange={e => setPais(e.target.value)} className={selector}><option value="">Todos</option>{paises.map(p => <option key={p}>{p}</option>)}</select></label>}
       </div>
-
-      {/* Modal detalle */}
-      {resultadoAbierto && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="font-bold text-gray-900">{TIPO_EMOJI[resultadoAbierto.tipo]} {resultadoAbierto.titulo ?? 'Resultado'}</h3>
-              <button onClick={() => setResultadoAbierto(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <Avatar url={resultadoAbierto.perfiles?.avatar_url} />
-                <div>
-                  <p className="font-medium text-gray-900">{resultadoAbierto.perfiles?.nombre}</p>
-                  <p className="text-xs text-gray-400">{resultadoAbierto.pais} · {new Date(resultadoAbierto.created_at).toLocaleDateString('es-AR')}</p>
-                </div>
-              </div>
-
-              {resultadoAbierto.archivo_url && (
-                <img src={resultadoAbierto.archivo_url} className="w-full rounded-xl object-cover max-h-64" alt="" />
-              )}
-
-              {resultadoAbierto.descripcion && (
-                <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-4">{resultadoAbierto.descripcion}</p>
-              )}
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {resultadoAbierto.monto && (
-                  <div className="bg-rose-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400">Comisión ganada</p>
-                    <p className="font-bold text-rose-600">${resultadoAbierto.monto.toLocaleString('es-AR')} USD</p>
-                  </div>
-                )}
-                {resultadoAbierto.mes && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400">Mes</p>
-                    <p className="font-medium text-gray-800">{resultadoAbierto.mes}</p>
-                  </div>
-                )}
-                {resultadoAbierto.estrategia && (
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400">Estrategia</p>
-                    <p className="font-medium text-gray-800">{resultadoAbierto.estrategia}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {resultadoAbierto.estado === 'pendiente' && (
-              <div className="p-6 border-t border-gray-100 flex gap-3">
-                <button onClick={() => cambiarEstado(resultadoAbierto.id, 'rechazado')}
-                  className="flex-1 border border-red-200 text-red-600 py-2.5 rounded-lg text-sm font-medium hover:bg-red-50">
-                  Rechazar
-                </button>
-                <button onClick={() => cambiarEstado(resultadoAbierto.id, 'aprobado')}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium">
-                  Aprobar ✓
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
+      {detalle && <section aria-label="Revisar resultado" className="mt-5 rounded-[24px] border border-[#EC9BB6] bg-white p-5 sm:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{detalle.perfiles?.nombre || 'Alumna'} · {detalle.mes || 'Resultado'}</h2><button type="button" onClick={() => setAbierto(null)} className="text-sm underline">Cerrar detalle</button></div>
+        <div className="mt-4 grid gap-6 md:grid-cols-2"><div><Estado estado={detalle.estado} />{detalle.monto !== null && <p className="mt-4 font-impact text-3xl font-semibold">{dineroResultado(Number(detalle.monto))}</p>}{detalle.titulo && <h3 className="mt-3 font-semibold">{detalle.titulo}</h3>}<p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{detalle.descripcion}</p>{detalle.estrategia && <p className="mt-3 text-sm text-[#746a64]">{detalle.estrategia}</p>}<p className="mt-3 text-xs text-[#746a64]">{detalle.pais ? detalle.pais + ' · ' : ''}{new Date(detalle.created_at).toLocaleDateString('es-AR')}</p></div>{detalle.archivo_url && <Captura key={detalle.id} id={detalle.id} />}</div>
+        <div className="mt-6 flex flex-wrap gap-3 border-t border-[#e7ddd5] pt-5">{(['aprobado','rechazado','pendiente'] as const).filter(e => e !== detalle.estado).map(e => <button key={e} type="button" disabled={Boolean(ocupado) || errorCarga} onClick={() => revisar(detalle,e)} className={`rounded-full border px-5 py-3 text-sm font-semibold disabled:opacity-50 ${e === 'aprobado' ? 'border-[#294A38] bg-[#294A38] text-white' : 'border-[#e7ddd5] bg-[#FAF7F3]'}`}>{ocupado === detalle.id ? 'Guardando…' : e === 'aprobado' ? 'Aprobar' : e === 'rechazado' ? 'Rechazar' : 'Volver a revisión'}</button>)}</div>
+      </section>}
+      <section className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Resultados recibidos">{filtrados.map(r => <article key={r.id} className="flex flex-col rounded-[22px] border border-[#e7ddd5] bg-white p-5">
+        <div className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold">{(r.perfiles?.nombre || 'S').slice(0,1)}</span><h2 className="text-sm font-semibold">{r.perfiles?.nombre || 'Alumna'}</h2></div>
+        <div className="mt-4"><Estado estado={r.estado} /></div>{r.monto !== null && <p className="mt-4 font-impact text-2xl font-semibold">{dineroResultado(Number(r.monto))}</p>}<p className="mt-3 line-clamp-3 break-words text-sm leading-6">{r.descripcion || r.titulo}</p><p className="mt-3 text-xs text-[#746a64]">{r.mes} {r.archivo_url ? '· Con captura' : ''}</p>
+        <button type="button" aria-expanded={abierto === r.id} onClick={() => { setAbierto(r.id); setError(''); setMensaje('') }} className="mt-5 inline-flex items-center gap-2 self-start text-sm font-semibold text-[#294A38]"><NavigationIcon name="resultados" />Revisar resultado</button>
+      </article>)}</section>
+      {!errorCarga && !filtrados.length && <p className="mt-5 rounded-[22px] border border-[#e7ddd5] bg-white p-8 text-center text-sm text-[#746a64]">No hay resultados con estos filtros.</p>}
+      <section className="mt-8 rounded-[24px] border border-[#e7ddd5] bg-[#FAF7F3] p-5 sm:p-7" aria-labelledby="acceso-resultados">
+        <h2 id="acceso-resultados" className="text-xl font-semibold">Accesos a Resultados</h2><p className="mt-2 text-sm text-[#746a64]">Habilitá este módulo a cada Socia. Los demás módulos mantienen su acceso actual.</p>
+        {!errorCarga && !socias.length && <p className="mt-4 text-sm">Todavía no hay cuentas con el plan Socias. <Link href="/admin" className="font-medium text-[#294A38] underline">Asignar plan en Acceso y actividad</Link></p>}
+        <div className="mt-4 space-y-3">{socias.map(s => { const habilitada = accesos[s.id] ?? s.habilitada; return <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e7ddd5] bg-white p-4"><div><p className="text-sm font-semibold">{s.nombre || 'Socia'}</p><p className="mt-1 text-xs text-[#746a64]">{habilitada ? 'Habilitado' : 'Sin acceso'}{s.estado !== 'activa' ? ' · Cuenta no activa' : ''}</p></div><button type="button" disabled={Boolean(ocupado) || errorCarga || (!habilitada && s.estado !== 'activa')} onClick={() => cambiarAcceso(s)} className="rounded-full border border-[#294A38]/30 px-4 py-2 text-sm font-medium text-[#294A38] disabled:opacity-50">{ocupado === s.id ? 'Guardando…' : habilitada ? 'Cerrar acceso' : 'Habilitar Resultados'}</button></div> })}</div>
+      </section>
+    </main>
+  </div>
 }
