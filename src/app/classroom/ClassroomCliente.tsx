@@ -160,7 +160,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
       {errorVideo && <div role="alert" className="sd-mobile-toast fixed bottom-5 left-1/2 z-[60] w-[min(92vw,32rem)] -translate-x-1/2 rounded-2xl border border-[#B01B30]/20 bg-[#FAF7F3] px-5 py-4 text-sm text-[#7C1D2A]">{errorVideo}</div>}
 
       {claseAbierta && (claseAbierta.vimeo_url || claseAbierta.tiene_video_privado) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171413]/85 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="clase-reproductor-titulo" onClick={cerrarClase}>
+        <div className="sd-video-dialog fixed inset-0 z-50 flex items-center justify-center bg-[#171413]/85 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="clase-reproductor-titulo" onClick={cerrarClase}>
           <div className="w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={event => event.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between gap-4 text-white"><div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#F4CAD8]">Desafío Socias</p><h2 id="clase-reproductor-titulo" className="mt-1 text-base font-semibold sm:text-lg">{claseAbierta.titulo}</h2></div><button type="button" onClick={cerrarClase} aria-label="Cerrar reproductor" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/12 text-2xl leading-none transition hover:bg-white/20">×</button></div>
             <div className="relative overflow-hidden rounded-[20px] bg-black" style={{ paddingBottom: '56.25%' }}>
