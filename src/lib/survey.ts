@@ -2,7 +2,7 @@ import { PASOS_PERFIL, INGRESOS, OCUPACIONES, normalizarNombre } from './perfil-
 import { tipoAcceso, type TipoAcceso } from './admin-usuarias'
 
 export const SURVEY_TEST_IDS = ['06bb7999-997b-49c8-ba80-b8d05bca4a84'] as const
-export const SURVEY_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1eQQ6vScK4ZqGRx-5XZ-gyPyu42E2101YB7GK6_TmeWU/edit'
+export const SURVEY_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1eQQ6vScK4ZqGRx-5XZ-gyPyu42E2101YB7GK6_TmeWU/edit#gid=130102026'
 export interface SurveyProfile {
   id: string; nombre: string | null; rol: string | null; tipo_usuario: string | null; estado: string | null; created_at: string
   whatsapp: string | null; fecha_nacimiento: string | null; ocupacion: string | null; titulo_profesional: string | null
