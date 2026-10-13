@@ -3,6 +3,7 @@ import ModuleLocked from '@/components/ModuleLocked'
 import { esAdministradora } from '@/lib/module-guard'
 import { redirect } from 'next/navigation'
 import RankingCliente from './RankingCliente'
+import { FILTRO_CUENTAS_PRUEBA } from '@/lib/test-accounts'
 
 export default async function RankingPage() {
   const supabase = await createClient()
@@ -17,17 +18,20 @@ export default async function RankingPage() {
     supabase
       .from('ventas_afiliadas')
       .select('afiliada_id, comision, perfiles(nombre, avatar_url)')
+      .not('afiliada_id', 'in', FILTRO_CUENTAS_PRUEBA)
       .gte('fecha', inicioMes)
       .eq('estado', 'aprobada'),
     supabase
       .from('perfiles')
       .select('id, nombre, avatar_url, comisiones_total, modulos_completados, racha_maxima')
+      .not('id', 'in', FILTRO_CUENTAS_PRUEBA)
       .gt('comisiones_total', 0)
       .order('comisiones_total', { ascending: false })
       .limit(10),
     supabase
       .from('perfiles')
       .select('id, nombre, avatar_url, modulos_completados, racha_maxima, progreso')
+      .not('id', 'in', FILTRO_CUENTAS_PRUEBA)
       .order('progreso', { ascending: false })
       .limit(10),
   ])

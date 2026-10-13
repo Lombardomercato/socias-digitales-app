@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ComunidadAdmin from './ComunidadAdmin'
+import { FILTRO_CUENTAS_PRUEBA } from '@/lib/test-accounts'
 
 export default async function ComunidadAdminPage() {
   const supabase = await createClient()
@@ -22,13 +23,13 @@ export default async function ComunidadAdminPage() {
     { count: comentariosMes },
     { count: reaccionesMes },
   ] = await Promise.all([
-    supabase.from('preguntas').select('*, perfiles(nombre, avatar_url), respuestas(id, es_oficial, contenido, created_at, perfiles(nombre))').order('created_at', { ascending: false }).limit(50),
-    supabase.from('publicaciones').select('*, perfiles(nombre, avatar_url), comentarios(id), reacciones(id)').order('created_at', { ascending: false }).limit(50),
-    supabase.from('preguntas').select('*', { count: 'exact', head: true }),
-    supabase.from('preguntas').select('*', { count: 'exact', head: true }).eq('estado', 'abierta'),
-    supabase.from('publicaciones').select('*', { count: 'exact', head: true }).gte('created_at', inicioMes),
-    supabase.from('comentarios').select('*', { count: 'exact', head: true }).gte('created_at', inicioMes),
-    supabase.from('reacciones').select('*', { count: 'exact', head: true }).gte('created_at', inicioMes),
+    supabase.from('preguntas').select('*, perfiles(nombre, avatar_url), respuestas(id, es_oficial, contenido, created_at, perfiles(nombre))').not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA).not('respuestas.autor_id', 'in', FILTRO_CUENTAS_PRUEBA).order('created_at', { ascending: false }).limit(50),
+    supabase.from('publicaciones').select('*, perfiles(nombre, avatar_url), comentarios(id), reacciones(id)').not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA).not('comentarios.autor_id', 'in', FILTRO_CUENTAS_PRUEBA).not('reacciones.alumna_id', 'in', FILTRO_CUENTAS_PRUEBA).order('created_at', { ascending: false }).limit(50),
+    supabase.from('preguntas').select('*', { count: 'exact', head: true }).not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA),
+    supabase.from('preguntas').select('*', { count: 'exact', head: true }).not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA).eq('estado', 'abierta'),
+    supabase.from('publicaciones').select('*', { count: 'exact', head: true }).not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA).gte('created_at', inicioMes),
+    supabase.from('comentarios').select('*', { count: 'exact', head: true }).not('autor_id', 'in', FILTRO_CUENTAS_PRUEBA).gte('created_at', inicioMes),
+    supabase.from('reacciones').select('*', { count: 'exact', head: true }).not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA).gte('created_at', inicioMes),
   ])
 
   const stats = {

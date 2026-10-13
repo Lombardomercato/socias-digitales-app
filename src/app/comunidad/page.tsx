@@ -3,6 +3,7 @@ import ModuleLocked from '@/components/ModuleLocked'
 import { esAdministradora } from '@/lib/module-guard'
 import { redirect } from 'next/navigation'
 import ComunidadCliente from './ComunidadCliente'
+import { FILTRO_CUENTAS_PRUEBA } from '@/lib/test-accounts'
 
 export default async function ComunidadPage() {
   const supabase = await createClient()
@@ -15,11 +16,13 @@ export default async function ComunidadPage() {
       .from('resultados')
       .select('*, perfiles(nombre, avatar_url), productos(nombre)')
       .eq('estado', 'aprobado')
+      .not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA)
       .order('created_at', { ascending: false }),
-    supabase.from('reacciones').select('resultado_id, alumna_id'),
+    supabase.from('reacciones').select('resultado_id, alumna_id').not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA),
     supabase
       .from('comentarios_resultados')
       .select('*, perfiles(nombre, avatar_url)')
+      .not('alumna_id', 'in', FILTRO_CUENTAS_PRUEBA)
       .order('created_at', { ascending: true }),
     supabase.from('perfiles').select('nombre, avatar_url').eq('id', user.id).single(),
   ])

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminDashboard from './AdminDashboard'
+import { FILTRO_CUENTAS_PRUEBA, esCuentaPrueba } from '@/lib/test-accounts'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -25,14 +26,14 @@ export default async function AdminPage() {
     { data: todosLosPagos },
     { data: ventasAfiliadas },
   ] = await Promise.all([
-    supabase.from('perfiles').select('*').order('created_at', { ascending: false }),
-    supabase.from('pagos').select('monto').gte('fecha', inicioMes).eq('estado', 'completado'),
-    supabase.from('pagos').select('monto').eq('estado', 'completado'),
-    supabase.from('ventas_afiliadas').select('*').gte('fecha', inicioMes),
+    supabase.from('perfiles').select('*').not('id', 'in', FILTRO_CUENTAS_PRUEBA).order('created_at', { ascending: false }),
+    supabase.from('pagos').select('monto').or(`alumna_id.is.null,alumna_id.not.in.${FILTRO_CUENTAS_PRUEBA}`).gte('fecha', inicioMes).eq('estado', 'completado'),
+    supabase.from('pagos').select('monto').or(`alumna_id.is.null,alumna_id.not.in.${FILTRO_CUENTAS_PRUEBA}`).eq('estado', 'completado'),
+    supabase.from('ventas_afiliadas').select('*').not('afiliada_id', 'in', FILTRO_CUENTAS_PRUEBA).gte('fecha', inicioMes),
   ])
 
   // Administración no es un tipo de alumna ni forma parte de estos indicadores.
-  const alumnas = perfiles?.filter(perfil => perfil.rol !== 'admin') ?? []
+  const alumnas = perfiles?.filter(perfil => perfil.rol !== 'admin' && !esCuentaPrueba(perfil.id)) ?? []
 
   const stats = {
     fechaReferencia: hoy.getTime(),

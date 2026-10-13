@@ -4,7 +4,9 @@ const fs = require('node:fs')
 const path = require('node:path')
 const ts = require('typescript')
 const moduleFixture = { exports: {} }
-new Function('module', 'exports', ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../src/lib/admin-usuarias.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText)(moduleFixture, moduleFixture.exports)
+const pruebaModule = { exports: {} }
+new Function('module', 'exports', ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../src/lib/test-accounts.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText)(pruebaModule, pruebaModule.exports)
+new Function('require', 'module', 'exports', ts.transpileModule(fs.readFileSync(path.resolve(__dirname, '../src/lib/admin-usuarias.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText)(()=>pruebaModule.exports, moduleFixture, moduleFixture.exports)
 const { contarTipos, filtrarUsuarias, tipoAcceso } = moduleFixture.exports
 const usuarias = [
   { id: 'admin', nombre: 'Administración', rol: 'admin', tipo_usuario: 'gratuito', estado: 'activa' },
@@ -35,4 +37,11 @@ test('contadores de filtros se calculan dentro del otro filtro y no alteran tota
   const activas = filtrarUsuarias(usuarias, { busqueda: '', estado: 'activa', tipo: 'todas' })
   assert.deepEqual(contarTipos(activas), { gratuito: 1, desafio: 1, socia: 1 })
   assert.deepEqual(contarTipos(usuarias), { gratuito: 2, desafio: 1, socia: 2 })
+})
+test('la cuenta de prueba nunca figura en cantidades ni listados; otras Alex reales se conservan', () => {
+  const prueba={id:pruebaModule.exports.CUENTAS_PRUEBA_IDS[0],nombre:'Alex Prueba',rol:'alumna',tipo_usuario:'desafio',estado:'activa'}
+  const real={...prueba,id:'alex-real',nombre:'Alex'}
+  assert.deepEqual(contarTipos([...usuarias,prueba,real]),{gratuito:2,desafio:2,socia:2})
+  const list=filtrarUsuarias([...usuarias,prueba,real],{busqueda:'alex',estado:'todas',tipo:'todas'})
+  assert.deepEqual(list,[real])
 })

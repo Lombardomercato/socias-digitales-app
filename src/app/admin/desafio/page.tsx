@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
 import AdminDesafio from './AdminDesafio'
+import { FILTRO_CUENTAS_PRUEBA } from '@/lib/test-accounts'
 
 export default async function AdminDesafioPage() {
   const supabase = await createClient()
@@ -14,7 +15,7 @@ export default async function AdminDesafioPage() {
 
   const admin = createAdminClient()
   const [{ data: perfiles }, { data: users }, { data: accesos, error: accesosError }] = await Promise.all([
-    admin.from('perfiles').select('id, nombre, rol, tipo_usuario, desafio_socias_estado, created_at, desafio_socias_habilitada, desafio_socias_bienvenida_enviada_at').eq('tipo_usuario', 'desafio').order('created_at', { ascending: false }),
+    admin.from('perfiles').select('id, nombre, rol, tipo_usuario, desafio_socias_estado, created_at, desafio_socias_habilitada, desafio_socias_bienvenida_enviada_at').eq('tipo_usuario', 'desafio').not('id', 'in', FILTRO_CUENTAS_PRUEBA).order('created_at', { ascending: false }),
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     admin.from('accesos_estrategia').select('usuaria_id, habilitada'),
   ])

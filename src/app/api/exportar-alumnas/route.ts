@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { FILTRO_CUENTAS_PRUEBA } from '@/lib/test-accounts'
 
 export async function GET() {
   const supabase = await createClient()
@@ -13,6 +14,8 @@ export async function GET() {
   const { data: alumnas } = await supabase
     .from('perfiles')
     .select('nombre, pais, provincia, ocupacion, titulo_profesional, es_mama, ingresos_actuales, fecha_nacimiento, created_at')
+    .neq('rol', 'admin')
+    .not('id', 'in', FILTRO_CUENTAS_PRUEBA)
     .order('created_at', { ascending: false })
 
   if (!alumnas) return NextResponse.json({ error: 'Error al obtener datos' }, { status: 500 })
@@ -41,6 +44,7 @@ export async function GET() {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="alumnas-socias-digitales-${fecha}.csv"`,
+      'Cache-Control': 'private, no-store',
     },
   })
 }

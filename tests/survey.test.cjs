@@ -24,12 +24,12 @@ test('calendario argentino y edad cumplen años, rechazan fechas falsas/futuras,
   for (const date of [null, '2026-02-30', '2026-12-01', 'no', '1800-01-01']) assert.equal(h.edadEncuesta(date, '2026-10-13'), null)
   assert.equal(h.edadEncuesta('2026-10-13', '2026-10-13'), 0)
 })
-test('no cuenta administradoras, distingue pruebas y no serializa teléfono, foto o nacimiento completos', () => {
+test('no cuenta administradoras ni pruebas y no serializa teléfono, foto o nacimiento completos', () => {
   const raw = [perfil(), perfil({ id: trial }), perfil({ id: 'admin', rol: 'admin' })]
   const rows = h.construirEncuesta(raw, [welcome()], '2026-10-13')
-  assert.equal(rows.length, 2); assert.equal(rows[1].prueba, true)
+  assert.equal(rows.length, 1)
   assert.equal(h.filtrarEncuesta(rows, h.SURVEY_DEFAULT_FILTERS).length, 1)
-  assert.equal(h.filtrarEncuesta(rows, { ...h.SURVEY_DEFAULT_FILTERS, pruebas: true }).length, 2)
+  assert.equal(h.filtrarEncuesta(rows, { ...h.SURVEY_DEFAULT_FILTERS, pruebas: true }).length, 1)
   const json = JSON.stringify(rows)
   for (const data of ['+549123456789','1991-10-14','foto-privada.jpg']) assert.ok(!json.includes(data))
 })
@@ -82,13 +82,14 @@ test('CSV incluye todas las preguntas, booleanos, campos opcionales y evita inye
 })
 function sdk(pages = {}) {
   const calls = []
-  return { calls, from(table) { const q = {}; for (const method of ['select','neq','order']) q[method]=(...args)=>{calls.push([table,method,...args]);return q};q.range=async(start,end)=>{calls.push([table,'range',start,end]);return pages[`${table}:${start}`] ?? {data:[],error:null}};return q } }
+  return { calls, from(table) { const q = {}; for (const method of ['select','neq','not','order']) q[method]=(...args)=>{calls.push([table,method,...args]);return q};q.range=async(start,end)=>{calls.push([table,'range',start,end]);return pages[`${table}:${start}`] ?? {data:[],error:null}};return q } }
 }
 test('lectura usa paginación estable y paralela, excluye admins y falla completa ante cualquier error', async () => {
   const s = cargar('src/lib/survey-server.ts', {'./supabase/server': {createClient:async()=>null}})
   const db = sdk({'perfiles:0':{data:Array.from({length:1000},()=>perfil()),error:null},'perfiles:1000':{data:[perfil()],error:null}})
   assert.equal((await s.leerEncuesta(db)).perfiles.length,1001)
   assert.ok(db.calls.some(c=>c[1]==='neq'&&c[2]==='rol'&&c[3]==='admin'))
+  assert.ok(db.calls.some(c=>c[0]==='perfiles'&&c[1]==='not'&&c[2]==='id'&&c[4].includes(trial)))
   assert.ok(db.calls.some(c=>c[0]==='perfiles'&&c[1]==='range'&&c[2]===1000))
   await assert.rejects(()=>s.leerEncuesta(sdk({'bienvenida_perfiles:0':{data:null,error:{message:'bad'}}})))
 })
@@ -102,16 +103,77 @@ test('exportación exige admin, no se cachea, aplica filtros y no devuelve datos
   const r=await api().GET(new Request('https://app.sociasdigitales.com/api/admin/encuesta/exportar'))
   assert.equal(r.status,200);assert.equal(r.headers.get('Cache-Control'),'private, no-store');assert.ok(!(await r.text()).includes(trial))
 })
-const componentDeps = { 'next/image':{default:props=>React.createElement('img',props)},'next/link':{default:props=>React.createElement('a',props)},'next/navigation':{useRouter:()=>({refresh(){}})},'@/components/AdminSectionMenu':{default:()=>null},'@/components/NavigationIcon':{default:()=>null},'@/lib/survey':h,'@/lib/admin-usuarias':cargar('src/lib/admin-usuarias.ts') }
+const PerfilEncuesta = cargar('src/app/admin/encuesta/PerfilEncuesta.tsx', {'@/lib/survey':h}).default
+const componentDeps = { './PerfilEncuesta':{default:PerfilEncuesta}, 'next/image':{default:props=>React.createElement('img',props)},'next/link':{default:props=>React.createElement('a',props)},'next/navigation':{useRouter:()=>({refresh(){}})},'@/components/AdminSectionMenu':{default:()=>null},'@/components/NavigationIcon':{default:()=>null},'@/lib/survey':h,'@/lib/admin-usuarias':cargar('src/lib/admin-usuarias.ts') }
 test('dashboard renderiza con datos reales y controles móviles, estados vacíos/error sin gráficos ficticios', () => {
   const Component = cargar('src/app/admin/encuesta/EncuestaAdmin.tsx',componentDeps).default
   const render = props=>renderToStaticMarkup(React.createElement(Component,{actualizado:'2026-10-13T19:00:00Z',...props}))
   const rows=h.construirEncuesta([perfil(),perfil({id:trial})],[welcome()],'2026-10-13')
   const html=render({rows})
-  for (const label of ['Encuesta','Edades','Ingresos actuales','¿Son mamás?','Provincia / estado','Tipo de acceso','Incluir cuentas de prueba','Abrir Sheet','Descargar respuestas']) assert.ok(html.includes(label))
+  for (const label of ['Encuesta','Edades','Ingresos actuales','¿Son mamás?','Provincia / estado','Tipo de acceso','Abrir Sheet','Descargar respuestas','Así es tu comunidad hoy','Perfiles que aparecen juntos']) assert.ok(html.includes(label))
+  assert.ok(!html.includes('Incluir cuentas de prueba'))
   assert.ok(html.includes('no tiene sincronización automática'));assert.ok(html.includes('min-w-0'))
   const error=render({rows:[],errorCarga:true});assert.ok(error.includes('role="alert"'));assert.ok(!error.includes('aria-label="Gráficos de las respuestas"'));assert.ok(error.includes('Base no disponible'))
+  assert.ok(!error.includes('Así es tu comunidad hoy'))
   const empty=render({rows:[]});assert.ok(empty.includes('Sin respuestas en esta selección.'))
+})
+test('pruebas=1 en enlaces anteriores no puede sumar ensayos al perfil, gráficos, respuestas o CSV', async () => {
+  const raw=[perfil(),perfil({id:trial,nombre:'Alex Prueba',ingresos_actuales:'Más de USD 3.000/mes'})]
+  const real=h.construirEncuesta(raw,[welcome(),welcome(trial)],'2026-10-13')
+  const inyectadas=[...real,{...real[0],id:trial,prueba:false}]
+  const filtros=h.validarFiltrosEncuesta(new URLSearchParams('pruebas=1'))
+  assert.equal(filtros.pruebas,false)
+  assert.equal(h.filtrarEncuesta(inyectadas,{...filtros,pruebas:true}).length,1)
+  assert.equal(h.resumenEncuesta(inyectadas).total,1)
+  assert.equal(h.perfilEncuesta(inyectadas).base,1)
+  assert.ok(!h.csvEncuesta(raw,inyectadas).includes(trial))
+  const response=await api().GET(new Request('https://app.sociasdigitales.com/api/admin/encuesta/exportar?pruebas=1'))
+  assert.ok(!(await response.text()).includes(trial))
+})
+test('perfil usa solo encuestas completas; conserva la base de todas las completas aunque falten datos', () => {
+  const raw=[perfil(),perfil({id:'2',ingresos_actuales:null}),perfil({id:'curso',es_mama:true}),perfil({id:'anterior',es_mama:true})]
+  const rows=h.construirEncuesta(raw,[welcome(),welcome('2'),welcome('anterior',{completado_at:null,exenta:true})],'2026-10-13')
+  const p=h.perfilEncuesta(rows)
+  assert.equal(p.base,2);assert.equal(p.excluidas,2)
+  assert.deepEqual(p.rasgos.find(r=>r.id==='maternidad').ganadores,[{label:'No',count:2,percent:100}])
+  assert.equal(p.rasgos.find(r=>r.id==='ingresos').ganadores.length,0)
+  assert.equal(p.coincidencia,null);assert.equal(p.conTresDatos,0)
+  assert.deepEqual(h.perfilEncuesta([]).segmentos,[])
+})
+test('modas marginales no inventan un perfil real: su intersección puede ser cero', () => {
+  const raw=[perfil({id:'1',es_mama:false,ingresos_actuales:'USD 500 - 1.000/mes'}),perfil({id:'2',es_mama:true,ingresos_actuales:'USD 500 - 1.000/mes'}),perfil({id:'3',es_mama:true,ingresos_actuales:'Más de USD 3.000/mes'})]
+  // La ocupación y provincia dominantes pertenecen a 1 y 3, pero madre+ingreso dominante a 2.
+  raw[1].ocupacion='Profesional';raw[1].provincia='Buenos Aires'
+  const rows=h.construirEncuesta(raw,raw.map(r=>welcome(r.id)),'2026-10-13')
+  const p=h.perfilEncuesta(rows)
+  assert.equal(p.coincidencia,0);assert.ok(p.rasgos.every(r=>r.ganadores.length===1))
+})
+test('empates se muestran como tales y no se elige arbitrariamente una compradora ideal', () => {
+  const raw=[perfil({id:'1',es_mama:false}),perfil({id:'2',es_mama:true})]
+  const p=h.perfilEncuesta(h.construirEncuesta(raw,raw.map(r=>welcome(r.id)),'2026-10-13'))
+  assert.equal(p.rasgos.find(r=>r.id==='maternidad').ganadores.length,2)
+  assert.equal(p.coincidencia,null)
+  const html=renderToStaticMarkup(React.createElement(PerfilEncuesta,{rows:h.construirEncuesta(raw,raw.map(r=>welcome(r.id)),'2026-10-13')}))
+  assert.ok(html.includes('Empate: no hay un único rasgo predominante'))
+  assert.ok(html.includes('considerados por separado'))
+})
+test('cruces son grupos de personas reales normalizados, sin faltantes ni grupos de una sola alumna', () => {
+  const raw=[perfil({id:'1',ocupacion:'Trabajo en relación de dependencia',ingresos_actuales:'USD 500 - 1.000/mes',es_mama:true}),perfil({id:'2',ocupacion:' trabajo en relacion de dependencia ',ingresos_actuales:'USD 500 - 1.000/mes',es_mama:true}),perfil({id:'3',ocupacion:'Profesional',ingresos_actuales:'USD 500 - 1.000/mes',es_mama:false}),perfil({id:'4',es_mama:null})]
+  const rows=h.construirEncuesta(raw,raw.map(r=>welcome(r.id)),'2026-10-13'), before=JSON.stringify(rows)
+  const p=h.perfilEncuesta(rows)
+  assert.equal(p.segmentos.length,1);assert.deepEqual(p.segmentos[0],{maternidad:'Es mamá',ocupacion:'Trabajo en relación de dependencia',ingresos:'USD 500 - 1.000/mes',count:2,percent:50})
+  assert.equal(p.conTresDatos,3);assert.equal(JSON.stringify(rows),before)
+  const filtered=h.filtrarEncuesta(rows,{...h.SURVEY_DEFAULT_FILTERS,tipo:'gratuito'})
+  assert.equal(h.perfilEncuesta(filtered).base,0)
+})
+test('perfil distingue más frecuente de mayoría y explica la coincidencia de todos los rasgos', () => {
+  const raw=Array.from({length:5},(_,i)=>perfil({id:String(i),provincia:['Córdoba','cordoba','Buenos Aires','Mendoza','Santa Fe'][i],ingresos_actuales:'USD 500 - 1.000/mes'}))
+  const rows=h.construirEncuesta(raw,raw.map(r=>welcome(r.id)),'2026-10-13')
+  const p=h.perfilEncuesta(rows)
+  assert.equal(p.coincidencia,2)
+  const html=renderToStaticMarkup(React.createElement(PerfilEncuesta,{rows}))
+  assert.ok(html.includes('Más frecuente, no es mayoría'));assert.ok(html.includes('Mayoría de la selección'));assert.ok(html.includes('los seis rasgos'))
+  assert.ok(!JSON.stringify(p).includes('nombre'));assert.ok(!JSON.stringify(p).includes('genero'))
 })
 test('servidor comprueba rol antes de leer datos, no altera encuestas ni envía comunicaciones', () => {
   const src=read('src/app/admin/encuesta/page.tsx')
