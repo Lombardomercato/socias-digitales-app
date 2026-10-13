@@ -178,3 +178,10 @@ test('panel de Flor usa solo el último registro de cada campaña en los totales
   assert.match(html,/Campañas visibles<\/p><p[^>]*>1<\/p>/)
   assert.ok(html.includes('US$ 700,00'));assert.ok(!html.includes('US$ 1.200,00'))
 })
+test('SVG entrega el mismo tooltip en servidor y navegador; title tiene un único texto',()=>{
+  const React=require('react'),{renderToStaticMarkup}=require('react-dom/server')
+  const {EvolucionMetricas}=cargar('src/components/MetricsVisuals.tsx')
+  const html=renderToStaticMarkup(React.createElement(EvolucionMetricas,{registros:[fila]}))
+  assert.ok(html.includes('<title>12/10/2026: 5</title>'))
+  assert.ok(!html.includes('<title></title>'))
+})
