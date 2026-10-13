@@ -2,6 +2,7 @@
 export const ADMIN_SECTIONS = [
   { href: '/admin', label: 'Vista general', icon: 'inicio' },
   { href: '/admin/desafio', label: 'Solicitudes', icon: 'solicitudes' },
+  { href: '/admin/encuesta', label: 'Encuesta', icon: 'encuesta' },
   { href: '/admin/invitar', label: 'Invitaciones', icon: 'invitaciones' },
   { href: '/admin/classroom', label: 'Clases', icon: 'clases' },
   { href: '/admin/lanzamiento', label: 'Avances', icon: 'lanzamiento' },
