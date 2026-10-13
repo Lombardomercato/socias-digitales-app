@@ -77,5 +77,7 @@ test('actualización única con pestaña visible; no marca mensajes automáticam
   assert.ok(api.includes('private, no-store'))
   assert.ok(!api.includes('createAdminClient'))
   const inicio = fs.readFileSync(path.resolve(__dirname, '../src/app/inicio/page.tsx'), 'utf8')
-  assert.ok(inicio.indexOf('variante="banner" />') < inicio.indexOf('Avanzá con tu estrategia'))
+  assert.ok(!inicio.includes('<UnreadNoticeLink variante="banner"'))
+  assert.ok(inicio.includes('<UnreadNoticeLink variante="header"'))
+  assert.ok(inicio.includes('<UnreadNoticeLink variante="menu"'))
 })

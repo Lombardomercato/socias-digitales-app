@@ -76,7 +76,6 @@ export default async function InicioPage() {
             <Link href="/perfil" className="inline-flex items-center gap-2 text-sm font-medium text-[#294A38]">Mi perfil <ArrowIcon diagonal /></Link>
           </div>
 
-          <UnreadNoticeLink variante="banner" />
           {mostrarClase && <div className="mt-5"><ProximaClase ahoraInicial={ahoraInicial} variante="banner" /></div>}
 
           {esGratuito ? <FreeStart clases={clasesGratuitas} /> : !habilitada && esDesafio ? (

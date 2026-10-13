@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { type Aviso, fechaAviso } from '@/lib/notifications'
@@ -15,6 +15,32 @@ export default function BandejaAvisos({ userId, iniciales, errorCarga }: { userI
   const [error, setError] = useState('')
   const avisos = iniciales.map(aviso => ({ ...aviso, leido: aviso.leido || marcados.includes(aviso.id) }))
   const nuevos = avisos.filter(aviso => !aviso.leido).length
+
+  // Se ejecuta al abrir la bandeja, no al precargar la ruta ni desde Inicio.
+  // Solo los mensajes que realmente se entregaron a esta usuaria se marcan.
+  useEffect(() => {
+    if (errorCarga) return
+    const pendientes = iniciales.filter(aviso => !aviso.leido).map(aviso => aviso.id)
+    if (!pendientes.length) return
+    let cancelado = false
+    async function registrarApertura() {
+      try {
+        const { error } = await createClient().from('avisos_lecturas').upsert(
+          pendientes.map(id => ({ aviso_id: id, usuaria_id: userId })),
+          { onConflict: 'aviso_id,usuaria_id', ignoreDuplicates: true },
+        )
+        if (error) throw new Error('No pudimos registrar la lectura. Podés reintentar con “Marcar como leído”.')
+        if (!cancelado) {
+          setMarcados(actual => [...new Set([...actual, ...pendientes])])
+          router.refresh()
+        }
+      } catch (causa) {
+        if (!cancelado) setError(causa instanceof Error ? causa.message : 'No pudimos registrar la lectura.')
+      }
+    }
+    void registrarApertura()
+    return () => { cancelado = true }
+  }, [iniciales, userId, errorCarga, router])
 
   async function marcarLeido(id: string) {
     setGuardando(id); setError('')
