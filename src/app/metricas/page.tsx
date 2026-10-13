@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import ModuleLocked from '@/components/ModuleLocked'
-import { esAdministradora } from '@/lib/module-guard'
+import { permisoMetricas } from '@/lib/metrics-server'
+import { fechaArgentina, normalizarMetrica, type Metrica } from '@/lib/metrics'
 import { redirect } from 'next/navigation'
 import MetricasCliente from './MetricasCliente'
 
@@ -8,13 +9,17 @@ export default async function MetricasPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-  if (!await esAdministradora(user.id)) return <ModuleLocked id="metricas" />
+  const acceso=await permisoMetricas(supabase,user.id)
+  if(acceso.error) return <main className="min-h-screen bg-[#F4EFEA] p-8"><p role="alert">No pudimos comprobar tu acceso. Intentá nuevamente.</p><a href="/inicio">Volver a mi espacio</a></main>
+  if (!acceso.permitido) return <ModuleLocked id="metricas" />
 
-  const { data: historial } = await supabase
+  const { data: historial, error } = await supabase
     .from('metricas')
     .select('*')
     .eq('alumna_id', user.id)
-    .order('created_at', { ascending: false })
+    .order('fecha', { ascending: false })
+    .order('actualizado_at', { ascending: false })
+    .limit(500)
 
-  return <MetricasCliente userId={user.id} historial={historial ?? []} />
+  return <MetricasCliente historial={(historial ?? []).map(m=>normalizarMetrica(m as Metrica))} fechaInicial={fechaArgentina()} errorCarga={Boolean(error)} limitado={historial?.length===500} />
 }
