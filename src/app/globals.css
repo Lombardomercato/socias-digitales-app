@@ -239,7 +239,7 @@ body {
 .platform-design, .sd-access-design { min-width: 0; }
 .platform-design { padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px); }
 .sd-mobile-navigation { display: none; }
-.platform-design .sd-video-dialog h2 { color: #faf7f3; }
+.platform-design .sd-video-dialog:not(dialog) h2 { color: #faf7f3; }
 
 @media (max-width: 1023px) {
   .platform-design button, .sd-access-design button { min-height: 44px; touch-action: manipulation; }

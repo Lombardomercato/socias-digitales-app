@@ -88,4 +88,5 @@ test('reproductor accesible, mobile, reintento y guardado acotado, sin dependenc
   assert.ok(player.includes('>=20000'));assert.ok(player.includes('visibilitychange'));assert.ok(player.includes('keepalive:true'))
   assert.ok(player.includes('Reintentar guardar'));assert.ok(player.includes('Vista administrativa'))
   assert.ok(player.includes('cadena.current'));assert.ok(player.includes('onLoadedMetadata'))
+  assert.ok(read('src/app/globals.css').includes('.sd-video-dialog:not(dialog) h2'))
 })

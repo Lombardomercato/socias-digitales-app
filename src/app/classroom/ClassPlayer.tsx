@@ -85,7 +85,7 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
     </div>
     <div className="aspect-video overflow-hidden rounded-2xl bg-black">
       {clase.tiene_video_privado && url ? <video ref={videoRef} src={url} controls playsInline preload="metadata" className="h-full w-full"
-        onLoadedMetadata={()=>{const v=videoRef.current;if(v && posicionInicial>0 && posicionInicial<v.duration-3)v.currentTime=posicionInicial}}
+        onLoadedMetadata={()=>{const v=videoRef.current;if(v && posicionInicial>0 && Number.isFinite(v.duration))v.currentTime=Math.min(posicionInicial,Math.max(0,v.duration-1))}}
         onPlay={()=>{empezo.current=true;setVideoFallido(false);guardarPosicion()}}
         onTimeUpdate={()=>{if(Date.now()-ultimoGuardado.current>=20000)guardarPosicion()}}
         onPause={guardarPosicion} onSeeked={()=>{if(empezo.current)guardarPosicion()}}
