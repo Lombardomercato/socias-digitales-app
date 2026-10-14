@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import ClassPlayer from './ClassPlayer'
+import { claseParaContinuar, resumenPrograma, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
 
 interface Clase {
   id: string
@@ -29,11 +31,8 @@ interface Props {
   clases: Clase[]
   esAdmin: boolean
   perfil: Perfil | null
-}
-
-function vimeoEmbed(url: string) {
-  const match = url.match(/vimeo\.com\/(\d+)/)
-  return match ? `https://player.vimeo.com/video/${match[1]}?title=0&byline=0&portrait=0` : null
+  progresoInicial?: ProgresoClase[]
+  errorProgreso?: boolean
 }
 
 function Icon({ name, className = 'h-5 w-5' }: { name: 'play' | 'arrow' | 'book' | 'lock'; className?: string }) {
@@ -44,17 +43,26 @@ function Icon({ name, className = 'h-5 w-5' }: { name: 'play' | 'arrow' | 'book'
   return <svg {...props}><path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v12H8.5A3.5 3.5 0 0 0 5 23V4.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M5 4.5v15A3.5 3.5 0 0 1 8.5 16H19" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>
 }
 
-export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
+export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInicial = [], errorProgreso = false }: Props) {
   const [claseAbierta, setClaseAbierta] = useState<Clase | null>(null)
   const [videoSeguroUrl, setVideoSeguroUrl] = useState<string | null>(null)
   const [cargandoVideo, setCargandoVideo] = useState<string | null>(null)
   const [errorVideo, setErrorVideo] = useState('')
+  const [progreso,setProgreso]=useState(progresoInicial)
+  const [filtro,setFiltro]=useState('Todos')
+  const [buscar,setBuscar]=useState('')
+  const onProgreso=useCallback((p:ProgresoClase)=>{setProgreso(prev=>[...prev.filter(v=>v.clase_id!==p.clase_id),p])},[])
+  const onError=useCallback((mensaje:string)=>setErrorVideo(mensaje),[])
 
   const tieneAcceso = esAdmin || Boolean(perfil?.desafio_socias_habilitada) || perfil?.tipo_usuario === 'socia'
   const modulos = [...new Set(clases.map(clase => clase.modulo))]
+  const continuar = esAdmin ? null : claseParaContinuar(clases,progreso)
+  const disponibles = clases.filter(c => (c.puede_ver ?? tieneAcceso) && (c.tiene_video_privado || c.vimeo_url))
+  const siguientes = claseAbierta ? disponibles.filter(c=>c.modulo===claseAbierta.modulo) : []
+  const siguiente = claseAbierta ? siguientes[siguientes.findIndex(c=>c.id===claseAbierta.id)+1] : undefined
 
   async function abrirClase(clase: Clase) {
-    if (!(clase.puede_ver ?? tieneAcceso)) return
+    if (!(clase.puede_ver ?? tieneAcceso) || cargandoVideo) return
     setErrorVideo('')
     setVideoSeguroUrl(null)
     if (clase.tiene_video_privado) {
@@ -107,6 +115,13 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
           </div>
         </section>
 
+        {errorProgreso && <p role="alert" className="mt-5 rounded-2xl border border-[#EC9BB6] bg-[#FAF7F3] p-4 text-sm">No pudimos cargar tu progreso. Recargá para retomarlo; las clases siguen disponibles.</p>}
+        {continuar && <section className="mt-6 flex flex-col gap-4 rounded-[22px] border border-[#EC9BB6] bg-[#F4CAD8] p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.17em] text-[#294A38]">Continuar viendo</p><h2 className="mt-2 text-lg font-semibold">{continuar.clase.titulo}</h2><p className="mt-1 text-xs text-[#746A64]">{continuar.clase.modulo} · Desde {tiempoClase(continuar.progreso.posicion_seg)}</p></div>
+          <button type="button" onClick={()=>void abrirClase(continuar.clase)} disabled={Boolean(cargandoVideo)} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Retomar clase <Icon name="arrow" /></button>
+        </section>}
+        {clases.length>0 && <div className="mt-7 grid gap-3 sm:grid-cols-2"><label className="text-xs text-[#746A64]">Programa<select value={filtro} onChange={e=>setFiltro(e.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#D8CFC8] bg-[#FAF7F3] px-3 py-3 text-base text-[#211C19]"><option>Todos</option>{modulos.map(m=><option key={m}>{m}</option>)}</select></label><label className="text-xs text-[#746A64]">Buscar clase<input type="search" value={buscar} onChange={e=>setBuscar(e.target.value)} maxLength={120} placeholder="Nombre de la clase" className="mt-2 min-h-11 w-full rounded-xl border border-[#D8CFC8] bg-[#FAF7F3] px-3 py-3 text-base text-[#211C19]" /></label></div>}
+
         {!esAdmin && tieneAcceso && (
           <section className="mt-7 flex flex-col gap-3 rounded-[22px] bg-[#F4CAD8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#294A38]">Acceso habilitado</p><p className="mt-1 font-semibold">{perfil?.desafio_socias_habilitada?'Desafío Socias':'Socias Digitales'}</p></div>
@@ -122,16 +137,22 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
           </section>
         ) : (
           <div className="mt-9 space-y-9">
-            {modulos.map((modulo, moduleIndex) => {
+            {modulos.filter(m=>filtro==='Todos'||filtro===m).map((modulo, moduleIndex) => {
               const clasesDelModulo = clases.filter(clase => clase.modulo === modulo)
+              const visibles=clasesDelModulo.filter(c=>c.titulo.toLocaleLowerCase('es').includes(buscar.toLocaleLowerCase('es')))
+              if(!visibles.length)return null
+              const resumen=resumenPrograma(clasesDelModulo.filter(c=>(c.puede_ver??tieneAcceso) && (c.tiene_video_privado||c.vimeo_url)).map(c=>c.id),progreso)
               return (
                 <section key={modulo} aria-labelledby={`modulo-${moduleIndex}`}>
                   <div className="mb-4 flex items-end justify-between gap-4">
                     <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#746A64]">Programa</p><h2 id={`modulo-${moduleIndex}`} className="mt-1 font-serif text-2xl tracking-[-0.03em] sm:text-3xl">{modulo}</h2></div>
                     <span className="shrink-0 rounded-full bg-[#FAF7F3] px-3 py-1.5 text-xs text-[#746A64]">{clasesDelModulo.length} {clasesDelModulo.length === 1 ? 'clase' : 'clases'}</span>
                   </div>
+                  {!esAdmin && resumen.total>0 && <div className="mb-4"><div className="mb-2 flex items-center justify-between text-xs text-[#746A64]"><span>{resumen.completas} de {resumen.total} completadas</span><span>{resumen.porcentaje}%</span></div><div role="progressbar" aria-label={`Progreso en ${modulo}`} aria-valuenow={resumen.porcentaje} aria-valuemin={0} aria-valuemax={100} className="h-1.5 overflow-hidden rounded-full bg-[#E7DDD5]"><div className="h-full rounded-full bg-[#294A38]" style={{width:`${resumen.porcentaje}%`}} /></div></div>}
                   <div className="grid gap-3 lg:grid-cols-2">
-                    {clasesDelModulo.map((clase, index) => {
+                    {visibles.map((clase) => {
+                      const index=clasesDelModulo.findIndex(c=>c.id===clase.id)
+                      const avance=progreso.find(p=>p.clase_id===clase.id)
                       const disponible = (clase.puede_ver ?? tieneAcceso) && Boolean(clase.vimeo_url || clase.tiene_video_privado)
                       return (
                         <article key={clase.id} className={`flex min-h-[118px] items-center gap-4 rounded-[22px] border border-[#E7DDD5] p-4 sm:p-5 ${disponible ? 'bg-[#FAF7F3]' : 'bg-[#FAF7F3]/65'}`}>
@@ -140,9 +161,10 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
                             <p className={`font-semibold leading-snug ${disponible ? 'text-[#211C19]' : 'text-[#746A64]'}`}>{clase.titulo}</p>
                             {clase.descripcion && <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#746A64]">{clase.descripcion}</p>}
                             <p className="mt-2 font-impact text-[9px] font-semibold uppercase tracking-[0.14em] text-[#294A38]">{disponible?(clase.acceso_gratuito?'Clase gratuita':'Clase grabada'):'Acceso con Socias Digitales'}</p>
+                            {!esAdmin && disponible && avance && <p className="mt-1.5 text-xs font-medium text-[#294A38]">{avance.completada?'✓ Completada':avance.posicion_seg>0?`En curso · ${tiempoClase(avance.posicion_seg)}`:'Sin completar'}</p>}
                           </div>
                           {disponible ? (
-                            <button type="button" onClick={() => abrirClase(clase)} disabled={cargandoVideo === clase.id} aria-label={`Reproducir ${clase.titulo}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#294A38] text-white transition hover:bg-[#203B2D] disabled:opacity-60"><Icon name="play" className="h-5 w-5" /></button>
+                            <button type="button" onClick={() => abrirClase(clase)} disabled={Boolean(cargandoVideo)} aria-label={`Reproducir ${clase.titulo}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#294A38] text-white transition hover:bg-[#203B2D] disabled:opacity-60"><Icon name="play" className="h-5 w-5" /></button>
                           ) : (
                             <a href="/inicio#plan-socias" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F4EFEA] text-[#294A38]" aria-label={`Conocer el plan Socias para ${clase.titulo}`}><Icon name="lock" className="h-4 w-4" /></a>
                           )}
@@ -155,24 +177,12 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
             })}
           </div>
         )}
+        {clases.length>0 && !clases.some(c=>(filtro==='Todos'||c.modulo===filtro) && c.titulo.toLocaleLowerCase('es').includes(buscar.toLocaleLowerCase('es'))) && <p className="mt-6 rounded-2xl border border-[#E7DDD5] bg-[#FAF7F3] p-6 text-sm text-[#746A64]">No encontramos clases con esa búsqueda.</p>}
       </div>
 
       {errorVideo && <div role="alert" className="sd-mobile-toast fixed bottom-5 left-1/2 z-[60] w-[min(92vw,32rem)] -translate-x-1/2 rounded-2xl border border-[#B01B30]/20 bg-[#FAF7F3] px-5 py-4 text-sm text-[#7C1D2A]">{errorVideo}</div>}
 
-      {claseAbierta && (claseAbierta.vimeo_url || claseAbierta.tiene_video_privado) && (
-        <div className="sd-video-dialog fixed inset-0 z-50 flex items-center justify-center bg-[#171413]/85 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="clase-reproductor-titulo" onClick={cerrarClase}>
-          <div className="w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={event => event.stopPropagation()}>
-            <div className="mb-3 flex items-center justify-between gap-4 text-white"><div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#F4CAD8]">{claseAbierta.modulo}</p><h2 id="clase-reproductor-titulo" className="mt-1 text-base font-semibold sm:text-lg">{claseAbierta.titulo}</h2></div><button type="button" onClick={cerrarClase} aria-label="Cerrar reproductor" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 text-2xl leading-none transition hover:bg-white/20">×</button></div>
-            <div className="relative overflow-hidden rounded-[20px] bg-black" style={{ paddingBottom: '56.25%' }}>
-              {claseAbierta.tiene_video_privado ? (
-                videoSeguroUrl ? <video src={videoSeguroUrl} className="absolute inset-0 h-full w-full bg-black" controls autoPlay playsInline /> : <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70">Preparando la clase…</div>
-              ) : (
-                <iframe src={vimeoEmbed(claseAbierta.vimeo_url ?? '') ?? ''} title={claseAbierta.titulo} className="absolute inset-0 h-full w-full" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {claseAbierta && <ClassPlayer key={claseAbierta.id} clase={claseAbierta} url={videoSeguroUrl} progreso={progreso.find(p=>p.clase_id===claseAbierta.id)} esAdmin={esAdmin} siguiente={siguiente?.titulo} onSiguiente={()=>{if(siguiente)void abrirClase(siguiente)}} onCerrar={cerrarClase} onProgreso={onProgreso} onError={onError} />}
     </main>
   )
 }

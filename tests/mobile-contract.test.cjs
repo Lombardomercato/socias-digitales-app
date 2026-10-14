@@ -48,7 +48,9 @@ test('contrato móvil conserva zoom, usa safe areas y no esconde desbordes para 
 test('formularios y módulos mantienen identidad y el teclado no tapa el cierre de ventanas', () => {
   const perfil = read('src/app/perfil/PerfilCliente.tsx'), clases = read('src/app/classroom/ClassroomCliente.tsx')
   assert.ok(perfil.includes('data-platform-role={esAdmin')); assert.ok(clases.includes('data-platform-role={esAdmin'))
-  assert.ok(clases.includes('playsInline')); assert.ok(clases.includes('100dvh'))
+  const reproductor = read('src/app/classroom/ClassPlayer.tsx')
+  assert.ok(reproductor.includes('playsInline')); assert.ok(reproductor.includes('100dvh'))
+  assert.ok(clases.includes('ClassPlayer'))
   for (const file of ['src/app/admin/AdminDashboard.tsx','src/app/admin/productos/ProductosAdmin.tsx','src/app/admin/classroom/ClassroomAdmin.tsx']) assert.ok(read(file).includes('100dvh'))
   assert.ok(read('src/components/PushNotifications.tsx').includes('sd-push-prompt'))
 })

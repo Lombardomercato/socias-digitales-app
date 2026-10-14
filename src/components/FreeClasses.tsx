@@ -1,21 +1,27 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import ArrowIcon from './ArrowIcon'
 import NavigationIcon from './NavigationIcon'
 import type { ClaseCatalogo } from '@/lib/class-access'
+import ClassPlayer from '@/app/classroom/ClassPlayer'
+import type { ProgresoClase } from '@/lib/class-progress'
 
 export default function FreeClasses({clases}: {clases:ClaseCatalogo[]}) {
   const [abierta,setAbierta]=useState<ClaseCatalogo|null>(null)
   const [url,setUrl]=useState('')
   const [cargando,setCargando]=useState<string|null>(null)
   const [error,setError]=useState('')
-  const dialogo=useRef<HTMLDialogElement>(null)
-  useEffect(()=>{if(abierta) dialogo.current?.showModal()},[abierta])
+  const [progreso,setProgreso]=useState<ProgresoClase[]>([])
+  const onProgreso=useCallback((p:ProgresoClase)=>setProgreso(prev=>[...prev.filter(v=>v.clase_id!==p.clase_id),p]),[])
   async function abrir(clase:ClaseCatalogo) {
     if(!clase.puede_ver || cargando) return
     setError('');setCargando(clase.id)
     try {
+      const progresoRes=await fetch(`/api/classroom/${clase.id}/progreso`,{cache:'no-store'})
+      const progresoBody=await progresoRes.json()
+      if(!progresoRes.ok)throw new Error(progresoBody.error??'No pudimos recuperar tu progreso. Volvé a intentar.')
+      if(progresoBody.progreso)onProgreso(progresoBody.progreso)
       if(clase.tiene_video_privado) {
         const res=await fetch(`/api/classroom/${clase.id}/video`,{cache:'no-store'})
         const body=await res.json()
@@ -50,9 +56,6 @@ export default function FreeClasses({clases}: {clases:ClaseCatalogo[]}) {
       </article>)}
     </div>
     {error && <p role="alert" className="mt-4 rounded-xl border border-[#EC9BB6] bg-white p-4 text-sm text-[#B01B30]">{error}</p>}
-    <dialog ref={dialogo} onClose={()=>{setAbierta(null);setUrl('')}} aria-labelledby="clase-gratuita-reproductor" className="m-auto w-[min(94vw,1000px)] max-w-none rounded-[22px] bg-[#FAF7F3] p-4 text-[#171413] backdrop:bg-[#171413]/75 sm:p-6">
-      {abierta && <><div className="mb-4 flex items-center justify-between gap-4"><h2 id="clase-gratuita-reproductor" className="text-base font-semibold">{abierta.titulo}</h2><button type="button" onClick={()=>dialogo.current?.close()} autoFocus className="shrink-0 rounded-full border border-[#EC9BB6]/50 px-4 py-2 text-xs">Cerrar</button></div>
-      {abierta.tiene_video_privado?<video src={url} controls autoPlay playsInline className="aspect-video w-full rounded-xl bg-black" />:<iframe src={url} title={abierta.titulo} className="aspect-video w-full rounded-xl bg-black" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />}</>}
-    </dialog>
+    {abierta && <ClassPlayer key={abierta.id} clase={abierta} url={abierta.tiene_video_privado?url:null} progreso={progreso.find(p=>p.clase_id===abierta.id)} esAdmin={false} onCerrar={()=>{setAbierta(null);setUrl('')}} onProgreso={onProgreso} onError={setError} onSiguiente={()=>undefined} />}
   </section>
 }

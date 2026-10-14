@@ -6,6 +6,7 @@ import AdminSectionMenu from '@/components/AdminSectionMenu'
 import { createClient } from '@/lib/supabase/client'
 import { PROGRAMAS_INICIALES } from '@/lib/class-management'
 import VideoUpload from './VideoUpload'
+import ClassProgressAdmin, {type EstadisticaClase} from './ClassProgressAdmin'
 
 interface Clase {
   id: string
@@ -51,14 +52,18 @@ export default function ClassroomAdmin({
   clases,
   alumnas,
   errorCarga = false,
+  estadisticas = [],
+  errorProgreso = false,
 }: {
   clases: Clase[]
   alumnas: Alumna[]
   errorCarga?: boolean
+  estadisticas?: EstadisticaClase[]
+  errorProgreso?: boolean
 }) {
   const router = useRouter(),
     supabase = createClient()
-  const [tab, setTab] = useState<'clases' | 'alumnas'>('clases'),
+  const [tab, setTab] = useState<'clases' | 'alumnas' | 'progreso'>('clases'),
     [filtro, setFiltro] = useState('Todos'),
     [ficha, setFicha] = useState<Ficha | null>(null),
     [guardando, setGuardando] = useState(false),
@@ -212,13 +217,13 @@ export default function ClassroomAdmin({
           Clases y programas
         </h1>
         <div className="my-6 flex flex-wrap gap-2">
-          {(['clases', 'alumnas'] as const).map((t) => (
+          {(['clases', 'progreso', 'alumnas'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`min-h-11 rounded-full border px-4 py-3 text-sm ${tab === t ? 'border-[#EC9BB6] bg-[#F4CAD8]' : 'border-[#D8CFC8] bg-[#FAF7F3]'}`}
             >
-              {t === 'clases' ? 'Contenido' : 'Alumnas y planes'}
+              {t === 'clases' ? 'Contenido' : t === 'progreso' ? 'Seguimiento' : 'Alumnas y planes'}
             </button>
           ))}
         </div>
@@ -231,7 +236,7 @@ export default function ClassroomAdmin({
               'No pudimos cargar la biblioteca. Recargá antes de hacer cambios.'}
           </p>
         )}
-        {tab === 'clases' ? (
+        {tab === 'progreso' ? <ClassProgressAdmin clases={clases} estadisticas={estadisticas} error={errorProgreso} /> : tab === 'clases' ? (
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
