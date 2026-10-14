@@ -79,7 +79,7 @@ test('alumnas y anónimos nunca inician ni completan cargas',async()=>{
 })
 test('flujo de video no pasa el archivo por Vercel y no publica ni elimina automáticamente',()=>{
   const ui=read('src/app/admin/classroom/VideoUpload.tsx'),api=read('src/app/api/admin/clases/video/route.ts')
-  assert.ok(ui.includes('file.slice('));assert.ok(ui.includes('request.open("PUT", url)')||ui.includes("request.open('PUT',url)"))
+  assert.ok(ui.includes('file.slice('));assert.match(ui,/request\.open\(['"]PUT['"],\s*url\)/)
   assert.ok(!api.includes('arrayBuffer('));assert.ok(!api.includes('formData('));assert.ok(!api.includes('activo: true'))
   assert.ok(api.includes('partesCompletas'));assert.ok(api.includes("select('id')")||api.includes('select("id")'))
 })
