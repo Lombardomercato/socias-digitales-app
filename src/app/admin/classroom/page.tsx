@@ -10,11 +10,11 @@ export default async function ClassroomAdminPage() {
   const { data: perfil } = await supabase.from('perfiles').select('rol').eq('id', user.id).single()
   if (perfil?.rol !== 'admin') redirect('/perfil')
 
-  const [{ data: clases }, { data: alumnas }] = await Promise.all([
+  const [{ data: clases, error: clasesError }, { data: alumnas, error: alumnasError }] = await Promise.all([
     supabase.from('clases').select('*').order('orden'),
     supabase.from('perfiles').select('id, nombre, plan').neq('rol', 'admin').not('id', 'in', FILTRO_CUENTAS_PRUEBA).order('nombre'),
   ])
 
-  return <ClassroomAdmin clases={clases ?? []} alumnas={alumnas ?? []} />
+  return <ClassroomAdmin clases={clases ?? []} alumnas={alumnas ?? []} errorCarga={Boolean(clasesError || alumnasError)} />
 }
 import { FILTRO_CUENTAS_PRUEBA } from '@/lib/test-accounts'

@@ -98,7 +98,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
         <section className="grid gap-5 md:grid-cols-[minmax(0,1fr)_260px] md:items-end">
           <div>
             <p className="font-impact text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Tu programa</p>
-            <h1 className="mt-2 max-w-3xl font-serif text-4xl leading-[1.04] tracking-[-0.04em] sm:text-5xl">Programa Socias Digitales</h1>
+            <h1 className="mt-2 max-w-3xl font-serif text-4xl leading-[1.04] tracking-[-0.04em] sm:text-5xl">Tus clases</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">{tieneAcceso?'Tus clases grabadas':'Empezá con las clases gratuitas y explorá el plan Socias.'}</p>
           </div>
           <div className="flex items-center gap-4 rounded-[22px] bg-[#294A38] p-5 text-white">
@@ -127,15 +127,15 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
               return (
                 <section key={modulo} aria-labelledby={`modulo-${moduleIndex}`}>
                   <div className="mb-4 flex items-end justify-between gap-4">
-                    <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#746A64]">Parte {String(moduleIndex + 1).padStart(2, '0')}</p><h2 id={`modulo-${moduleIndex}`} className="mt-1 font-serif text-2xl tracking-[-0.03em] sm:text-3xl">{modulo}</h2></div>
+                    <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#746A64]">Programa</p><h2 id={`modulo-${moduleIndex}`} className="mt-1 font-serif text-2xl tracking-[-0.03em] sm:text-3xl">{modulo}</h2></div>
                     <span className="shrink-0 rounded-full bg-[#FAF7F3] px-3 py-1.5 text-xs text-[#746A64]">{clasesDelModulo.length} {clasesDelModulo.length === 1 ? 'clase' : 'clases'}</span>
                   </div>
                   <div className="grid gap-3 lg:grid-cols-2">
                     {clasesDelModulo.map((clase, index) => {
                       const disponible = (clase.puede_ver ?? tieneAcceso) && Boolean(clase.vimeo_url || clase.tiene_video_privado)
                       return (
-                        <article key={clase.id} className={`flex min-h-[118px] items-center gap-4 rounded-[22px] p-4 sm:p-5 ${disponible ? 'bg-[#FAF7F3]' : 'bg-[#FAF7F3]/65'}`}>
-                          <span className={`font-impact flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${disponible ? index % 2 === 0 ? 'bg-[#EC9BB6] text-[#211C19]' : 'bg-[#F4CAD8] text-[#211C19]' : 'bg-[#F4EFEA] text-[#746A64]'}`}>{String(clase.orden + 1).padStart(2, '0')}</span>
+                        <article key={clase.id} className={`flex min-h-[118px] items-center gap-4 rounded-[22px] border border-[#E7DDD5] p-4 sm:p-5 ${disponible ? 'bg-[#FAF7F3]' : 'bg-[#FAF7F3]/65'}`}>
+                          <span className={`font-impact flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${disponible ? index % 2 === 0 ? 'bg-[#EC9BB6] text-[#211C19]' : 'bg-[#F4CAD8] text-[#211C19]' : 'bg-[#F4EFEA] text-[#746A64]'}`}>{String(index + 1).padStart(2, '0')}</span>
                           <div className="min-w-0 flex-1">
                             <p className={`font-semibold leading-snug ${disponible ? 'text-[#211C19]' : 'text-[#746A64]'}`}>{clase.titulo}</p>
                             {clase.descripcion && <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#746A64]">{clase.descripcion}</p>}
@@ -144,7 +144,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
                           {disponible ? (
                             <button type="button" onClick={() => abrirClase(clase)} disabled={cargandoVideo === clase.id} aria-label={`Reproducir ${clase.titulo}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#294A38] text-white transition hover:bg-[#203B2D] disabled:opacity-60"><Icon name="play" className="h-5 w-5" /></button>
                           ) : (
-                            <a href="/inicio#plan-socias" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F4EFEA] text-[#294A38]" aria-label={`Conocer el plan Socias para ${clase.titulo}`}><Icon name="lock" className="h-4 w-4" /></a>
+                            <a href="/inicio#plan-socias" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F4EFEA] text-[#294A38]" aria-label={`Conocer el plan Socias para ${clase.titulo}`}><Icon name="lock" className="h-4 w-4" /></a>
                           )}
                         </article>
                       )
@@ -162,7 +162,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil }: Props) {
       {claseAbierta && (claseAbierta.vimeo_url || claseAbierta.tiene_video_privado) && (
         <div className="sd-video-dialog fixed inset-0 z-50 flex items-center justify-center bg-[#171413]/85 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="clase-reproductor-titulo" onClick={cerrarClase}>
           <div className="w-full max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto" onClick={event => event.stopPropagation()}>
-            <div className="mb-3 flex items-center justify-between gap-4 text-white"><div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#F4CAD8]">Desafío Socias</p><h2 id="clase-reproductor-titulo" className="mt-1 text-base font-semibold sm:text-lg">{claseAbierta.titulo}</h2></div><button type="button" onClick={cerrarClase} aria-label="Cerrar reproductor" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/12 text-2xl leading-none transition hover:bg-white/20">×</button></div>
+            <div className="mb-3 flex items-center justify-between gap-4 text-white"><div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#F4CAD8]">{claseAbierta.modulo}</p><h2 id="clase-reproductor-titulo" className="mt-1 text-base font-semibold sm:text-lg">{claseAbierta.titulo}</h2></div><button type="button" onClick={cerrarClase} aria-label="Cerrar reproductor" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 text-2xl leading-none transition hover:bg-white/20">×</button></div>
             <div className="relative overflow-hidden rounded-[20px] bg-black" style={{ paddingBottom: '56.25%' }}>
               {claseAbierta.tiene_video_privado ? (
                 videoSeguroUrl ? <video src={videoSeguroUrl} className="absolute inset-0 h-full w-full bg-black" controls autoPlay playsInline /> : <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70">Preparando la clase…</div>

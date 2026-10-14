@@ -12,12 +12,13 @@ export default function ConfirmarPage() {
     const params = new URLSearchParams(window.location.hash.slice(1))
     const tokenHash = params.get('token_hash')
     const recovery = params.get('flow') === 'recovery'
+    const invite = params.get('flow') === 'invite'
     if (!tokenHash) { setError('El enlace no es válido. Pedí otro correo desde el registro.'); setLoading(false); return }
     try {
-      const { error } = await createClient().auth.verifyOtp({ token_hash: tokenHash, type: recovery ? 'recovery' : 'email' })
+      const { error } = await createClient().auth.verifyOtp({ token_hash: tokenHash, type: recovery ? 'recovery' : invite ? 'invite' : 'email' })
       if (error) { setError('El enlace venció o ya fue usado. Pedí otro correo desde Ingresar → Reenviar confirmación.'); return }
       window.history.replaceState(null, '', '/confirmar')
-      window.location.replace(recovery ? '/crear-contrasena' : '/')
+      window.location.replace(recovery || invite ? '/crear-contrasena' : '/')
     } catch {
       setError('No pudimos conectar. Volvé a intentar; si el enlace venció, reenviá la confirmación desde Ingresar.')
     } finally {

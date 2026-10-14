@@ -29,7 +29,7 @@ export default function CrearContrasenaCliente({ cambiar = false, esAdmin = fals
       setListo(true)
       setContrasena('')
       setConfirmar('')
-      setTimeout(() => router.push(cambiar ? '/perfil' : '/inicio'), 1200)
+      setTimeout(() => router.push(cambiar ? '/perfil' : '/'), 1200)
     }
     } catch {
       setError('No se pudo conectar. Intentá de nuevo.')

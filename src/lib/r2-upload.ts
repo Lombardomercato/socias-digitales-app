@@ -1,0 +1,198 @@
+import 'server-only'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
+import { TAMANO_PARTE, MAX_VIDEO_BYTES, esUuid } from './class-management'
+
+const enc = (s: string) =>
+  encodeURIComponent(s).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  )
+const hash = (s: string) => createHash('sha256').update(s).digest('hex')
+const hmac = (key: Buffer | string, value: string) =>
+  createHmac('sha256', key).update(value).digest()
+export function r2Configurado() {
+  return [
+    'R2_S3_ACCOUNT_ID',
+    'R2_BUCKET_NAME',
+    'R2_ACCESS_KEY_ID',
+    'R2_SECRET_ACCESS_KEY',
+  ].every((k) => Boolean(process.env[k]))
+}
+function config(key: string) {
+  if (!r2Configurado())
+    throw new Error('El almacenamiento no está configurado.')
+  const host = `${process.env.R2_S3_ACCOUNT_ID}.r2.cloudflarestorage.com`
+  const uri = `/${enc(process.env.R2_BUCKET_NAME!)}/${key.split('/').map(enc).join('/')}`
+  const date = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '')
+  const scope = `${date.slice(0, 8)}/auto/s3/aws4_request`
+  const signing = hmac(
+    hmac(
+      hmac(
+        hmac(`AWS4${process.env.R2_SECRET_ACCESS_KEY!}`, date.slice(0, 8)),
+        'auto',
+      ),
+      's3',
+    ),
+    'aws4_request',
+  )
+  return { host, uri, date, scope, signing }
+}
+function queryString(query: Record<string, string>) {
+  return Object.entries(query)
+    .map(([k, v]) => [enc(k), enc(v)])
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&')
+}
+export function firmarParte(key: string, uploadId: string, partNumber: number) {
+  const c = config(key)
+  const query = queryString({
+    uploadId,
+    partNumber: String(partNumber),
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': `${process.env.R2_ACCESS_KEY_ID}/${c.scope}`,
+    'X-Amz-Date': c.date,
+    'X-Amz-Expires': '900',
+    'X-Amz-SignedHeaders': 'host',
+  })
+  const canonical = [
+    'PUT',
+    c.uri,
+    query,
+    `host:${c.host}\n`,
+    'host',
+    'UNSIGNED-PAYLOAD',
+  ].join('\n')
+  const signature = createHmac('sha256', c.signing)
+    .update(['AWS4-HMAC-SHA256', c.date, c.scope, hash(canonical)].join('\n'))
+    .digest('hex')
+  return `https://${c.host}${c.uri}?${query}&X-Amz-Signature=${signature}`
+}
+export async function pedirR2(
+  method: string,
+  key: string,
+  query: Record<string, string> = {},
+  body = '',
+  contentType?: string,
+) {
+  const c = config(key),
+    qs = queryString(query),
+    payload = hash(body)
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date'
+  const headers = `host:${c.host}\nx-amz-content-sha256:${payload}\nx-amz-date:${c.date}\n`
+  const canonical = [method, c.uri, qs, headers, signedHeaders, payload].join(
+    '\n',
+  )
+  const signature = createHmac('sha256', c.signing)
+    .update(['AWS4-HMAC-SHA256', c.date, c.scope, hash(canonical)].join('\n'))
+    .digest('hex')
+  return fetch(`https://${c.host}${c.uri}${qs ? '?' + qs : ''}`, {
+    method,
+    headers: {
+      'x-amz-date': c.date,
+      'x-amz-content-sha256': payload,
+      Authorization: `AWS4-HMAC-SHA256 Credential=${process.env.R2_ACCESS_KEY_ID}/${c.scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+      ...(contentType ? { 'Content-Type': contentType } : {}),
+    },
+    ...(body ? { body } : {}),
+    cache: 'no-store',
+    signal: AbortSignal.timeout(25_000),
+  })
+}
+export const xmlEscape = (s: string) =>
+  s.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&apos;',
+      })[c]!,
+  )
+export const xmlValue = (xml: string, tag: string) =>
+  (xml.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`))?.[1] || '')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+export function leerPartes(xml: string) {
+  return [...xml.matchAll(/<Part>([\s\S]*?)<\/Part>/g)]
+    .map((m) => ({
+      number: Number(xmlValue(m[1], 'PartNumber')),
+      size: Number(xmlValue(m[1], 'Size')),
+      etag: xmlValue(m[1], 'ETag'),
+    }))
+    .sort((a, b) => a.number - b.number)
+}
+export function partesCompletas(
+  parts: ReturnType<typeof leerPartes>,
+  bytes: number,
+) {
+  return (
+    parts.length === Math.ceil(bytes / TAMANO_PARTE) &&
+    parts.every(
+      (p, i) =>
+        p.number === i + 1 &&
+        p.size === Math.min(TAMANO_PARTE, bytes - i * TAMANO_PARTE) &&
+        /^"?[0-9a-f-]+"?$/i.test(p.etag),
+    )
+  )
+}
+export interface CargaVideo {
+  userId: string
+  claseId: string
+  key: string
+  uploadId: string
+  bytes: number
+  anterior: string | null
+  exp: number
+}
+export function tokenCarga(state: CargaVideo) {
+  const data = Buffer.from(JSON.stringify(state)).toString('base64url')
+  return `${data}.${createHmac('sha256', process.env.R2_SECRET_ACCESS_KEY!)
+    .update('sd-upload-v1:' + data)
+    .digest('base64url')}`
+}
+export function leerTokenCarga(
+  token: unknown,
+  userId: string,
+): CargaVideo | null {
+  if (
+    typeof token !== 'string' ||
+    token.length > 6000 ||
+    !process.env.R2_SECRET_ACCESS_KEY
+  )
+    return null
+  const [data, sig, ...rest] = token.split('.')
+  if (!data || !sig || rest.length) return null
+  const expected = createHmac('sha256', process.env.R2_SECRET_ACCESS_KEY)
+    .update('sd-upload-v1:' + data)
+    .digest()
+  const given = Buffer.from(sig, 'base64url')
+  if (given.length !== expected.length || !timingSafeEqual(given, expected))
+    return null
+  try {
+    const s = JSON.parse(
+      Buffer.from(data, 'base64url').toString(),
+    ) as CargaVideo
+    if (
+      s.userId !== userId ||
+      !esUuid(s.claseId) ||
+      !Number.isSafeInteger(s.bytes) ||
+      s.bytes <= 0 ||
+      s.bytes > MAX_VIDEO_BYTES ||
+      s.exp < Date.now() ||
+      !s.uploadId ||
+      typeof s.uploadId !== 'string' ||
+      !s.key.startsWith(`clases/${s.claseId}/`) ||
+      !/^clases\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.mp4$/.test(s.key)
+    )
+      return null
+    return s
+  } catch {
+    return null
+  }
+}

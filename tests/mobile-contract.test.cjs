@@ -32,7 +32,8 @@ test('Flor dispone de todas las secciones en móvil, sin perder Mi día, Métric
   const html = renderToStaticMarkup(React.createElement(menu.default))
   assert.ok(html.includes('Sección del panel de Flor')); assert.ok(html.includes('value="/admin/checklist" selected=""'))
   for (const s of sections.ADMIN_SECTIONS) { assert.ok(html.includes(`value="${s.href}"`)); assert.ok(html.includes(`href="${s.href}"`)) }
-  assert.equal(sections.ADMIN_SECTIONS.length, 13)
+  assert.equal(sections.ADMIN_SECTIONS.length, 14)
+  assert.ok(html.includes('value="/admin/equipo"'))
   assert.ok(html.includes('value="/admin/encuesta"'))
 })
 test('contrato móvil conserva zoom, usa safe areas y no esconde desbordes para simular adaptación', () => {
