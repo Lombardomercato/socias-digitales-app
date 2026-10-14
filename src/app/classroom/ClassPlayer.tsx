@@ -44,7 +44,7 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
       setEstado('Progreso guardado')
       setError('')
     }).catch(causa=>{
-      const mensaje=causa instanceof Error?causa.message:'No pudimos guardar tu progreso.'
+      const mensaje=causa instanceof TypeError?'No pudimos guardar tu progreso. Revisá tu conexión y reintentá.':causa instanceof Error?causa.message:'No pudimos guardar tu progreso.'
       fallido.current=cambio
       setError(mensaje);onError(mensaje)
     })
