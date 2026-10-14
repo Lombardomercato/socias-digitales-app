@@ -106,7 +106,16 @@ test('finalizar verifica R2 antes de vincular y nunca activa una clase borrador'
 test('un email sin verificar no puede elevarse a administrador',async()=>{
   let writes=0
   const admin={auth:{admin:{getUserById:async()=>({data:{user:{id:state.claseId,email_confirmed_at:null}}})}},from:()=>{writes++;throw Error('no escribir')}}
-  const api=load('src/app/api/admin/equipo/route.ts',{'next/server':json,'@/lib/class-management':management,'@/lib/admin-auth':{autorizarAdmin:async()=>({user:{id:'admin'}})},'@/lib/supabase/admin':{createAdminClient:()=>admin,isAdminSupabaseConfigured:()=>true},'@/lib/perfil-preguntas':{normalizarNombre:s=>s},'@/lib/registration-mail':{},'@/lib/email-brand':{EMAIL_HEADER:'banner'}},env)
+  const api=load('src/app/api/admin/equipo/route.ts',{'next/server':json,'@/lib/class-management':management,'@/lib/admin-team':{},'@/lib/admin-auth':{autorizarAdmin:async()=>({user:{id:'admin'}})},'@/lib/supabase/admin':{createAdminClient:()=>admin,isAdminSupabaseConfigured:()=>true},'@/lib/perfil-preguntas':{normalizarNombre:s=>s},'@/lib/registration-mail':{},'@/lib/email-brand':{EMAIL_HEADER:'banner'}},env)
   const response=await api.POST(new Request('https://app.test',{method:'POST',body:JSON.stringify({action:'promover',id:state.claseId,confirmar:true})}))
   assert.equal(response.status,400);assert.equal(writes,0)
+})
+test('el directorio de equipo lee emails de Auth, nunca una columna inexistente en perfiles',async()=>{
+  const directory=load('src/lib/admin-team.ts')
+  const admin={auth:{admin:{listUsers:async()=>({data:{users:[{id:'a',email:'admin@example.test'},{id:'b',email:'otra@example.test'}]},error:null})}}}
+  const found=await directory.buscarCuentaEmail(admin,'admin@example.test')
+  assert.equal(found.id,'a');assert.equal(await directory.buscarCuentaEmail(admin,'nueva@example.test'),null)
+  assert.deepEqual([...await directory.emailsDelEquipo(admin,['a'])],[['a','admin@example.test']])
+  assert.ok(!read('src/app/admin/equipo/page.tsx').includes('id,nombre,email,rol'))
+  assert.ok(!read('src/app/api/admin/equipo/route.ts').includes(".eq('email'"))
 })

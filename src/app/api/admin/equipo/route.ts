@@ -9,6 +9,7 @@ import { normalizarNombre } from '@/lib/perfil-preguntas'
 import { enviarConfirmacion } from '@/lib/registration-mail'
 import { EMAIL_HEADER } from '@/lib/email-brand'
 import { esUuid } from '@/lib/class-management'
+import { buscarCuentaEmail } from '@/lib/admin-team'
 
 export const maxDuration = 60
 const esc = (s: string) =>
@@ -89,13 +90,16 @@ export async function POST(request: Request) {
       )
     // Existing students must be explicitly selected and promoted, not silently
     // elevated by an invitation or by editable signup metadata.
-    const { data: existing, error: lookupError } = await admin
-      .from('perfiles')
-      .select('id,rol')
-      .eq('email', email)
-      .maybeSingle()
+    const existing = await buscarCuentaEmail(admin, email)
+    const { data: existingPerfil, error: lookupError } = existing
+      ? await admin
+          .from('perfiles')
+          .select('id,rol')
+          .eq('id', existing.id)
+          .maybeSingle()
+      : { data: null, error: null }
     if (lookupError) throw lookupError
-    if (existing && existing.rol !== 'admin')
+    if (existing && existingPerfil?.rol !== 'admin')
       return NextResponse.json(
         {
           error:
@@ -104,8 +108,7 @@ export async function POST(request: Request) {
         { status: 409 },
       )
     if (existing) {
-      const { data } = await admin.auth.admin.getUserById(existing.id)
-      if (data.user?.email_confirmed_at)
+      if (existing.email_confirmed_at)
         return NextResponse.json(
           {
             error:
