@@ -75,6 +75,7 @@ export async function pedirR2(
   body = '',
   contentType?: string,
   condicion?: { 'If-Match': string } | { 'If-None-Match': '*' },
+  opciones?: { sinCompresion?: boolean },
 ) {
   const c = config(key),
     qs = queryString(query),
@@ -96,6 +97,7 @@ export async function pedirR2(
     method,
     headers: {
       ...condicionales,
+      ...(opciones?.sinCompresion ? { 'Accept-Encoding': 'identity' } : {}),
       'x-amz-date': c.date,
       'x-amz-content-sha256': payload,
       Authorization: `AWS4-HMAC-SHA256 Credential=${process.env.R2_ACCESS_KEY_ID}/${c.scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,

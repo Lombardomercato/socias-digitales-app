@@ -60,17 +60,27 @@ test('revisión R2: acepta etiquetas opacas/fuertes/débiles y digest crudo; nun
   const calls = [], hito = logic.validarHito(input)
   const store = load('src/lib/agenda-store.ts', { './agenda-management': logic, './r2-upload': { pedirR2: async (...args) => {
     calls.push(args)
-    return args[0] === 'PUT' ? new Response(null) : new Response(JSON.stringify({version:1,hito,actualizado:'2026-10-15T22:00:00Z'}),{headers:{etag:'W/"opaque_Z9-gzip"'}})
+    if(args[0] === 'PUT') return new Response(null)
+    if(args[0] === 'HEAD') return new Response(null,{headers:{etag:'"opaque_Z9-gzip"'}})
+    return new Response(JSON.stringify({version:1,hito,actualizado:'2026-10-15T22:00:00Z'}),{headers:{etag:'W/"opaque_Z9-gzip"'}})
   } } })
   for (const [entrada,salida] of [['"abc123"','"abc123"'],['W/"opaque_Z9-gzip"','W/"opaque_Z9-gzip"'],['abc123','"abc123"'],['"opaque/Z9+v2"','"opaque/Z9+v2"']]) {
     assert.equal(store.condicionRevisionAgenda(entrada),salida)
     calls.length = 0
+    if(entrada.startsWith('W/')) { await assert.rejects(()=>store.guardarAgenda(hito,entrada,'actor'),store.ConflictoAgenda); assert.equal(calls.length,0); continue }
     await store.guardarAgenda(hito,entrada,'actor')
     assert.deepEqual(calls[0][5],{'If-Match':salida})
   }
   for (const entrada of ['*','"a", "b"','W/*','"a"\r\nX-Test: injected','""','a b','x'.repeat(257),undefined,{},1]) assert.throws(() => store.condicionRevisionAgenda(entrada),store.ConflictoAgenda)
   assert.equal(store.condicionRevisionAgenda(null),null)
-  assert.equal((await store.leerAgenda()).revision,'W/"opaque_Z9-gzip"')
+  assert.equal((await store.leerAgenda()).revision,'"opaque_Z9-gzip"')
+  assert.ok(calls.filter(c=>c[0]==='GET'||c[0]==='HEAD').every(c=>c[6].sinCompresion===true))
+})
+test('no une cuerpo anterior con HEAD de otra versión ni usa un ETag débil para If-Match', async () => {
+  for(const head of [new Response(null,{headers:{etag:'"otra"'}}),new Response(null,{headers:{etag:'W/"abc123"'}}),new Response(null,{status:403})]){
+    const store=load('src/lib/agenda-store.ts',{'./agenda-management':logic,'./r2-upload':{pedirR2:async method=>method==='HEAD'?head:new Response(JSON.stringify({version:1,hito:logic.HITO_INICIAL,actualizado:'hoy'}),{headers:{etag:'W/"abc123"'}})}})
+    await assert.rejects(()=>store.leerAgenda())
+  }
 })
 test('firma R2 incluye condición en encabezados firmados, sin alterar cargas multipart', async () => {
   const calls = []
@@ -84,6 +94,9 @@ test('firma R2 incluye condición en encabezados firmados, sin alterar cargas mu
   assert.equal(calls[0][1].cache,'no-store')
   await r2.pedirR2('GET','clases/video.mp4')
   assert.match(calls[1][1].headers.Authorization,/SignedHeaders=host;x-amz-content-sha256;x-amz-date/)
+  assert.equal(calls[1][1].headers['Accept-Encoding'],undefined)
+  await r2.pedirR2('GET','plataforma/agenda-v1.json',{},'',undefined,undefined,{sinCompresion:true})
+  assert.equal(calls[2][1].headers['Accept-Encoding'],'identity')
 })
 test('API admin: rechaza sesión/alumna y cuerpo manipulado antes de escribir; conflicto responde 409', async () => {
   let writes=0

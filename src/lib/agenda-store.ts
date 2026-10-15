@@ -13,8 +13,8 @@ export function condicionRevisionAgenda(valor: unknown): string | null {
   if (valor === null) return null
   if (typeof valor !== 'string' || valor.length > 256)
     throw new ConflictoAgenda('Recargá la agenda antes de guardar.')
-  // Un ETag es opaco, no necesariamente un MD5. R2 admite también W/"…".
-  // Conservar el valor (sin quitar W/), exigir una sola etiqueta y rechazar
+  // Un ETag es opaco, no necesariamente un MD5. No quitar W/ sin obtener
+  // antes un validador fuerte del servidor. Exigir una sola etiqueta y rechazar
   // comodines, listas o controles que cambiarían la condición de escritura.
   if (/^(?:W\/)?"[\x21\x23-\x7e]{1,200}"$/.test(valor)) return valor
   // Algunos adaptadores devuelven el digest sin las comillas HTTP.
@@ -23,7 +23,9 @@ export function condicionRevisionAgenda(valor: unknown): string | null {
 }
 
 export async function leerAgenda(): Promise<AgendaGuardada> {
-  const response = await pedirR2('GET', CLAVE)
+  // Evitar la revisión W/ que Cloudflare agrega al comprimir la respuesta:
+  // If-Match necesita el validador fuerte del objeto, no el de transporte.
+  const response = await pedirR2('GET', CLAVE, {}, '', undefined, undefined, { sinCompresion: true })
   if (response.status === 404) return { hito: HITO_INICIAL, revision: null, actualizado: null }
   if (!response.ok) throw new Error('No pudimos leer la agenda. Intentá nuevamente.')
   if (Number(response.headers.get('content-length') || 0) > LIMITE) throw new Error('La agenda requiere revisión técnica.')
@@ -36,12 +38,21 @@ export async function leerAgenda(): Promise<AgendaGuardada> {
   const hito = validarHito({ titulo: h.titulo, dia: h.fecha.slice(0, 10), hora: h.fecha.slice(11, 16), enlace: h.enlace ?? '', publicado: h.publicado, audiencias: h.audiencias })
   const etag = response.headers.get('etag')
   if (!etag) throw new Error('No pudimos verificar la versión de la agenda.')
-  const revision = condicionRevisionAgenda(etag)
+  let revision = condicionRevisionAgenda(etag)
+  if (revision?.startsWith('W/')) {
+    const head = await pedirR2('HEAD', CLAVE, {}, '', undefined, undefined, { sinCompresion: true })
+    const fuerte = head.ok ? condicionRevisionAgenda(head.headers.get('etag')) : null
+    // HEAD debe pertenecer a la misma versión que el cuerpo recién leído.
+    if (!fuerte || fuerte.startsWith('W/') || fuerte !== revision.slice(2))
+      throw new Error('No pudimos verificar la versión de la agenda. Volvé a cargarla.')
+    revision = fuerte
+  }
   return { hito, revision, actualizado: x.actualizado }
 }
 
 export async function guardarAgenda(hito: HitoEditable, revision: string | null, administradora: string) {
   const condicion = condicionRevisionAgenda(revision)
+  if (condicion?.startsWith('W/')) throw new ConflictoAgenda('Recargá la última versión de la agenda antes de guardar.')
   const actualizado = new Date().toISOString()
   const body = JSON.stringify({ version: 1, hito, actualizado, administradora })
   const response = await pedirR2('PUT', CLAVE, {}, body, 'application/json',
