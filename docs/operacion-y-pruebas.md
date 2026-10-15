@@ -46,7 +46,7 @@ Persistencia: objeto **privado** `plataforma/agenda-v1.json` en el bucket R2 exi
 
 ### Cuenta de prueba
 
-En `/admin/equipo`, “Cuenta de alumna de prueba” permite habilitar los módulos ya desarrollados para el identificador fijo definido en `test-accounts.ts`: clases del Desafío, Estrategia, Resultados, Métricas y Mi día. No permite elegir otra cuenta ni promover administradoras. Conserva respuestas, progreso y rol; asigna Socia activa y permisos individuales. Los módulos aún no desarrollados permanecen restringidos. La cuenta sigue excluida de estadísticas y campañas. Si falla un paso, se informa acceso parcial y se puede reintentar de forma idempotente, sin borrar datos.
+En `/admin/equipo`, “Cuenta de alumna de prueba” permite habilitar los módulos ya desarrollados para el identificador fijo definido en `test-accounts.ts`: clases del Desafío, Estrategia, Resultados, Métricas y Mi día. No permite elegir otra cuenta ni promover administradoras. Conserva respuestas, progreso y rol; asigna Socia activa y permisos individuales. Los módulos aún no desarrollados permanecen restringidos. La cuenta sigue excluida de estadísticas; las comunicaciones conservan sus reglas de audiencia y consentimiento, sin cambiar preferencias de email/push para habilitar módulos. Si falla un paso, se informa acceso parcial y se puede reintentar de forma idempotente, sin borrar datos.
 
 ## Preparación técnica de una modificación
 

@@ -2,6 +2,10 @@
 
 Fecha de corte: **15 de octubre de 2026**. Documento de continuidad, no una certificación universal ni un anuncio comercial.
 
+**Actualización funcional posterior a la entrega documental:** `85f405fd0cfcdb5ffc95f200f2d5b67242cf3067`, rama `codex/agenda-hitos-20261015`, deployment `dpl_39KgoGE7ifZsXQqMKnQKjRpxFomv`, READY y asignado a `app.sociasdigitales.com`. Incorpora el editor Próximo hito y el control acotado de módulos de la cuenta de prueba en Equipo. Pasaron 178 pruebas y build. Se verificó el contador real de Clase 2 (15/10, 19:30 Argentina) en 320/360/390/430 y 1280 px, sin desbordes. APIs anónimas rechazadas (401); sin errores en el intervalo revisado de logs del nuevo deployment. Pendiente al registrar esta nota: comprobar el guardado administrativo en R2 y ejecutar la habilitación de la alumna de prueba desde una sesión admin en esta versión. No confundir código publicado con permisos ya modificados.
+
+El aviso de Clase 2 fue publicado el 15/10 a las 18:20 Argentina desde la interfaz, una sola vez: 12 emails aceptados por el proveedor, 0 pendientes y 11 dispositivos notificados. No acredita recepción en casilla ni que todos los dispositivos hayan mostrado el aviso; no recrear la campaña. El enlace nuevo de la clase no fue suministrado y el botón sigue deshabilitado.
+
 ## 1. Versión y alcance
 
 La app real está en https://app.sociasdigitales.com. Es un MVP operativo: registro, perfil obligatorio, clases, autorizaciones y comunicaciones, con módulos Socias ya desarrollados y otros pendientes de definición.
