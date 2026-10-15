@@ -44,9 +44,13 @@ Publicar un hito NO envía comunicaciones. Usar Notificaciones por separado, rev
 
 Persistencia: objeto **privado** `plataforma/agenda-v1.json` en el bucket R2 existente, independiente de los videos. Lectura/escritura solo en servidor; validación de sesión, rol administrativo, origen, tamaño y campos; control de concurrencia ETag con `If-Match`/`If-None-Match`. No usar la tabla pública `configuracion` para enlaces privados. No requiere migración SQL ni nuevas credenciales. Respaldar ese objeto junto con el contenido operativo durante la transferencia; copiar solo el código no copia la agenda editada. El estado inicial autorizado, solo si el objeto no existe (404), es Clase 2 del 15/10/2026 a las 19:30, sin enlace.
 
+Detalle de revisión: la lectura de agenda solicita `Accept-Encoding: identity` para conservar el ETag fuerte. Si aún llega `W/`, obtiene el validador fuerte por HEAD y verifica que corresponda al mismo objeto/cuerpo; de lo contrario falla sin sobrescribir. No enviar un ETag débil a If-Match ni quitar W/ a ciegas. Mantener las pruebas de conflictos y rechazo de comodines/listas/inyección.
+
 ### Cuenta de prueba
 
 En `/admin/equipo`, “Cuenta de alumna de prueba” permite habilitar los módulos ya desarrollados para el identificador fijo definido en `test-accounts.ts`: clases del Desafío, Estrategia, Resultados, Métricas y Mi día. No permite elegir otra cuenta ni promover administradoras. Conserva respuestas, progreso y rol; asigna Socia activa y permisos individuales. Los módulos aún no desarrollados permanecen restringidos. La cuenta sigue excluida de estadísticas; las comunicaciones conservan sus reglas de audiencia y consentimiento, sin cambiar preferencias de email/push para habilitar módulos. Si falla un paso, se informa acceso parcial y se puede reintentar de forma idempotente, sin borrar datos.
+
+Para probar ambos roles a la vez en Chrome, mantener la administración en `app.sociasdigitales.com` y abrir la alumna de prueba en el alias estable del mismo proyecto `socias-digitales-flor-preview-alex-santillan-projects.vercel.app`. Son dos sesiones por origen sobre la misma aplicación y base, no un preview ficticio. No compartir cookies ni tokens entre las dos. Los enlaces de alumnas, emails y recuperación siguen usando el dominio final; este alias es solo para la verificación interna. No usar las URLs inmutables de cada deployment como acceso habitual: exigirían volver a entrar en cada publicación.
 
 ## Preparación técnica de una modificación
 
