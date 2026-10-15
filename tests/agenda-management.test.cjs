@@ -54,7 +54,23 @@ test('guardado privado usa escritura condicional y verifica lectura real; confli
   assert.deepEqual(calls[0][5],{'If-Match':'"abc123"'})
   const conflict = load('src/lib/agenda-store.ts', { './agenda-management': logic, './r2-upload': { pedirR2: async () => new Response(null,{status:412}) } })
   await assert.rejects(() => conflict.guardarAgenda(hito, '"abc123"','actor'),conflict.ConflictoAgenda)
-  await assert.rejects(() => conflict.guardarAgenda(hito, 'sin-etag','actor'),conflict.ConflictoAgenda)
+  await assert.rejects(() => conflict.guardarAgenda(hito, '*','actor'),conflict.ConflictoAgenda)
+})
+test('revisión R2: acepta etiquetas opacas/fuertes/débiles y digest crudo; nunca comodines, listas o inyección', async () => {
+  const calls = [], hito = logic.validarHito(input)
+  const store = load('src/lib/agenda-store.ts', { './agenda-management': logic, './r2-upload': { pedirR2: async (...args) => {
+    calls.push(args)
+    return args[0] === 'PUT' ? new Response(null) : new Response(JSON.stringify({version:1,hito,actualizado:'2026-10-15T22:00:00Z'}),{headers:{etag:'W/"opaque_Z9-gzip"'}})
+  } } })
+  for (const [entrada,salida] of [['"abc123"','"abc123"'],['W/"opaque_Z9-gzip"','W/"opaque_Z9-gzip"'],['abc123','"abc123"'],['"opaque/Z9+v2"','"opaque/Z9+v2"']]) {
+    assert.equal(store.condicionRevisionAgenda(entrada),salida)
+    calls.length = 0
+    await store.guardarAgenda(hito,entrada,'actor')
+    assert.deepEqual(calls[0][5],{'If-Match':salida})
+  }
+  for (const entrada of ['*','"a", "b"','W/*','"a"\r\nX-Test: injected','""','a b','x'.repeat(257),undefined,{},1]) assert.throws(() => store.condicionRevisionAgenda(entrada),store.ConflictoAgenda)
+  assert.equal(store.condicionRevisionAgenda(null),null)
+  assert.equal((await store.leerAgenda()).revision,'W/"opaque_Z9-gzip"')
 })
 test('firma R2 incluye condición en encabezados firmados, sin alterar cargas multipart', async () => {
   const calls = []

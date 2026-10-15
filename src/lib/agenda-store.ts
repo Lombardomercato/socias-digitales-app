@@ -9,6 +9,19 @@ const LIMITE = 16_000
 export class ConflictoAgenda extends Error {}
 export interface AgendaGuardada { hito: HitoEditable; revision: string | null; actualizado: string | null }
 
+export function condicionRevisionAgenda(valor: unknown): string | null {
+  if (valor === null) return null
+  if (typeof valor !== 'string' || valor.length > 256)
+    throw new ConflictoAgenda('Recargá la agenda antes de guardar.')
+  // Un ETag es opaco, no necesariamente un MD5. R2 admite también W/"…".
+  // Conservar el valor (sin quitar W/), exigir una sola etiqueta y rechazar
+  // comodines, listas o controles que cambiarían la condición de escritura.
+  if (/^(?:W\/)?"[\x21\x23-\x7e]{1,200}"$/.test(valor)) return valor
+  // Algunos adaptadores devuelven el digest sin las comillas HTTP.
+  if (/^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/.test(valor)) return `"${valor}"`
+  throw new ConflictoAgenda('Recargá la agenda antes de guardar.')
+}
+
 export async function leerAgenda(): Promise<AgendaGuardada> {
   const response = await pedirR2('GET', CLAVE)
   if (response.status === 404) return { hito: HITO_INICIAL, revision: null, actualizado: null }
@@ -21,18 +34,18 @@ export async function leerAgenda(): Promise<AgendaGuardada> {
   const h = x.hito
   if (typeof h.fecha !== 'string' || !/^20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}:00-03:00$/.test(h.fecha)) throw new Error('La agenda requiere revisión técnica.')
   const hito = validarHito({ titulo: h.titulo, dia: h.fecha.slice(0, 10), hora: h.fecha.slice(11, 16), enlace: h.enlace ?? '', publicado: h.publicado, audiencias: h.audiencias })
-  const revision = response.headers.get('etag')
-  if (!revision) throw new Error('No pudimos verificar la versión de la agenda.')
+  const etag = response.headers.get('etag')
+  if (!etag) throw new Error('No pudimos verificar la versión de la agenda.')
+  const revision = condicionRevisionAgenda(etag)
   return { hito, revision, actualizado: x.actualizado }
 }
 
 export async function guardarAgenda(hito: HitoEditable, revision: string | null, administradora: string) {
-  if (revision !== null && (typeof revision !== 'string' || !/^"[a-f0-9-]{1,100}"$/i.test(revision)))
-    throw new ConflictoAgenda('Recargá la agenda antes de guardar.')
+  const condicion = condicionRevisionAgenda(revision)
   const actualizado = new Date().toISOString()
   const body = JSON.stringify({ version: 1, hito, actualizado, administradora })
   const response = await pedirR2('PUT', CLAVE, {}, body, 'application/json',
-    revision ? { 'If-Match': revision } : { 'If-None-Match': '*' })
+    condicion ? { 'If-Match': condicion } : { 'If-None-Match': '*' })
   if (response.status === 412 || response.status === 409)
     throw new ConflictoAgenda('Otra administradora modificó la agenda. Recargá antes de guardar; tus cambios siguen en el formulario.')
   if (!response.ok) throw new Error('No pudimos guardar. Recargá para comprobar el estado antes de reintentar.')
