@@ -16,3 +16,10 @@ Treat phones as the primary platform for every new or modified feature, includin
 - Preserve permissions, real data, branding, read/unread behavior and desktop functionality. Do not expose student navigation to administrators or unlock modules to achieve a screenshot.
 - Run the mobile contract tests and the existing tests before publishing. Perform browser checks using the current build; state which views and widths were verified instead of claiming universal device coverage.
 - Remove local-only QA routes and fictional data before release. Any future module must meet this contract before it is considered finished.
+
+## Handoff and source of truth
+
+- Read `docs/estado-plataforma.md`, `docs/diseno-plataforma.md` and `docs/operacion-y-pruebas.md`; for infrastructure changes also read `docs/transferencia-plataforma.md`.
+- Confirm the live production commit and correct repository before starting. The default branch and legacy remotes may not contain the current release. The dated handoff checkpoint is evidence for that date, not a permanent claim about future production.
+- Extend approved components and tokens. Do not rebuild the global design or replace functioning student/admin flows to implement a local request.
+- The repository was public at handoff. Keep secrets, private access directories, backups and student records out of version control.

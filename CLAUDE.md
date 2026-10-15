@@ -1,45 +1,48 @@
 @AGENTS.md
+@docs/diseno-plataforma.md
 
-# Socias Digitales — guía para continuar el mismo producto
+# Socias Digitales — continuar el producto existente
 
-Leer AGENTS.md, este archivo y docs/transferencia-plataforma.md antes de modificar.
-Trabajar en este repositorio: no reconstruir la app como un artifact o un sitio independiente.
+Esta es una aplicación operativa con usuarias reales. No reconstruirla como artifact, nueva landing, preview aislada ni proyecto paralelo. El objetivo es extender lo aprobado sin perder funciones, permisos ni datos.
 
-## Desarrollo y entrega
+## Antes de tocar código
 
-- Next.js 16.2.9 / React 19. Leer documentación de la versión instalada antes de cambiar rutas, cookies o componentes.
-- Crear una rama, probar y entregar preview/PR. No publicar en producción ni modificar permisos, dominios o datos reales sin autorización expresa de la responsable.
-- No guardar secretos ni contraseñas en código, documentación, chats, navegador o logs. Usar variables del servidor.
-- Preservar cambios ajenos. No editar copias con sufijo ` 2` ni borrar archivos sin entender su origen.
-- Ejecutar lint, TypeScript, pruebas y build. Verificar el circuito real, no solo las previews.
-- Cambios de base: migraciones versionadas, RLS, restricciones y pruebas con rollback. No usar metadata del navegador para dar permisos.
+1. Leer `docs/estado-plataforma.md`, `docs/operacion-y-pruebas.md` y, si hay un cambio de infraestructura, `docs/transferencia-plataforma.md`.
+2. Verificar la versión actualmente publicada, la rama, los remotos y el estado local. El repositorio correcto es `Lombardomercato/socias-digitales-app`; un remoto antiguo llamado `origin` puede apuntar a `herramientas-max/socias-digitales`: no publicar allí por accidente.
+3. El punto de entrega del 15/10/2026 parte del código de producción `cc1e1e1438cdf280c87d2206f56a4c818c2074ef`, rama `codex/progreso-clases-20261014`. La rama `codex/entrega-flor-20261015` agrega documentación. No asumir que `main` contiene lo más reciente; tampoco asumir que este checkpoint seguirá siendo la producción futura.
+4. Crear una rama para la tarea. Preservar cambios ajenos y copias con sufijo ` 2`; no borrarlas ni usarlas como fuente automáticamente.
+5. Explicar qué se va a modificar y cómo se probará. Cambiar solo lo pedido. Publicar, transferir servicios, cambiar DNS/permisos, contratar planes, enviar campañas y borrar datos reales requieren una solicitud concreta de la responsable, no se deducen de un pedido de revisión.
 
-## Producto y accesos
+## Contrato de producto y permisos
 
-- Inicio real: /inicio; clases: /clases; lanzamiento: /lanzamiento; perfil: /perfil; admin: /admin.
-- /registro crea cuenta gratuita. /registro/desafio solicita Desafío; Flor habilita, rechaza o cambia acceso.
-- `rol` administra privilegios técnicos; `tipo_usuario` distingue gratuito/desafio/socia. Mantener compatibilidad con afiliada/afiliada_lanzamiento.
-- Clases y lanzamiento exigen acceso correspondiente. Los módulos futuros siguen bloqueados aunque sus tarjetas sean visibles.
-- /preview/* no es el producto operativo ni fuente de datos de producción.
-- Avisos internos por audiencia. Emails de novedades solo con consentimiento; cuentas existentes sin preferencia = NO autorizado.
-- Confirmación y recuperación de cuenta son correos de servicio: no dependen del opt-in de novedades.
-- Preferencias se cambian por API autenticada y propia; baja firmada solo permite desactivar.
+- `/inicio` es el panel real de la alumna; `/admin` el de Flor. `/preview/*` no demuestra un circuito real ni debe sustituirlo.
+- `/registro` crea una cuenta gratuita. `/registro/desafio` genera una solicitud para que Flor la habilite, rechace o modifique. `/registro/socias` no confirma un pago ni otorga acceso de pago automáticamente.
+- `rol` administrativo y `tipo_usuario` (gratuito/desafio/socia) son cosas diferentes. Conservar compatibilidad con `afiliada`/`afiliada_lanzamiento`. Un administrador de la app no obtiene por eso acceso a GitHub, Vercel o Supabase.
+- Comprobar permisos en el servidor y RLS. Nunca concederlos usando `user_metadata` editable desde el navegador ni solo ocultando botones.
+- Desafío habilitado permite sus grabaciones; Estrategia tiene autorización propia. Resultados, Métricas y Mi día están desarrollados: requieren Socia activa y su permiso individual. No volver a tratarlos como módulos inexistentes ni abrirlos a todo el mundo.
+- Productos, Objetivos, Comunidad, Logros y Ranking no se consideran módulos de alumna terminados por el solo hecho de tener una tarjeta o una pantalla heredada.
+- La encuesta inicial es obligatoria: no agregar “completar después”. Mantener normalización de nombres, edición posterior, respuestas existentes y opción de no informar en datos personales opcionales.
+- La exclusión de la cuenta de prueba está centralizada en `src/lib/test-accounts.ts`; usarla en estadísticas, listas y campañas. No excluir usuarias reales por llamarse Alex ni por patrones de email.
 
-## Diseño aprobado
+## Clases, datos y comunicaciones que se deben preservar
 
-Manual: https://socias-digitales-identidad-v5.alekeiii.chatgpt.site/manual
+- Inventario verificado el 15/10: seis clases de Introducción y **Bienvenida**, publicada por Flor en Desafío Socias en vivo. No recrear el borrador “Clase 1” que el usuario pidió eliminar, ni borrar la Bienvenida de Flor.
+- Reutilizar `ClassPlayer`, `ClassroomCliente`, `ClassroomAdmin` y `ClassProgressAdmin`. Mantener búsqueda, programas, acceso gratuito/privado, continuar desde el minuto guardado, completar/desmarcar y siguiente clase.
+- `progreso_clases` no es `progreso_lecciones`: pertenecen a modelos distintos. El cambio de revisión del video invalida el progreso anterior. La marca de completada es una acción de la alumna, no una certificación de visualización íntegra.
+- R2 permanece privado. Las URLs de lectura son firmadas y de corta duración. Subida directa multipart desde el navegador a R2; no enviar videos grandes a través de Vercel ni abrir el bucket públicamente para resolver un error.
+- No exponer claves de R2, service role, Resend o VAPID en cliente, código, capturas o logs. Solo las variables `NEXT_PUBLIC_*` previstas son públicas.
+- Avisos segmentados por audiencia. Novedades por email solo con consentimiento vigente y respetando bajas. Confirmación/recuperación son correos de servicio distintos. Mantener el banner de `src/lib/email-brand.ts` y el remitente verificado de Socias.
+- Cola de emails persistente e idempotente: hasta 20 por ejecución inicial, pendientes desde el panel. Aceptado por el proveedor no equivale a entregado en casilla. No reenviar comunicados históricos ni reactivar la automatización del vivo del 13/10.
+- El Sheet de encuesta es una copia de trabajo, no una sincronización automática implementada. La fuente de verdad es Supabase. Las preguntas se definen en código, no existe todavía un editor visual de preguntas.
+- La agenda sigue configurada en código. No inventar un nuevo evento ni reiniciar un contador con una fecha vencida.
 
-- Crema/Paper #F4EFEA/#FAF7F3; Blush #F4CAD8; Rose #EC9BB6; verde #294A38 como acento.
-- Evitar fucsia fuerte. Bordó #B01B30 solo para alertas, no decoración habitual.
-- Playfair Display editorial sin abusar de italic; Poppins para impacto y números, con pesos equilibrados; DM Sans lectura/sistema; Playlist Script un acento ocasional.
-- Logos e imágenes oficiales. No inventar personas ni logos. Favicon solo como icono pequeño.
-- Simple, visual, práctico y accesible: sin glow, brillos o adornos tipo IA. Iconos consistentes, tarjetas claras con borde sutil.
-- Mantener funciones de Flor y alumnas al adaptar diseño. No ofrecer botones falsos.
+## Cómo implementar y verificar
 
-## Emails y seguridad
-
-- Banner oficial centralizado en src/lib/email-brand.ts; conservar remitente del dominio Socias Digitales verificado.
-- Cola persistente por aviso/usuaria, idempotencia y revalidación de acceso/consentimiento antes de enviar.
-- Límite actual: 20 por ejecución. Pendientes continúan desde admin; no prometer envío masivo totalmente automático ni entrega en inbox.
-- `aceptado` significa aceptado por Resend, no recibido. Webhooks de entrega y worker recurrente están pendientes.
-- Mantener bajas, historial de consentimiento y separación de públicos. No activar emails retrospectivamente para todas.
+- Next.js 16.2.9 / React 19.2.4 / Node 24. Leer la documentación instalada de Next antes de cambiar rutas, cookies o APIs; seguir `AGENTS.md`.
+- Reutilizar componentes, tokens, iconos y estilos existentes. El diseño y las referencias visuales están en `docs/diseno-plataforma.md`. No introducir otro framework visual o tipografías nuevas.
+- Cambios de base: migración versionada, RLS, restricciones, pruebas y plan de reversión. Hay historia heredada: no ejecutar todas las migraciones indiscriminadamente contra producción para “igualar” una base existente.
+- Leer `.env.example` solo como nombres de configuración; obtener valores por un canal seguro. No versionar `.env.local`, dumps ni registros de alumnas. El repositorio está público al momento de esta entrega.
+- Ejecutar las pruebas existentes (base: 166), revisión de los archivos afectados y build. Detallar qué falló en lugar de ocultarlo o borrar pruebas.
+- Comparar capturas antes/después del flujo real con la misma resolución. Probar 320, 360, 390 y 430 px y escritorio, con estados vacío/cargado/error y los roles afectados.
+- No certificar el producto completo solo porque compila o porque una preview se ve bien. Verificar navegador → API → permisos/datos → respuesta.
+- Entregar archivos cambiados, pruebas realizadas, limitaciones, preview y procedimiento de rollback. Las instrucciones de este archivo ayudan a mantener consistencia; no reemplazan revisión humana, permisos técnicos ni pruebas.

@@ -1,131 +1,92 @@
-# Entrega y transferencia — Socias Digitales
+# Transferencia a Flor — preparada, no ejecutada
 
-Actualizado: 08/10/2026 (Argentina). Preparación, NO transferencia ejecutada.
+Fecha: **15/10/2026**. Este documento reemplaza el estado de transferencia anterior del 08/10. No confirma que se haya movido ningún servicio.
 
-## 1. Qué se entrega
+## Recomendación
 
-El producto real en https://app.sociasdigitales.com, su código, historial de migraciones y documentación. La preview antigua no debe reconstruirse como otra app: Flor trabajará sobre este mismo repositorio con Claude Code y entregará ramas/PRs.
+Transferir primero **el proyecto Vercel existente** al equipo de Flor, manteniendo el mismo dominio y los proveedores actuales. Conservar a nuestro equipo como colaborador técnico con capacidad de despliegue. Luego, en otra ventana controlada, decidir la titularidad de GitHub, Supabase, R2 y Resend. Evitar una migración simultánea de todos los sistemas y de sus credenciales.
 
-Este documento no contiene credenciales. La transferencia legal de derechos, contratos con proveedores, derechos de materiales y tratamiento de datos personales debe acordarse entre las partes; transferir proyectos técnicos no sustituye esos acuerdos.
+Solo se ve actualmente el equipo Vercel de origen. Falta identificar email/equipo receptor y que Flor invite a nuestra cuenta técnica. No asumir que su email de administradora de la app es su cuenta Vercel. El directorio privado de accesos se entrega fuera de este repositorio, que era público al revisar la entrega.
 
-## 2. Inventario técnico
+## Inventario y dependencias
 
-| Recurso | Identificación actual | Tratamiento recomendado |
+| Servicio | Recurso que se conserva | Decisión |
 | --- | --- | --- |
-| GitHub | Lombardomercato/socias-digitales-app — repo 1411000015 | Dar acceso colaborador primero; transferir a usuario/organización receptora después |
-| Vercel | socias-digitales-flor-preview — prj_sSqoKpVKyh399hf0zgHH9dD7QIz7 | Transferir proyecto al equipo receptor; no toda la cuenta |
-| Equipo Vercel actual | team_MtCKfyDkoBd20Qtc5HdJrTEw | Mantener acceso técnico acordado tras entrega |
-| Dominio final | app.sociasdigitales.com | Preservar URL, DNS, SSL y redirects Auth |
-| Alias actual | flor.sociasdigitales.com | Decidir si se conserva; no retirar sin revisar dependencias |
-| Supabase de la app | yfsyotuykanbugxwxefv | Preferir transferencia del proyecto sin migrar usuarios a otra base |
-| Base de marketing | kxwqevrmiznycmtgmxiz | FUERA de esta entrega; no mover ni mezclar |
-| Videos | Cloudflare R2, bucket sd-desafio-socias-videos | Acceso/credencial limitada al bucket; resolver titularidad compartida |
-| Emails | Resend, remitente verificado del dominio Socias Digitales | Acceso del equipo o credencial específica; preservar dominio y banner |
-| DNS | Zona sociasdigitales.com en Cloudflare | Gestionar subdominio sin transferir servicios ajenos |
-| Branding | Manual y recursos oficiales en public/ | Preservar assets, fuentes y favicon |
+| Vercel | `socias-digitales-flor-preview`, `prj_sSqoKpVKyh399hf0zgHH9dD7QIz7` | Candidato a transferencia al equipo confirmado de Flor |
+| Equipo de origen | `alex-santillan-projects`, `team_MtCKfyDkoBd20Qtc5HdJrTEw` | No transferir el equipo completo ni otros proyectos |
+| Producción al corte | `cc1e1e1438cdf280c87d2206f56a4c818c2074ef`, `dpl_5o5Y63u4kownqugCunUC7exPVFjN` | Registrar nuevamente antes de ejecutar |
+| Dominios | `app.sociasdigitales.com`, alias `flor.sociasdigitales.com` | Mantenerlos; no tocar toda la zona de Socias |
+| GitHub | `Lombardomercato/socias-digitales-app` | Puede permanecer inicialmente; Flor necesita acceso a este repositorio para Claude |
+| Supabase de la app | `yfsyotuykanbugxwxefv` | Mantener Auth/datos/RLS; una transferencia de organización es un paso separado |
+| Supabase de marketing | `kxwqevrmiznycmtgmxiz` | Fuera del alcance; no mover ni mezclar |
+| Cloudflare R2 | Bucket privado `sd-desafio-socias-videos` | Mantener contenido, privacidad y credencial limitada del servidor |
+| Resend | Dominio/remitente Socias ya configurados | Mantener remitente, banner, consentimientos e historial |
+| Push | Claves VAPID actuales | Mantener continuidad de suscripciones; no rotarlas como parte de un simple cambio de equipo |
+| Sheet de encuesta | Copia dedicada referenciada en `src/lib/survey.ts` | Compartir por separado con las personas autorizadas; no confundir con sincronización automática |
 
-Última producción anterior a esta entrega: deployment dpl_9MBS6mQsjkTjWhaztNkqVdu9L9aA, commit 8e7703795cf16eac6d151c14bb3cdee06bd5134e. El deployment de esta entrega debe identificarse en Vercel por su commit; no usar este checkpoint anterior como si ya incluyera el consentimiento.
+## Accesos: son capas independientes
 
-## 3. Cuentas receptoras pendientes
+Flor debe conservar propiedad/facturación del equipo receptor. Nuestra cuenta debe seguir como colaboradora capaz de ver configuración, investigar y desplegar según el alcance que permita el plan; un rol únicamente de lectura no sirve para mantener la app. No compartir una contraseña entre personas.
 
-- Usuario/organización GitHub de Flor.
-- Equipo Vercel receptor y responsable de facturación.
-- Organización Supabase receptora y responsable de facturación.
-- Responsable de Cloudflare/Resend si los servicios se separan.
-- Responsable y contacto de privacidad; términos, aviso de privacidad y alcance de comunicaciones comerciales.
+Vercel Hobby no admite colaboración de equipo y es para uso personal no comercial. Revisar un plan apto para esta operación comercial y sus miembros antes de transferir; no contratar nada sin definición de la responsable. El nombre de cada rol disponible depende del plan: verificar las capacidades efectivas, no prometer una etiqueta universal.
 
-No se han enviado invitaciones, cambiado propietarios, trasladado dominios ni exportado datos personales para esta preparación.
+La administradora de `/admin/equipo` puede administrar la aplicación, no por ello editar código. Para Claude hacen falta repositorio, entorno de desarrollo seguro y permisos técnicos independientes. No entregar a una IA acceso directo irrestricto a producción como sustituto de previews y revisión.
 
-## 4. Acceso para Flor desde Claude
+## Antes de la ventana de transferencia
 
-1. Conceder acceso al repositorio correcto, limitado al proyecto. No compartir cuentas personales ni contraseñas.
-2. Conectar GitHub a Claude Code con los permisos adecuados para ese repositorio.
-3. Leer CLAUDE.md y AGENTS.md; trabajar en ramas y abrir PRs.
-4. Revisar preview, funcionalidad y aprobación antes de publicar.
-5. Dar acceso al proyecto Vercel y Supabase según tareas reales. Administrar permisos técnicos separados del rol admin dentro de la app.
-6. Mantener secretos del servidor fuera de Claude, archivos versionados y frontend. Para desarrollo usar variables entregadas por canal seguro y entorno de pruebas.
+1. Confirmar equipo receptor, titular de facturación, plan y colaborador técnico que debe permanecer. Aceptar/verificar las invitaciones de ambos lados.
+2. Registrar deployment/commit/rama actuales, dominios, variables por nombre, integración Git y roles. Revisar cambios de Flor pendientes, subidas abiertas y correos en cola.
+3. Crear respaldos autorizados de base/Auth y contenido/configuración relevante; guardarlos cifrados fuera de Git. Comprobar cómo se restauran. **Esta entrega no hizo ni certificó una restauración de respaldo.**
+4. Preparar una preview segura y datos de prueba, sin campañas ni modificaciones a alumnas reales. Congelar cambios durante la comprobación, no interrumpir una clase en vivo.
+5. Documentar rollback de código y de datos por separado. Conservar al menos un deployment funcional anterior accesible.
 
-## 5. Configuración que debe conservarse
+## Paso Vercel
 
-Inventario de nombres, NO valores:
+Con la cuenta que administra el origen y acceso al equipo receptor, abrir Settings → General → Transfer Project del **proyecto exacto**. Elegir el equipo de Flor confirmado. Según la documentación de Vercel, el traslado conserva deployments, configuración y variables de proyecto; integraciones y otras dependencias requieren revisión específica. No hacer una nueva app vacía ni mover toda la cuenta.
 
-- NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY.
-- SUPABASE_SERVICE_ROLE_KEY: servidor únicamente.
-- NEXT_PUBLIC_SITE_URL: https://app.sociasdigitales.com.
-- RESEND_API_KEY / RESEND_FROM.
-- R2_S3_ACCOUNT_ID / R2_BUCKET_NAME / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY.
-- NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT.
+Tras la transferencia, verificar en el equipo receptor y desde nuestra cuenta:
 
-Verificar cada entorno (producción/preview/desarrollo) en el gestor de secretos, sin volcar valores a este documento. Mantener el par VAPID si se quieren conservar suscripciones push; rotarlo puede exigir nueva suscripción. Los enlaces de baja actuales usan una firma derivada de la clave del servidor: rotarla invalida enlaces anteriores, pero las preferencias siguen disponibles en el perfil.
+- Dominio/HTTPS y aliases correctos, sin cambios indiscriminados de DNS.
+- Repositorio, rama de producción y capacidad real de desplegar una preview; revisar integraciones que necesiten reconexión.
+- Variables en el entorno correspondiente (no basta ver sus nombres en otro entorno). Logs/observabilidad e integraciones no se presumen trasladados.
+- Registro/confirmación/login, encuesta, permisos, clase privada, progreso, carga de clase y avisos con prueba controlada.
+- Enlaces de confirmación/recuperación en Supabase siguen usando el dominio final; remitente/email y push conservan configuración.
+- Flor es responsable del recurso y nosotros seguimos con el acceso técnico pactado. Registrar acta y deployment de aceptación.
 
-Revisar también: Site URL y redirects de Auth; plantilla/remitente de correos; políticas RLS, funciones y triggers; permisos del bucket y reproducción firmada; dominios de Vercel; integración GitHub; cuotas y planes del equipo receptor.
+No decir “transferido todo” si solo se transfirió Vercel.
 
-## 6. Circuito vigente
+## GitHub y trabajo desde Claude
 
-- /registro: cuenta gratuita, sin aprobación para crear cuenta.
-- /registro/desafio: cuenta vinculada a solicitud del Desafío. Flor habilita, rechaza o cambia luego el acceso.
-- /inicio: panel de alumna; /admin: panel de Flor; /perfil: datos, contraseña y elección de emails.
-- /clases y /lanzamiento: acceso según categoría y habilitación.
-- /notificaciones: bandeja por audiencia; /admin/notificaciones: redactar, guardar borrador, publicar, archivar y canales opcionales.
-- Productos, resultados, objetivos, métricas, checklist, comunidad, logros y ranking: tarjetas visibles, módulos futuros bloqueados. No confundir visibilidad de tarjeta con acceso a datos.
-- /preview/*: muestras, no circuito real ni datos de producción.
+Para empezar, invitar a la cuenta GitHub de Flor al repositorio correcto y conectar su Claude a ese proyecto/rama de entrega. No necesita trasladar el repo para editar con permiso. Se recomienda restringir visibilidad antes de añadir documentación privada; **no se cambió la visibilidad durante esta entrega**.
 
-El esquema usa rol para administración y tipo_usuario para gratuito/desafio/socia; conserva roles afiliada/afiliada_lanzamiento por compatibilidad. No otorgar permisos mediante metadata enviada por la clienta. docs/arquitectura-plataforma.md contiene propuestas anteriores, no certifica que todos sus módulos estén implementados.
+Si después se transfiere propiedad a su usuario/organización: conservar un colaborador técnico con escritura, historial, ramas y protecciones; verificar instalación GitHub/Vercel y actualizar remotos. Probar despliegue desde una rama antes de considerar terminado el traslado. No usar por error el repositorio heredado de herramientas-max.
 
-## 7. Emails y consentimiento
+## Backend y proveedores: segunda etapa
 
-Casilla opcional, desmarcada al registrarse: “Acepto recibir por email avisos de clases, recordatorios y novedades de Socias Digitales”. No condiciona crear cuenta. Confirmación/recuperación de cuenta siguen como servicio separado.
+Supabase: preferir traslado del proyecto existente a una organización de Flor antes que recrear usuarios manualmente. Su procedimiento exige permisos adecuados en origen/destino y revisar integraciones, roles y condiciones de plan. Auth, usuarios y RLS no deben reiniciarse. Revisar el estado real y restricciones de la documentación vigente en esa fecha; nunca trasladar el proyecto de marketing por error.
 
-Cada usuaria cambia su elección en /perfil y puede darse de baja desde el email. Se conserva historial de fecha, versión y origen. Cuentas existentes sin preferencia explícita NO reciben novedades. Flor no puede marcar el consentimiento por otra persona desde su panel.
+R2 y Resend: la transferencia Vercel no les cambia propietario. Acordar mantener acceso delegado o migrarlos en pasos independientes con respaldo, prueba de URLs privadas, credenciales, remitentes y DNS. No rotar/eliminar claves activas ni objetos hasta validar el reemplazo. No copiar secretos a Claude, un documento o el repositorio para “facilitar” la transferencia.
 
-Avisos funcionales dentro de la app se muestran por acceso sin depender del email. Esto no autoriza campañas comerciales ilimitadas ni sustituye revisar el aviso de privacidad y normas aplicables al responsable.
+CORS de R2 al corte: origen `https://app.sociasdigitales.com`, GET/HEAD/PUT, headers `content-type` y `range`, expuestos `ETag`, `Content-Length`, `Accept-Ranges`, `Content-Range`, max age 3600. No es un bucket público. Un preview/local distinto no puede subir con ese CORS: usar un entorno de prueba autorizado y origen explícito, no `*` por comodidad.
 
-En admin, “Enviar también por email” es opcional. Se crea una cola por aviso/usuaria consentida, confirmada y activa; Desafío requiere habilitación. Antes de enviar se revalida consentimiento y acceso. El email usa el banner oficial y enlaza a la bandeja.
+## Configuración que se revisa sin revelar valores
 
-Límite vigente: primer lote de hasta 20 en segundo plano. Otros lotes se continúan con “Procesar pendientes”. Hay idempotencia y hasta 4 intentos dentro de 23 horas; fallas persistentes requieren revisión técnica, no reenvío indiscriminado. Las nuevas autorizaciones no reciben retrospectivamente avisos antiguos. Archivar detiene futuros envíos pendientes, no retira correos ya enviados.
+Ver `.env.example`: sitio, URL/anon Supabase, service role de servidor, Resend/remitente, R2 y VAPID. Vercel maneja los valores por entorno. Confirmar necesidad de reconfiguración en el destino; no enviarlos por email ni publicarlos. Las claves de servidor nunca llevan prefijo `NEXT_PUBLIC_`.
 
-“Aceptado” significa aceptado por Resend, NO confirma entrega o lectura. Pendientes antes de un uso masivo: worker recurrente/durable, webhooks de entrega/rebote, gestión de supresiones y monitoreo. No se hicieron envíos masivos ni se activó consentimiento en todas las cuentas durante la preparación.
+Si se decide rotar claves, hacerlo en una operación separada con plan de continuidad para subidas, sesiones, enlaces firmados, bajas de email y suscripciones push según la clave involucrada. Cambiar propietario de Vercel no exige por sí mismo borrar todas las credenciales.
 
-## 8. Secuencia de transferencia sin interrupción
+## Cierre y pendientes de esta entrega
 
-1. Acordar receptor, propiedad, facturación, soporte y fecha de corte.
-2. Inventariar dependencias y generar copias verificadas de repositorio, base, Auth y videos. Un backup NO está realizado solo porque este checklist exista; documentar fecha y probar recuperación.
-3. Dar acceso colaborativo primero, comprobar que Flor puede abrir repo/proyecto y usar su panel.
-4. Preparar equipo Vercel y organización Supabase receptores; revisar requisitos y costes antes de mover nada.
-5. Transferir repo en ventana acordada y comprobar integración GitHub-Vercel, permisos y previews.
-6. Transferir proyecto Vercel según guía vigente; verificar variables, dominios, aliases y despliegue. Integraciones y observabilidad pueden necesitar reconexión.
-7. Transferir Supabase conservando proyecto, usuarios y datos, si cumple requisitos del proveedor. No crear base vacía ni recrear usuarios por comodidad.
-8. Resolver R2, Resend y DNS separadamente sin afectar servicios compartidos de otros proyectos.
-9. Repetir pruebas de aceptación con cuentas gratuitas, Desafío, Socias y admin.
-10. Registrar nueva titularidad, commit/deployment de corte, backups, accesos retenidos y pendientes. Después rotar credenciales de forma coordinada.
+Preparado: inventario, instrucciones Claude, contrato visual, pruebas de aceptación y rama documental basada en producción. Pendiente: equipo receptor/invitación, revisión de plan/costos, respaldo comprobado, ejecución y aceptación con Flor. Ninguna contraseña se incluye aquí.
 
-## 9. Pruebas de aceptación
+El acta final debe registrar quién es propietario de cada servicio, qué acceso retenemos, quién paga, commit/deployment aceptados, ubicación segura de respaldos y fecha de pruebas. Solo entonces cerrar el traspaso.
 
-- Registro gratuito/Desafío con y sin opt-in; confirmación real en casilla de prueba.
-- Login, recuperación y cambio de contraseña; salir/volver sin rutas al panel viejo.
-- Flor ve solicitudes y puede habilitar/rechazar/cambiar tipo de acceso.
-- Alumna habilitada reproduce clases y puede avanzar/buscar en video sin otro login.
-- Lanzamiento, perfil, menú, iconos y favicon; diseño consistente y pantallas pequeñas.
-- Avisos por audiencia, borradores, publicación, lectura y archivo; aislamiento entre usuarias.
-- Preferencia email guardar/desactivar; baja desde enlace válido; enlace inválido no modifica datos.
-- Email real de prueba: remitente, banner, enlace, baja e historial del proveedor.
-- Push real en teléfono compatible; no basta comprobar que hay claves configuradas.
-- Usuario gratuito y módulos bloqueados no acceden por URL ni API a datos restringidos.
+## Referencias oficiales consultadas
 
-## 10. Estado y pendientes conocidos
+- [Transferencia de proyectos Vercel](https://vercel.com/docs/projects/transferring-projects)
+- [Alcance del plan Hobby](https://vercel.com/docs/accounts/plans/hobby)
+- [Roles de acceso Vercel](https://vercel.com/docs/rbac/access-roles)
+- [Transferencia de proyectos Supabase](https://supabase.com/docs/guides/platform/project-transfer)
+- [Memoria e instrucciones de proyecto de Claude Code](https://code.claude.com/docs/en/memory)
 
-Pruebas técnicas de consentimiento, HTML/baja firmada y cola se realizan sin emails reales mediante transacciones revertidas. Hay que confirmar entrega real en casilla y envío desde una sesión administrativa antes de dar por probado el canal completo. No se guarda ninguna contraseña de prueba aquí.
-
-Seguridad a revisar antes de transferencia definitiva: protección de contraseñas filtradas desactivada; helpers SECURITY DEFINER heredados señalados por Supabase (es_admin y generar_link_afiliada). Auditar el segundo para validar propiedad/autorización. No revocar es_admin sin revisar sus políticas RLS. Tablas de historial/límites de correo sin políticas públicas son intencionalmente solo servidor.
-
-Rollback: volver al deployment estable anterior puede recuperar frontend/backend, pero no revierte migraciones ni correos ya enviados. Estas migraciones son aditivas; no borrar tablas de consentimiento para simular rollback. No cambiar producción, DNS o ownership durante un incidente sin registrar el alcance.
-
-## Fuentes oficiales
-
-- https://vercel.com/docs/projects/transferring-projects
-- https://supabase.com/docs/guides/platform/project-transfer
-- https://docs.github.com/en/enterprise-cloud@latest/repositories/creating-and-managing-repositories/transferring-a-repository
-- https://support.claude.com/en/articles/12618689-claude-code-on-the-web
-- https://resend.com/legal/acceptable-use
-- https://resend.com/changelog/idempotency-keys
-- https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+Revisar su versión vigente al ejecutar una transferencia; este procedimiento es una preparación fechada.
