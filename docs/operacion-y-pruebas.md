@@ -36,6 +36,18 @@ No afirmar recepción porque el estado diga aceptado. Ante un error, conservar e
 
 Resultados en `/admin/encuesta`: filtros, gráficos y CSV. No contar cuenta de prueba ni admins. El Sheet es una copia de trabajo; su enlace no demuestra actualización automática. Cambiar preguntas hoy requiere desarrollo y compatibilidad con respuestas ya guardadas.
 
+### Próximo hito (incorporación del 15/10)
+
+En `/admin/agenda`, Flor puede reemplazar el próximo encuentro: título, fecha, hora Argentina, enlace HTTPS opcional y audiencia Desafío/Socias. **Publicar encuentro** actualiza el banner y el contador de las alumnas habilitadas, con refresco de hasta un minuto mientras la pestaña esté visible. **Guardar oculto** guarda el formulario pero retira ese encuentro de las alumnas; no es un segundo borrador paralelo al encuentro publicado. **Recargar última versión** descarta cambios locales con confirmación. Si otra administradora guardó primero, el conflicto no pisa sus cambios.
+
+Publicar un hito NO envía comunicaciones. Usar Notificaciones por separado, revisar el público y consentimiento y no recrear avisos ya enviados. Si no hay enlace, “Entrar a la clase” se muestra deshabilitado; nunca reciclar un vivo anterior. Al día siguiente de un encuentro sin otro próximo, no queda un contador vencido.
+
+Persistencia: objeto **privado** `plataforma/agenda-v1.json` en el bucket R2 existente, independiente de los videos. Lectura/escritura solo en servidor; validación de sesión, rol administrativo, origen, tamaño y campos; control de concurrencia ETag con `If-Match`/`If-None-Match`. No usar la tabla pública `configuracion` para enlaces privados. No requiere migración SQL ni nuevas credenciales. Respaldar ese objeto junto con el contenido operativo durante la transferencia; copiar solo el código no copia la agenda editada. El estado inicial autorizado, solo si el objeto no existe (404), es Clase 2 del 15/10/2026 a las 19:30, sin enlace.
+
+### Cuenta de prueba
+
+En `/admin/equipo`, “Cuenta de alumna de prueba” permite habilitar los módulos ya desarrollados para el identificador fijo definido en `test-accounts.ts`: clases del Desafío, Estrategia, Resultados, Métricas y Mi día. No permite elegir otra cuenta ni promover administradoras. Conserva respuestas, progreso y rol; asigna Socia activa y permisos individuales. Los módulos aún no desarrollados permanecen restringidos. La cuenta sigue excluida de estadísticas y campañas. Si falla un paso, se informa acceso parcial y se puede reintentar de forma idempotente, sin borrar datos.
+
 ## Preparación técnica de una modificación
 
 Verificar deployment/commit, rama y remotos antes de editar. El repositorio correcto está en `Lombardomercato/socias-digitales-app`; no publicar sobre el origen heredado por error. Trabajar con configuración de prueba segura. Nunca copiar service role a cliente o consola de navegador.

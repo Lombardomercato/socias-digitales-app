@@ -74,12 +74,18 @@ export async function pedirR2(
   query: Record<string, string> = {},
   body = '',
   contentType?: string,
+  condicion?: { 'If-Match': string } | { 'If-None-Match': '*' },
 ) {
   const c = config(key),
     qs = queryString(query),
     payload = hash(body)
-  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date'
-  const headers = `host:${c.host}\nx-amz-content-sha256:${payload}\nx-amz-date:${c.date}\n`
+  const condicionales = condicion
+    ? Object.fromEntries(Object.entries(condicion).map(([k, v]) => [k.toLowerCase(), v]))
+    : {}
+  const paraFirmar: Record<string, string> = { ...condicionales, host: c.host, 'x-amz-content-sha256': payload, 'x-amz-date': c.date }
+  const nombres = Object.keys(paraFirmar).sort()
+  const signedHeaders = nombres.join(';')
+  const headers = nombres.map(k => `${k}:${paraFirmar[k]}\n`).join('')
   const canonical = [method, c.uri, qs, headers, signedHeaders, payload].join(
     '\n',
   )
@@ -89,6 +95,7 @@ export async function pedirR2(
   return fetch(`https://${c.host}${c.uri}${qs ? '?' + qs : ''}`, {
     method,
     headers: {
+      ...condicionales,
       'x-amz-date': c.date,
       'x-amz-content-sha256': payload,
       Authorization: `AWS4-HMAC-SHA256 Credential=${process.env.R2_ACCESS_KEY_ID}/${c.scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,

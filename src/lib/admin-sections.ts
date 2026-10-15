@@ -5,6 +5,7 @@ export const ADMIN_SECTIONS = [
   { href: '/admin/encuesta', label: 'Encuesta', icon: 'encuesta' },
   { href: '/admin/invitar', label: 'Invitaciones', icon: 'invitaciones' },
   { href: '/admin/classroom', label: 'Clases', icon: 'clases' },
+  { href: '/admin/agenda', label: 'Próximo hito', icon: 'calendario' },
   { href: '/admin/equipo', label: 'Equipo', icon: 'solicitudes' },
   { href: '/admin/lanzamiento', label: 'Avances', icon: 'lanzamiento' },
   { href: '/admin/productos', label: 'Productos', icon: 'productos' },

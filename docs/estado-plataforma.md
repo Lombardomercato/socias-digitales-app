@@ -88,7 +88,9 @@ El banner oficial de emails está centralizado en `src/lib/email-brand.ts`. El r
 
 Separar confirmación/recuperación de cuenta (servicio) de novedades (opt-in). En campañas, respetar consentimiento, baja y acceso vigente. La cola es persistente e idempotente, pero todavía faltan un worker recurrente consolidado y webhooks de entrega: “aceptado por Resend” no prueba recepción en casilla. Usar el historial y Procesar pendientes del aviso exacto, sin recrear campañas.
 
-Agenda en `src/lib/agenda.ts` y `src/lib/clase-lanzamiento.ts`, aún sin editor administrativo. Último evento configurado: **13/10/2026, 20:05 Argentina**, enlace `https://www.youtube.com/live/ReuW2yhi0PY`. Al 15/10 ya pasó. No inventar una nueva fecha, mostrar un contador vencido ni anunciar una grabación como vivo. La automatización de ese evento quedó pausada: no reactivarla ni reenviar sus avisos.
+El corte documental inicial tenía agenda fija del 13/10 en código. La incorporación funcional del 15/10 agrega `/admin/agenda`: edición por Flor de título, fecha, hora Argentina, enlace y audiencia; persistencia privada en R2 con control de concurrencia. Ver operación y límites en `operacion-y-pruebas.md`. Estado inicial autorizado: **Clase 2 · Elegí nicho y producto ganador, 15/10/2026 a las 19:30 Argentina**, sin enlace confirmado. No reutilizar automáticamente el YouTube del 13/10. Publicar un hito no envía email/push por sí solo. La automatización del evento del 13/10 quedó pausada: no reactivarla ni reenviar sus avisos.
+
+La misma incorporación agrega un control administrativo acotado a la cuenta de prueba real en Equipo para activar los módulos desarrollados sin convertirla en admin ni incluirla en estadísticas. La documentación de versiones de la sección 1 corresponde al corte previo: verificar el deployment funcional que publique esta incorporación antes de usarlo como fuente actual.
 
 ## 7. Mapa de código
 

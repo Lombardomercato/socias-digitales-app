@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminSectionMenu from '@/components/AdminSectionMenu'
 
@@ -13,10 +13,12 @@ export default function EquipoAdmin({
   personas,
   actualId,
   errorCarga,
+  children,
 }: {
   personas: Persona[]
   actualId: string
   errorCarga: boolean
+  children?: ReactNode
 }) {
   const router = useRouter(),
     [nombre, setNombre] = useState(''),
@@ -234,6 +236,7 @@ export default function EquipoAdmin({
             )}
           </div>
         </section>
+        {children}
       </div>
     </main>
   )

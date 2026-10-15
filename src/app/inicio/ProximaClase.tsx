@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { AGENDA_SOCIAS, cuentaRegresiva, fechaHito, proximoHito, type HitoAgenda } from '@/lib/agenda'
 import ArrowIcon from '@/components/ArrowIcon'
+import { useAgenda } from './AgendaProvider'
 
 export default function ProximaClase({ ahoraInicial, hitos = AGENDA_SOCIAS, variante = 'banner' }: { ahoraInicial: number; hitos?: readonly HitoAgenda[]; variante?: 'banner' | 'contador' }) {
+  const agenda = useAgenda()
   const [ahora, setAhora] = useState(ahoraInicial)
   useEffect(() => {
     const actualizar = () => setAhora(Date.now())
@@ -14,7 +16,8 @@ export default function ProximaClase({ ahoraInicial, hitos = AGENDA_SOCIAS, vari
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', alVolver) }
   }, [])
 
-  const hito = proximoHito(hitos, ahora)
+  const hito = proximoHito(agenda?.hitos ?? hitos, ahora)
+  if (agenda?.error && variante === 'banner') return <section role="status" className="rounded-2xl border border-[#E7DDD5] bg-white px-5 py-4 text-sm text-[#746A64]">No pudimos actualizar el próximo encuentro. Volvé a cargar la página para confirmar el horario.</section>
   if (!hito && variante === 'contador') return null
   if (!hito) return <section aria-label="Próximo hito" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#EC9BB6]/50 bg-white px-5 py-3">
     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#294A38]">Próximo hito</p>
@@ -39,7 +42,7 @@ export default function ProximaClase({ ahoraInicial, hitos = AGENDA_SOCIAS, vari
     </div>
 
   if (variante === 'contador') return <section aria-label="Cuenta regresiva del próximo encuentro" className="mt-7 rounded-[20px] border border-[#F4CAD8] bg-[#F4CAD8] p-3">
-    <h2 className="mb-3 text-center font-serif text-lg font-bold text-[#171413]">{hito.titulo}</h2>
+    <h2 className="mb-3 break-words text-center font-serif text-lg font-bold text-[#171413]">{hito.titulo}</h2>
     {contador}
     <div className="mt-3 text-center text-[11px] leading-5 text-[#655B56]">
       <p className="font-medium text-[#171413]">{fecha.dia} {fecha.fecha}</p>
@@ -51,7 +54,7 @@ export default function ProximaClase({ ahoraInicial, hitos = AGENDA_SOCIAS, vari
     <div className="w-[88px] shrink-0 lg:hidden">{contador}</div>
     <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-5 gap-y-2">
       <div className="min-w-0">
-        <h2 className="font-serif text-xl font-semibold leading-tight">{hito.titulo} <span className="ml-1 hidden font-sans text-xs font-medium text-[#655B56] sm:inline">· Agendá tu clase</span></h2>
+        <h2 className="break-words font-serif text-xl font-semibold leading-tight">{hito.titulo} <span className="ml-1 hidden font-sans text-xs font-medium text-[#655B56] sm:inline">· Agendá tu clase</span></h2>
         <p className="mt-1 text-[11px] leading-5 text-[#51443F]">{fecha.dia} {fecha.fecha} · <time dateTime={hito.fecha}>{fecha.hora} hora Argentina</time></p>
       </div>
       <div className="flex shrink-0 flex-col items-center text-center">

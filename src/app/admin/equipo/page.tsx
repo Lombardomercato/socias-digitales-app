@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { autorizarAdmin } from '@/lib/admin-auth'
 import { FILTRO_CUENTAS_PRUEBA } from '@/lib/test-accounts'
 import EquipoAdmin from './EquipoAdmin'
+import CuentaPrueba from './CuentaPrueba'
 import {
   createAdminClient,
   isAdminSupabaseConfigured,
@@ -35,6 +36,6 @@ export default async function EquipoPage() {
       personas={personas}
       errorCarga={Boolean(error || errorDirectorio)}
       actualId={auth.user.id}
-    />
+    ><CuentaPrueba /></EquipoAdmin>
   )
 }

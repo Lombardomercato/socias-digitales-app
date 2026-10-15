@@ -12,6 +12,10 @@ import { UnreadNoticesProvider, UnreadNoticeLink } from '@/components/UnreadNoti
 import { permisoResultados } from '@/lib/results-server'
 import { permisoMetricas } from '@/lib/metrics-server'
 import { permisoMiDia } from '@/lib/my-day-server'
+import { AgendaProvider } from './AgendaProvider'
+import { leerAgenda } from '@/lib/agenda-store'
+import { hitoParaAlumna } from '@/lib/agenda-management'
+import type { HitoAgenda } from '@/lib/agenda'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -24,7 +28,7 @@ export default async function InicioPage() {
 
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('nombre, avatar_url, rol, tipo_usuario, desafio_socias_habilitada, desafio_socias_estado')
+    .select('nombre, avatar_url, rol, tipo_usuario, estado, desafio_socias_habilitada, desafio_socias_estado')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -43,8 +47,14 @@ export default async function InicioPage() {
   const esGratuito = tipoUsuario === 'gratuito' && !habilitada
   const clasesGratuitas = esGratuito && perfil ? await leerCatalogoClases(perfil) : []
   const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
+  let hitos: HitoAgenda[] = [], errorAgenda = false
+  if (mostrarClase && perfil) {
+    try { hitos = hitoParaAlumna((await leerAgenda()).hito, perfil) }
+    catch { errorAgenda = true; console.error('agenda_read_failed') }
+  }
   return (
     <UnreadNoticesProvider inicial={resumenAvisos}>
+    <AgendaProvider inicial={hitos} errorInicial={errorAgenda}>
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
       <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
         <Link href="/inicio" aria-label="Socias Digitales, inicio">
@@ -124,6 +134,7 @@ export default async function InicioPage() {
         </main>
       </div>
     </div>
+    </AgendaProvider>
     </UnreadNoticesProvider>
   )
 }
