@@ -13,10 +13,10 @@ Fecha: 15/10/2026. Complementa el inventario de `estado-plataforma.md`. No inclu
 
 ### Subir y organizar una clase
 
-1. Entrar en `/admin/classroom`; elegir o crear el programa y guardar datos de la clase inicialmente sin publicar.
+1. Entrar en `/admin/classroom`; elegir o crear el programa y completar la ficha. El editor muestra **Ficha → Video → Publicar**. Sin video, **Guardar borrador y continuar al video** conserva la clase oculta y abre el selector de archivo dentro del mismo editor; la opción de publicación permanece deshabilitada.
 2. Cargar el archivo desde ese panel. Preferir MP4 H.264/AAC. Esperar la finalización de la subida y del guardado antes de cerrar la ventana.
 3. Si se interrumpe, usar los controles de reintento de esa carga, sin crear clases duplicadas. No se garantiza continuar después de cerrar la ventana.
-4. Comprobar video, título, programa, orden y modalidad gratuita/privada; publicar solo el contenido que corresponde.
+4. Comprobar video, título, programa, orden y modalidad gratuita/privada. Activar **Publicar en la biblioteca al guardar** y presionar **Guardar y publicar clase**. Subir un video a un borrador no lo publica automáticamente. Un enlace de Vimeo válido también habilita la publicación; texto o enlaces incompletos no. Las clases ya publicadas conservan su estado al guardar cambios.
 5. Revisar como alumna real autorizada, no solo como admin. Comprobar también que una cuenta sin acceso no recibe el video privado.
 6. Seguimiento muestra progreso por programa. Completada es una marca de la alumna, no una certificación de reproducción íntegra.
 

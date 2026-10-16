@@ -18,6 +18,17 @@ export function validarVideo(nombre: unknown, bytes: unknown) {
     bytes <= MAX_VIDEO_BYTES
   )
 }
+export function puedePublicarClase(ficha: {
+  tieneVideo: boolean
+  vimeo_url: string | null
+}) {
+  return (
+    ficha.tieneVideo ||
+    /^https:\/\/(?:www\.)?vimeo\.com\/\d+(?:\/\w+)?$/.test(
+      ficha.vimeo_url?.trim() ?? '',
+    )
+  )
+}
 export function datosClase(input: Record<string, unknown>) {
   const titulo = typeof input.titulo === 'string' ? input.titulo.trim() : ''
   const modulo =

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AdminSectionMenu from '@/components/AdminSectionMenu'
 import { createClient } from '@/lib/supabase/client'
-import { PROGRAMAS_INICIALES } from '@/lib/class-management'
+import { PROGRAMAS_INICIALES, puedePublicarClase } from '@/lib/class-management'
 import VideoUpload from './VideoUpload'
 import ClassProgressAdmin, {type EstadisticaClase} from './ClassProgressAdmin'
 
@@ -73,13 +73,23 @@ export default function ClassroomAdmin({
     [programaNuevo, setProgramaNuevo] = useState(''),
     [programasLocales, setProgramasLocales] = useState<string[]>([])
   const dialogRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLDivElement>(null)
+  const continuarAlVideo = useRef(false)
   const editorAbierto = Boolean(ficha)
+  const puedePublicar = ficha ? puedePublicarClase(ficha) : false
+  const pasoActual = !ficha?.id ? 1 : puedePublicar ? 3 : 2
   useEffect(() => {
     if (!editorAbierto) return
     const anterior = document.activeElement as HTMLElement | null
     dialogRef.current?.querySelector<HTMLInputElement>('input')?.focus()
     return () => anterior?.focus()
   }, [editorAbierto])
+  useEffect(() => {
+    if (!ficha?.id || !continuarAlVideo.current) return
+    continuarAlVideo.current = false
+    videoRef.current?.scrollIntoView({ block: 'nearest' })
+    videoRef.current?.querySelector<HTMLInputElement>('input[type="file"]')?.focus({ preventScroll: true })
+  }, [ficha?.id])
   const programas = [
     ...new Set([
       ...PROGRAMAS_INICIALES,
@@ -99,13 +109,21 @@ export default function ClassroomAdmin({
   }
   async function guardar(e: React.FormEvent) {
     e.preventDefault()
-    if (!ficha) return
+    if (!ficha || guardando || cargando) return
     setGuardando(true)
     setModalError('')
     try {
-      const data = await api(ficha)
-      setFicha({ ...ficha, id: data.id })
-      setAviso('Ficha guardada.')
+      // Una ficha sin video siempre se guarda como borrador, incluso si
+      // conservó una selección de publicación de un estado anterior.
+      const datos = { ...ficha, activo: ficha.activo && puedePublicarClase(ficha) }
+      const data = await api(datos)
+      continuarAlVideo.current = !ficha.id && !puedePublicarClase(ficha)
+      setFicha({ ...datos, id: data.id })
+      setAviso(
+        datos.activo
+          ? 'Clase publicada.'
+          : 'Borrador guardado; todavía no es visible para las alumnas.',
+      )
       router.refresh()
     } catch (cause) {
       setModalError(
@@ -116,6 +134,7 @@ export default function ClassroomAdmin({
     }
   }
   async function archivar(c: Clase) {
+    if (!c.activo && !puedePublicarClase({ tieneVideo: Boolean(c.video_key), vimeo_url: c.vimeo_url })) return
     if (
       !window.confirm(
         `¿${c.activo ? 'Ocultar' : 'Publicar'} “${c.titulo}”? ${c.activo ? 'No se borrará el video ni la ficha.' : ''}`,
@@ -376,7 +395,9 @@ export default function ClassroomAdmin({
                                 </button>
                                 <button
                                   onClick={() => void archivar(c)}
-                                  className="min-h-11 rounded-full border border-[#D8CFC8] px-4 py-3 text-xs"
+                                  disabled={!c.activo && !puedePublicarClase({ tieneVideo: Boolean(c.video_key), vimeo_url: c.vimeo_url })}
+                                  title={!c.activo && !c.video_key && !c.vimeo_url ? 'Cargá el video desde Editar / subir video antes de publicar.' : undefined}
+                                  className="min-h-11 rounded-full border border-[#D8CFC8] px-4 py-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   {c.activo ? 'Ocultar' : 'Publicar'}
                                 </button>
@@ -449,7 +470,7 @@ export default function ClassroomAdmin({
           onKeyDown={(e) => {
             if (e.key === 'Escape' && !cargando && !guardando) setFicha(null)
             if (e.key === 'Tab') {
-              const controls = [...e.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea, select, summary, a[href]')].filter(el => el.getClientRects().length > 0)
+              const controls = [...e.currentTarget.querySelectorAll<HTMLElement>('button, input, textarea, select, summary, a[href]')].filter(el => !el.matches(':disabled') && el.getClientRects().length > 0)
               const first = controls[0], last = controls[controls.length - 1]
               if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus() }
               else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus() }
@@ -473,7 +494,15 @@ export default function ClassroomAdmin({
                 ×
               </button>
             </div>
+            <ol aria-label="Pasos para publicar una clase" className="mt-4 grid grid-cols-3 gap-2 text-xs">
+              {['Ficha', 'Video', 'Publicar'].map((paso, i) => (
+                <li key={paso} aria-current={pasoActual === i + 1 ? 'step' : undefined} className={`rounded-xl border px-3 py-2 ${pasoActual === i + 1 ? 'border-[#EC9BB6] bg-[#F4CAD8] font-semibold' : 'border-[#E7DDD5] text-[#746A64]'}`}>
+                  {i + 1}. {paso}
+                </li>
+              ))}
+            </ol>
             <form onSubmit={guardar} className="mt-5 space-y-4">
+              <fieldset disabled={guardando || cargando} className="space-y-4">
               <label className="block text-sm">
                 Título
                 <input
@@ -539,9 +568,10 @@ export default function ClassroomAdmin({
                   <input
                     type="url"
                     value={ficha.vimeo_url}
-                    onChange={(e) =>
-                      setFicha({ ...ficha, vimeo_url: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const siguiente = { ...ficha, vimeo_url: e.target.value }
+                      setFicha({ ...siguiente, activo: ficha.activo && puedePublicarClase(siguiente) })
+                    }}
                     className={inputStyle}
                     placeholder="https://vimeo.com/123456789"
                   />
@@ -563,13 +593,20 @@ export default function ClassroomAdmin({
               <label className="flex min-h-11 items-center gap-3 text-sm">
                 <input
                   type="checkbox"
-                  checked={ficha.activo}
+                  disabled={!puedePublicar}
+                  aria-describedby="clase-publicacion-ayuda"
+                  checked={ficha.activo && puedePublicar}
                   onChange={(e) =>
                     setFicha({ ...ficha, activo: e.target.checked })
                   }
                 />
-                Publicada: visible en la biblioteca
+                Publicar en la biblioteca al guardar
               </label>
+              <p id="clase-publicacion-ayuda" className="text-sm text-[#746A64]">
+                {puedePublicar
+                  ? 'El video está listo. Activá esta opción y guardá para que las alumnas vean la clase.'
+                  : 'La publicación se habilita cuando cargues el video o agregues un enlace de Vimeo válido. Podés guardar el borrador ahora.'}
+              </p>
               {modalError && (
                 <p role="alert" className="text-sm text-[#B01B30]">
                   {modalError}
@@ -581,16 +618,20 @@ export default function ClassroomAdmin({
               >
                 {guardando
                   ? 'Guardando…'
-                  : ficha.id
-                    ? 'Guardar cambios'
-                    : 'Guardar ficha para subir video'}
+                  : ficha.activo && puedePublicar
+                    ? 'Guardar y publicar clase'
+                    : !ficha.id && !puedePublicar
+                      ? 'Guardar borrador y continuar al video'
+                      : 'Guardar borrador'}
               </button>
+              </fieldset>
             </form>
-            <div className="mt-5">
+            <div ref={videoRef} className="mt-5">
               {ficha.id ? (
                 <VideoUpload
                   key={ficha.id}
                   claseId={ficha.id}
+                  tieneVideo={ficha.tieneVideo}
                   onBusy={setCargando}
                   onUploaded={() => {
                     setFicha((p) =>
@@ -604,8 +645,8 @@ export default function ClassroomAdmin({
                 />
               ) : (
                 <p className="rounded-2xl border border-[#E7DDD5] p-4 text-sm text-[#746A64]">
-                  Primero guardá la ficha como borrador. Después elegí el video
-                  desde este mismo editor.
+                  Al guardar el borrador aparecerá aquí el selector de archivo.
+                  La clase no se publica hasta que el video esté listo y vos lo confirmes.
                 </p>
               )}
             </div>

@@ -15,10 +15,12 @@ async function api(body: Record<string, unknown>) {
 }
 export default function VideoUpload({
   claseId,
+  tieneVideo = false,
   onUploaded,
   onBusy,
 }: {
   claseId: string
+  tieneVideo?: boolean
   onUploaded: () => void
   onBusy: (busy: boolean) => void
 }) {
@@ -201,6 +203,11 @@ export default function VideoUpload({
   return (
     <section className="rounded-2xl border border-[#E7DDD5] bg-white p-4">
       <h3 className="font-impact text-sm font-semibold">Video de la clase</h3>
+      <p role="status" className="mt-2 text-sm text-[#294A38]">
+        {done || tieneVideo
+          ? 'Video privado cargado. Elegir otro archivo reemplaza el video al finalizar la nueva carga.'
+          : 'Ficha guardada. Elegí el archivo para cargar el video.'}
+      </p>
       <p className="mt-2 text-xs leading-5 text-[#746A64]">
         MP4 · hasta 8 GB por archivo. Recomendado: H.264 + audio AAC, 720p o
         1080p. No se comprime automáticamente.
