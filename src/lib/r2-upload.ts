@@ -7,7 +7,7 @@ const enc = (s: string) =>
     /[!'()*]/g,
     (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
   )
-const hash = (s: string) => createHash('sha256').update(s).digest('hex')
+const hash = (s: string | Uint8Array) => createHash('sha256').update(s).digest('hex')
 const hmac = (key: Buffer | string, value: string) =>
   createHmac('sha256', key).update(value).digest()
 export function r2Configurado() {
@@ -72,7 +72,7 @@ export async function pedirR2(
   method: string,
   key: string,
   query: Record<string, string> = {},
-  body = '',
+  body: string | Uint8Array<ArrayBuffer> = '',
   contentType?: string,
   condicion?: { 'If-Match': string } | { 'If-None-Match': '*' },
   opciones?: { sinCompresion?: boolean },
@@ -103,7 +103,7 @@ export async function pedirR2(
       Authorization: `AWS4-HMAC-SHA256 Credential=${process.env.R2_ACCESS_KEY_ID}/${c.scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
       ...(contentType ? { 'Content-Type': contentType } : {}),
     },
-    ...(body ? { body } : {}),
+    ...(body.length ? { body } : {}),
     cache: 'no-store',
     signal: AbortSignal.timeout(25_000),
   })

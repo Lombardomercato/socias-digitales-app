@@ -26,6 +26,7 @@ function editor(ficha, extra = {}, busy = false) {
     '@/lib/class-management': management,
     './VideoUpload': { default: props => React.createElement('section', { 'data-upload-for': props.claseId }, 'Elegir archivo') },
     './ClassProgressAdmin': { default: () => null },
+    '@/components/ClassVideoThumbnail': { default: () => null },
   }).default
   const tree = Component({ clases: [], alumnas: [], ...extra })
   function find(predicate, node = tree) {

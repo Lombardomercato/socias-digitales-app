@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { validarVideo } from '@/lib/class-management'
+import { extraerMiniatura } from '@/lib/video-thumbnail-client'
 
 async function api(body: Record<string, unknown>) {
   const response = await fetch('/api/admin/clases/video', {
@@ -41,6 +42,8 @@ export default function VideoUpload({
     running = useRef(false)
   const [hasUpload, setHasUpload] = useState(false)
   const [playable, setPlayable] = useState(false)
+  const captura = useRef<Promise<Blob | null> | null>(null)
+  const cancelarCaptura = useRef<AbortController | null>(null)
   useEffect(
     () => () => {
       if (preview) URL.revokeObjectURL(preview)
@@ -51,6 +54,7 @@ export default function VideoUpload({
     () => () => {
       pause.current = true
       xhr.current?.abort()
+      cancelarCaptura.current?.abort()
     },
     [],
   )
@@ -67,7 +71,11 @@ export default function VideoUpload({
       return
     }
     setFile(next)
-    setPreview(URL.createObjectURL(next))
+    const localUrl = URL.createObjectURL(next)
+    setPreview(localUrl)
+    cancelarCaptura.current?.abort()
+    cancelarCaptura.current = new AbortController()
+    captura.current = extraerMiniatura(localUrl, cancelarCaptura.current.signal).catch(() => null)
   }
   async function start() {
     if (!file || !playable || running.current) return
@@ -154,6 +162,18 @@ export default function VideoUpload({
       if (!pause.current) {
         setFinishing(true)
         await api({ action: 'finalizar', token: current.token })
+        // No afecta al video si falla una captura. El panel vuelve a intentar
+        // automáticamente generar miniaturas pendientes al mostrar la tarjeta.
+        try {
+          const imagen = await captura.current
+          if (imagen) {
+            const info = await fetch(`/api/classroom/${claseId}/miniatura`, { cache: 'no-store' })
+            if (info.headers.get('content-type')?.includes('application/json')) {
+              const { revision } = await info.json()
+              if (revision) await fetch(`/api/admin/clases/${claseId}/miniatura?revision=${encodeURIComponent(revision)}`, { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: imagen })
+            }
+          }
+        } catch { /* La clase se conserva aunque la miniatura no esté disponible. */ }
         setProgress(100)
         setDone(true)
         upload.current = null
@@ -210,7 +230,7 @@ export default function VideoUpload({
       </p>
       <p className="mt-2 text-xs leading-5 text-[#746A64]">
         MP4 · hasta 8 GB por archivo. Recomendado: H.264 + audio AAC, 720p o
-        1080p. No se comprime automáticamente.
+        1080p. No se comprime automáticamente. La miniatura se toma del video.
       </p>
       {!done && (
         <label className="mt-3 block text-sm">

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { autorizarAdmin } from '@/lib/admin-auth'
-import { datosClase, esUuid } from '@/lib/class-management'
+import { datosClase, esUuid, ubicacionClase, clasificacionClase } from '@/lib/class-management'
 
 export async function POST(request: Request) {
   const auth = await autorizarAdmin(request)
@@ -14,16 +14,22 @@ export async function POST(request: Request) {
         typeof input.nuevo === 'string'
           ? input.nuevo.trim().replace(/\s+/g, ' ')
           : ''
-      if (!anterior || !nuevo || anterior.length > 100 || nuevo.length > 100)
+      if (!anterior || !clasificacionClase(nuevo) || anterior.length > 100)
         return NextResponse.json(
           { error: 'Revisá el nombre del programa.' },
           { status: 400 },
         )
-      const { error } = await auth.supabase
-        .from('clases')
-        .update({ modulo: nuevo })
-        .eq('modulo', anterior)
+      const { data: actuales, error } = await auth.supabase.from('clases').select('id,modulo')
       if (error) throw error
+      const nombres = [...new Set((actuales ?? []).map(c => c.modulo as string))]
+      for (const modulo of nombres) {
+        const lugar = ubicacionClase(modulo)
+        if (lugar.programa !== ubicacionClase(anterior).programa) continue
+        const destino = clasificacionClase(nuevo, lugar.seccion)
+        if (!destino) return NextResponse.json({ error: 'Revisá el nombre del programa.' }, { status: 400 })
+        const saved = await auth.supabase.from('clases').update({ modulo: destino }).eq('modulo', modulo)
+        if (saved.error) throw saved.error
+      }
       return NextResponse.json({ ok: true })
     }
     const datos = datosClase(input)

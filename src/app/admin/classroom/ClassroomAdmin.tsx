@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AdminSectionMenu from '@/components/AdminSectionMenu'
 import { createClient } from '@/lib/supabase/client'
-import { PROGRAMAS_INICIALES, puedePublicarClase } from '@/lib/class-management'
+import { PROGRAMAS_INICIALES, SECCIONES_CLASE, ubicacionClase, clasificacionClase, ordenarClases, puedePublicarClase, type SeccionClase } from '@/lib/class-management'
 import VideoUpload from './VideoUpload'
 import ClassProgressAdmin, {type EstadisticaClase} from './ClassProgressAdmin'
+import ClassVideoThumbnail from '@/components/ClassVideoThumbnail'
 
 interface Clase {
   id: string
@@ -40,7 +41,7 @@ const vacia: Ficha = {
   titulo: '',
   descripcion: '',
   vimeo_url: '',
-  modulo: 'Desafío Socias en vivo',
+  modulo: 'Desafío Socias',
   orden: 0,
   activo: false,
   acceso_gratuito: false,
@@ -93,7 +94,7 @@ export default function ClassroomAdmin({
   const programas = [
     ...new Set([
       ...PROGRAMAS_INICIALES,
-      ...clases.map((c) => c.modulo),
+      ...clases.map((c) => ubicacionClase(c.modulo).programa),
       ...programasLocales,
     ]),
   ]
@@ -188,6 +189,7 @@ export default function ClassroomAdmin({
       c
         ? {
             ...c,
+            modulo: clasificacionClase(ubicacionClase(c.modulo).programa, ubicacionClase(c.modulo).seccion) ?? c.modulo,
             descripcion: c.descripcion ?? '',
             vimeo_url: c.vimeo_url ?? '',
             tieneVideo: Boolean(c.video_key),
@@ -195,8 +197,10 @@ export default function ClassroomAdmin({
         : {
             ...vacia,
             modulo: modulo ?? vacia.modulo,
-            orden: clases.filter((c) => c.modulo === (modulo ?? vacia.modulo))
-              .length,
+            orden: clases.filter((c) => {
+              const actual = ubicacionClase(c.modulo), destino = ubicacionClase(modulo ?? vacia.modulo)
+              return actual.programa === destino.programa && actual.seccion === destino.seccion
+            }).reduce((max, c) => Math.max(max, c.orden), -1) + 1,
           },
     )
   }
@@ -308,7 +312,7 @@ export default function ClassroomAdmin({
                   Nuevo programa
                   <input
                     required
-                    maxLength={100}
+                    maxLength={75}
                     value={programaNuevo}
                     onChange={(e) => setProgramaNuevo(e.target.value)}
                     className={inputStyle}
@@ -324,13 +328,13 @@ export default function ClassroomAdmin({
               {programas
                 .filter((p) => filtro === 'Todos' || p === filtro)
                 .map((programa) => {
-                  const contenido = clases.filter((c) => c.modulo === programa)
+                  const contenido = ordenarClases(clases.filter((c) => ubicacionClase(c.modulo).programa === programa))
                   return (
-                    <section
+                    <details
                       key={programa}
                       className="rounded-3xl border border-[#E7DDD5] bg-[#FAF7F3] p-4 sm:p-6"
                     >
-                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
                         <div className="min-w-0">
                           <p className="text-xs text-[#746A64]">
                             Programa · {contenido.length} clases
@@ -339,7 +343,9 @@ export default function ClassroomAdmin({
                             {programa}
                           </h2>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <span aria-hidden="true" className="text-xl text-[#294A38]">⌄</span>
+                      </summary>
+                        <div className="my-4 flex flex-wrap gap-2">
                           {contenido.length > 0 && (
                             <button
                               onClick={() => void renombrar(programa)}
@@ -355,21 +361,24 @@ export default function ClassroomAdmin({
                             + Agregar clase
                           </button>
                         </div>
-                      </div>
                       {contenido.length ? (
+                        <div className="space-y-4">
+                        {SECCIONES_CLASE.map(seccion => {
+                          const videos = contenido.filter(c => ubicacionClase(c.modulo).seccion === seccion)
+                          if (!videos.length && programa === 'Bienvenida') return null
+                          return <section key={seccion} aria-label={`${programa}: ${seccion}`}>
+                          {programa !== 'Bienvenida' && <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="font-impact text-base font-semibold">{seccion} <span className="font-normal text-[#746A64]">· {videos.length}</span></h3><button type="button" onClick={() => abrir(undefined, clasificacionClase(programa, seccion)!)} className="min-h-11 rounded-full border border-[#D8CFC8] px-4 py-2 text-xs">+ Agregar a {seccion.toLocaleLowerCase('es')}</button></div>}
                         <div className="grid gap-3 lg:grid-cols-2">
-                          {contenido.map((c) => (
+                          {videos.map((c, index) => (
                             <article
                               key={c.id}
                               className="rounded-2xl border border-[#E7DDD5] bg-white p-4"
                             >
                               <div className="flex items-start gap-3">
-                                <span className="font-impact flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold">
-                                  {String(c.orden + 1).padStart(2, '0')}
-                                </span>
+                                <div className="w-24 shrink-0"><ClassVideoThumbnail id={c.id} titulo={c.titulo} disponible={Boolean(c.video_key)} esAdmin revision={c.video_key ?? ''} /></div>
                                 <div className="min-w-0 flex-1">
                                   <h3 className="break-words font-impact text-sm font-semibold">
-                                    {c.titulo}
+                                    {String(index + 1).padStart(2, '0')} · {c.titulo}
                                   </h3>
                                   <p className="mt-2 text-xs leading-5 text-[#746A64]">
                                     {c.activo ? 'Publicada' : 'Borrador'} ·{' '}
@@ -413,13 +422,17 @@ export default function ClassroomAdmin({
                             </article>
                           ))}
                         </div>
+                          {!videos.length && <p className="rounded-xl border border-dashed border-[#D8CFC8] p-4 text-sm text-[#746A64]">Todavía no hay videos en esta sección.</p>}
+                          </section>
+                        })}
+                        </div>
                       ) : (
                         <p className="rounded-2xl border border-dashed border-[#D8CFC8] p-5 text-sm text-[#746A64]">
                           Agregá la primera clase. Los borradores no aparecen a
                           las alumnas.
                         </p>
                       )}
-                    </section>
+                    </details>
                   )
                 })}
             </div>
@@ -519,11 +532,11 @@ export default function ClassroomAdmin({
                 Programa
                 <input
                   required
-                  maxLength={100}
+                  maxLength={75}
                   list="programas-clase"
-                  value={ficha.modulo}
+                  value={ficha.modulo.split(' › ')[0]}
                   onChange={(e) =>
-                    setFicha({ ...ficha, modulo: e.target.value })
+                    setFicha({ ...ficha, modulo: e.target.value + (e.target.value !== 'Bienvenida' && ubicacionClase(ficha.modulo).seccion === 'Material de apoyo' ? ' › Material de apoyo' : '') })
                   }
                   className={inputStyle}
                 />
@@ -533,6 +546,7 @@ export default function ClassroomAdmin({
                   ))}
                 </datalist>
               </label>
+              {ubicacionClase(ficha.modulo).programa !== 'Bienvenida' && <label className="block text-sm">Sección<select value={ubicacionClase(ficha.modulo).seccion} onChange={e => setFicha({ ...ficha, modulo: clasificacionClase(ubicacionClase(ficha.modulo).programa, e.target.value as SeccionClase) ?? ficha.modulo })} className={inputStyle}>{SECCIONES_CLASE.map(seccion => <option key={seccion}>{seccion}</option>)}</select></label>}
               <label className="block text-sm">
                 Descripción
                 <textarea
@@ -546,7 +560,7 @@ export default function ClassroomAdmin({
                 />
               </label>
               <label className="block text-sm">
-                Posición dentro del programa
+                Posición dentro de la sección
                 <input
                   type="number"
                   required

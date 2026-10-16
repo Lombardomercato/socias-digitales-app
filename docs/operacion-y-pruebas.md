@@ -13,6 +13,12 @@ Fecha: 15/10/2026. Complementa el inventario de `estado-plataforma.md`. No inclu
 
 ### Subir y organizar una clase
 
+Organización: **Programa → Sección → Clase**. Bienvenida es independiente del Desafío; su contenido se presenta directamente. Desafío Socias contiene **Clases** y **Material de apoyo**, con orden por sección. Los programas son plegables, sin portadas; las miniaturas corresponden a los videos. Elegir programa y sección en el editor o usar “Agregar a material de apoyo”. Mover una clase conserva su ID, archivo, publicación, acceso y progreso.
+
+Compatibilidad sin cambiar esquema: el campo existente `clases.modulo` conserva el programa para Clases y serializa el apoyo como `Programa › Material de apoyo`. Usar `ubicacionClase`/`clasificacionClase`, no dividir o comparar el campo a mano. Los nombres anteriores Introducción y Desafío Socias en vivo se muestran como Bienvenida y Desafío Socias sin duplicar datos. La siguiente clase y los filtros respetan programa/sección; el seguimiento agrupa por programa. Límite de nombres nuevos: 75 caracteres, sin `›`.
+
+Miniaturas automáticas de MP4 privados: captura local de un fotograma al elegir el archivo, JPEG de hasta 20 KB, guardado en R2 privado bajo `miniaturas/<clase>/<revisión>.jpg`. Para videos anteriores, la administración genera pendientes automáticamente al mostrar cada tarjeta, de a uno; no requiere diseñar o subir una portada. Las alumnas solo leen la imagen ya generada y autorizada, sin descargar el video para obtenerla. La revisión depende del archivo: reemplazar un video no reutiliza la miniatura anterior. GET/POST verifican usuario y acceso/rol; nunca hacer público el bucket. Si un codec/navegador impide la captura, se conserva un marcador neutro y el video sigue disponible. No se garantiza captura de enlaces externos de Vimeo ni transcodificación automática. Respaldar también `miniaturas/` al transferir.
+
 1. Entrar en `/admin/classroom`; elegir o crear el programa y completar la ficha. El editor muestra **Ficha → Video → Publicar**. Sin video, **Guardar borrador y continuar al video** conserva la clase oculta y abre el selector de archivo dentro del mismo editor; la opción de publicación permanece deshabilitada.
 2. Cargar el archivo desde ese panel. Preferir MP4 H.264/AAC. Esperar la finalización de la subida y del guardado antes de cerrar la ventana.
 3. Si se interrumpe, usar los controles de reintento de esa carga, sin crear clases duplicadas. No se garantiza continuar después de cerrar la ventana.

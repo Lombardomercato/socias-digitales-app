@@ -2,9 +2,11 @@
 
 import { useCallback, useState } from 'react'
 import ClassPlayer from './ClassPlayer'
-import { claseParaContinuar, resumenPrograma, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
+import ClassroomProgram from './ClassroomProgram'
+import { ubicacionClase, ordenarClases } from '@/lib/class-management'
+import { claseParaContinuar, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
 
-interface Clase {
+export interface Clase {
   id: string
   titulo: string
   descripcion: string | null
@@ -16,6 +18,7 @@ interface Clase {
   activo: boolean
   acceso_gratuito?: boolean
   puede_ver?: boolean
+  miniatura_revision?: string
 }
 
 interface Perfil {
@@ -55,10 +58,10 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
   const onError=useCallback((mensaje:string)=>setErrorVideo(mensaje),[])
 
   const tieneAcceso = esAdmin || Boolean(perfil?.desafio_socias_habilitada) || perfil?.tipo_usuario === 'socia'
-  const modulos = [...new Set(clases.map(clase => clase.modulo))]
+  const modulos = [...new Set(clases.map(clase => ubicacionClase(clase.modulo).programa))].sort((a,b) => a === 'Bienvenida' ? -1 : b === 'Bienvenida' ? 1 : a.localeCompare(b, 'es'))
   const continuar = esAdmin ? null : claseParaContinuar(clases,progreso)
-  const disponibles = clases.filter(c => (c.puede_ver ?? tieneAcceso) && (c.tiene_video_privado || c.vimeo_url))
-  const siguientes = claseAbierta ? disponibles.filter(c=>c.modulo===claseAbierta.modulo) : []
+  const disponibles = ordenarClases(clases.filter(c => (c.puede_ver ?? tieneAcceso) && (c.tiene_video_privado || c.vimeo_url)))
+  const siguientes = claseAbierta ? disponibles.filter(c=>ubicacionClase(c.modulo).programa===ubicacionClase(claseAbierta.modulo).programa && ubicacionClase(c.modulo).seccion===ubicacionClase(claseAbierta.modulo).seccion) : []
   const siguiente = claseAbierta ? siguientes[siguientes.findIndex(c=>c.id===claseAbierta.id)+1] : undefined
 
   async function abrirClase(clase: Clase) {
@@ -107,7 +110,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
           <div>
             <p className="font-impact text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Tu programa</p>
             <h1 className="mt-2 max-w-3xl font-serif text-4xl leading-[1.04] tracking-[-0.04em] sm:text-5xl">Tus clases</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">{tieneAcceso?'Tus clases grabadas':'Empezá con las clases gratuitas y explorá el plan Socias.'}</p>
+            {!tieneAcceso && <p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">Empezá con las clases gratuitas y explorá el plan Socias.</p>}
           </div>
           <div className="flex items-center gap-4 rounded-[22px] bg-[#294A38] p-5 text-white">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/12 text-[#F4CAD8]"><Icon name="book" className="h-6 w-6" /></span>
@@ -117,17 +120,10 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
 
         {errorProgreso && <p role="alert" className="mt-5 rounded-2xl border border-[#EC9BB6] bg-[#FAF7F3] p-4 text-sm">No pudimos cargar tu progreso. Recargá para retomarlo; las clases siguen disponibles.</p>}
         {continuar && <section className="mt-6 flex flex-col gap-4 rounded-[22px] border border-[#EC9BB6] bg-[#F4CAD8] p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.17em] text-[#294A38]">Continuar viendo</p><h2 className="mt-2 text-lg font-semibold">{continuar.clase.titulo}</h2><p className="mt-1 text-xs text-[#746A64]">{continuar.clase.modulo} · Desde {tiempoClase(continuar.progreso.posicion_seg)}</p></div>
+          <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.17em] text-[#294A38]">Continuar viendo</p><h2 className="mt-2 text-lg font-semibold">{continuar.clase.titulo}</h2><p className="mt-1 text-xs text-[#746A64]">{ubicacionClase(continuar.clase.modulo).programa} · Desde {tiempoClase(continuar.progreso.posicion_seg)}</p></div>
           <button type="button" onClick={()=>void abrirClase(continuar.clase)} disabled={Boolean(cargandoVideo)} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">Retomar clase <Icon name="arrow" /></button>
         </section>}
         {clases.length>0 && <div className="mt-7 grid gap-3 sm:grid-cols-2"><label className="text-xs text-[#746A64]">Programa<select value={filtro} onChange={e=>setFiltro(e.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#D8CFC8] bg-[#FAF7F3] px-3 py-3 text-base text-[#211C19]"><option>Todos</option>{modulos.map(m=><option key={m}>{m}</option>)}</select></label><label className="text-xs text-[#746A64]">Buscar clase<input type="search" value={buscar} onChange={e=>setBuscar(e.target.value)} maxLength={120} placeholder="Nombre de la clase" className="mt-2 min-h-11 w-full rounded-xl border border-[#D8CFC8] bg-[#FAF7F3] px-3 py-3 text-base text-[#211C19]" /></label></div>}
-
-        {!esAdmin && tieneAcceso && (
-          <section className="mt-7 flex flex-col gap-3 rounded-[22px] bg-[#F4CAD8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#294A38]">Acceso habilitado</p><p className="mt-1 font-semibold">{perfil?.desafio_socias_habilitada?'Desafío Socias':'Socias Digitales'}</p></div>
-            <p className="text-sm text-[#211C19]/65">Tus clases grabadas están listas para ver.</p>
-          </section>
-        )}
 
         {clases.length === 0 ? (
           <section className="mt-8 rounded-[24px] bg-[#FAF7F3] p-8 sm:p-12">
@@ -136,48 +132,18 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
             <p className="mt-2 text-sm text-[#746A64]">Volvé pronto para empezar.</p>
           </section>
         ) : (
-          <div className="mt-9 space-y-9">
-            {modulos.filter(m=>filtro==='Todos'||filtro===m).map((modulo, moduleIndex) => {
-              const clasesDelModulo = clases.filter(clase => clase.modulo === modulo)
+          <div className="mt-7 space-y-4">
+            {modulos.filter(m=>filtro==='Todos'||filtro===m).map((modulo) => {
+              const clasesDelModulo = clases.filter(clase => ubicacionClase(clase.modulo).programa === modulo)
               const visibles=clasesDelModulo.filter(c=>c.titulo.toLocaleLowerCase('es').includes(buscar.toLocaleLowerCase('es')))
               if(!visibles.length)return null
-              const resumen=resumenPrograma(clasesDelModulo.filter(c=>(c.puede_ver??tieneAcceso) && (c.tiene_video_privado||c.vimeo_url)).map(c=>c.id),progreso)
               return (
-                <section key={modulo} aria-labelledby={`modulo-${moduleIndex}`}>
-                  <div className="mb-4 flex items-end justify-between gap-4">
-                    <div><p className="font-impact text-[10px] font-semibold uppercase tracking-[0.18em] text-[#746A64]">Programa</p><h2 id={`modulo-${moduleIndex}`} className="mt-1 font-serif text-2xl tracking-[-0.03em] sm:text-3xl">{modulo}</h2></div>
-                    <span className="shrink-0 rounded-full bg-[#FAF7F3] px-3 py-1.5 text-xs text-[#746A64]">{clasesDelModulo.length} {clasesDelModulo.length === 1 ? 'clase' : 'clases'}</span>
-                  </div>
-                  {!esAdmin && resumen.total>0 && <div className="mb-4"><div className="mb-2 flex items-center justify-between text-xs text-[#746A64]"><span>{resumen.completas} de {resumen.total} completadas</span><span>{resumen.porcentaje}%</span></div><div role="progressbar" aria-label={`Progreso en ${modulo}`} aria-valuenow={resumen.porcentaje} aria-valuemin={0} aria-valuemax={100} className="h-1.5 overflow-hidden rounded-full bg-[#E7DDD5]"><div className="h-full rounded-full bg-[#294A38]" style={{width:`${resumen.porcentaje}%`}} /></div></div>}
-                  <div className="grid gap-3 lg:grid-cols-2">
-                    {visibles.map((clase) => {
-                      const index=clasesDelModulo.findIndex(c=>c.id===clase.id)
-                      const avance=progreso.find(p=>p.clase_id===clase.id)
-                      const disponible = (clase.puede_ver ?? tieneAcceso) && Boolean(clase.vimeo_url || clase.tiene_video_privado)
-                      return (
-                        <article key={clase.id} className={`flex min-h-[118px] items-center gap-4 rounded-[22px] border border-[#E7DDD5] p-4 sm:p-5 ${disponible ? 'bg-[#FAF7F3]' : 'bg-[#FAF7F3]/65'}`}>
-                          <span className={`font-impact flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${disponible ? index % 2 === 0 ? 'bg-[#EC9BB6] text-[#211C19]' : 'bg-[#F4CAD8] text-[#211C19]' : 'bg-[#F4EFEA] text-[#746A64]'}`}>{String(index + 1).padStart(2, '0')}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className={`font-semibold leading-snug ${disponible ? 'text-[#211C19]' : 'text-[#746A64]'}`}>{clase.titulo}</p>
-                            {clase.descripcion && <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[#746A64]">{clase.descripcion}</p>}
-                            <p className="mt-2 font-impact text-[9px] font-semibold uppercase tracking-[0.14em] text-[#294A38]">{disponible?(clase.acceso_gratuito?'Clase gratuita':'Clase grabada'):'Acceso con Socias Digitales'}</p>
-                            {!esAdmin && disponible && avance && <p className="mt-1.5 text-xs font-medium text-[#294A38]">{avance.completada?'✓ Completada':avance.posicion_seg>0?`En curso · ${tiempoClase(avance.posicion_seg)}`:'Sin completar'}</p>}
-                          </div>
-                          {disponible ? (
-                            <button type="button" onClick={() => abrirClase(clase)} disabled={Boolean(cargandoVideo)} aria-label={`Reproducir ${clase.titulo}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#294A38] text-white transition hover:bg-[#203B2D] disabled:opacity-60"><Icon name="play" className="h-5 w-5" /></button>
-                          ) : (
-                            <a href="/inicio#plan-socias" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F4EFEA] text-[#294A38]" aria-label={`Conocer el plan Socias para ${clase.titulo}`}><Icon name="lock" className="h-4 w-4" /></a>
-                          )}
-                        </article>
-                      )
-                    })}
-                  </div>
-                </section>
+                <ClassroomProgram key={modulo} programa={modulo} clases={clasesDelModulo} progreso={progreso} buscar={buscar} esAdmin={esAdmin} tieneAcceso={tieneAcceso} cargando={Boolean(cargandoVideo)} abierto={Boolean(continuar && ubicacionClase(continuar.clase.modulo).programa === modulo)} onAbrir={clase => void abrirClase(clase)} />
               )
             })}
           </div>
         )}
-        {clases.length>0 && !clases.some(c=>(filtro==='Todos'||c.modulo===filtro) && c.titulo.toLocaleLowerCase('es').includes(buscar.toLocaleLowerCase('es'))) && <p className="mt-6 rounded-2xl border border-[#E7DDD5] bg-[#FAF7F3] p-6 text-sm text-[#746A64]">No encontramos clases con esa búsqueda.</p>}
+        {clases.length>0 && !clases.some(c=>(filtro==='Todos'||ubicacionClase(c.modulo).programa===filtro) && c.titulo.toLocaleLowerCase('es').includes(buscar.toLocaleLowerCase('es'))) && <p className="mt-6 rounded-2xl border border-[#E7DDD5] bg-[#FAF7F3] p-6 text-sm text-[#746A64]">No encontramos clases con esa búsqueda.</p>}
       </div>
 
       {errorVideo && <div role="alert" className="sd-mobile-toast fixed bottom-5 left-1/2 z-[60] w-[min(92vw,32rem)] -translate-x-1/2 rounded-2xl border border-[#B01B30]/20 bg-[#FAF7F3] px-5 py-4 text-sm text-[#7C1D2A]">{errorVideo}</div>}

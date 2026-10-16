@@ -1,7 +1,29 @@
 export const PROGRAMAS_INICIALES = [
-  'Introducción',
-  'Desafío Socias en vivo',
+  'Bienvenida',
+  'Desafío Socias',
 ] as const
+export const SECCIONES_CLASE = ['Clases', 'Material de apoyo'] as const
+export type SeccionClase = typeof SECCIONES_CLASE[number]
+const SEPARADOR_SECCION = ' › '
+
+// Jerarquía compatible con el campo existente. Solo el apoyo lleva sufijo;
+// los IDs, los permisos y el progreso de las clases no se modifican.
+export function ubicacionClase(modulo: string) {
+  const partes = modulo.split(SEPARADOR_SECCION)
+  let programa = partes[0].trim()
+  if (programa === 'Introducción') programa = 'Bienvenida'
+  if (programa === 'Desafío Socias en vivo') programa = 'Desafío Socias'
+  const seccion: SeccionClase = partes[1] === 'Material de apoyo' ? 'Material de apoyo' : 'Clases'
+  return { programa, seccion }
+}
+export function clasificacionClase(programa: string, seccion: SeccionClase = 'Clases') {
+  const nombre = programa.trim().replace(/\s+/g, ' ')
+  if (!nombre || nombre.includes('›') || nombre.length > 75 || !SECCIONES_CLASE.includes(seccion)) return null
+  return nombre + (seccion === 'Clases' ? '' : SEPARADOR_SECCION + seccion)
+}
+export function ordenarClases<T extends { orden: number; id: string }>(clases: T[]) {
+  return [...clases].sort((a, b) => a.orden - b.orden || a.id.localeCompare(b.id))
+}
 export const TAMANO_PARTE = 16 * 1024 * 1024
 export const MAX_VIDEO_BYTES = 8 * 1024 * 1024 * 1024
 export const esUuid = (value: unknown): value is string =>
@@ -51,6 +73,10 @@ export function datosClase(input: Record<string, unknown>) {
     orden > 9999
   )
     return null
+  if (modulo.includes('›')) {
+    const partes = modulo.split(' › ')
+    if (partes.length !== 2 || partes[0].includes('›') || partes[1] !== 'Material de apoyo' || !clasificacionClase(partes[0], 'Material de apoyo')) return null
+  }
   if (
     vimeo_url &&
     !/^https:\/\/(?:www\.)?vimeo\.com\/\d+(?:\/\w+)?$/.test(vimeo_url)
