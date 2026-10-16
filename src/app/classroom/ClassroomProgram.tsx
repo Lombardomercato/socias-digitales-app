@@ -4,6 +4,12 @@ import { ordenarClases, SECCIONES_CLASE, ubicacionClase } from '@/lib/class-mana
 import { resumenPrograma, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
 import ClassVideoThumbnail from '@/components/ClassVideoThumbnail'
 
+function CollapseIndicator({ seccion = false }: { seccion?: boolean }) {
+  return <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E7DDD5] bg-[#FFFDFA] text-[#294A38]">
+    <svg viewBox="0 0 24 24" className={`h-5 w-5 transition-transform motion-reduce:transition-none ${seccion ? 'group-open/seccion:rotate-180' : 'group-open/programa:rotate-180'}`} fill="none"><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  </span>
+}
+
 export default function ClassroomProgram({ programa, clases, progreso, buscar, esAdmin, tieneAcceso, cargando, abierto, onAbrir }: {
   programa: string; clases: Clase[]; progreso: ProgresoClase[]; buscar: string; esAdmin: boolean; tieneAcceso: boolean; cargando: boolean; abierto: boolean; onAbrir: (clase: Clase) => void
 }) {
@@ -32,17 +38,17 @@ export default function ClassroomProgram({ programa, clases, progreso, buscar, e
       </article>
     })}</div>
   }
-  return <details open={abierto || Boolean(buscar)} className="group rounded-[24px] border border-[#E7DDD5] bg-[#FAF7F3] p-4 sm:p-6">
-    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
+  return <details open={abierto || Boolean(buscar)} className="group/programa rounded-[24px] border border-[#E7DDD5] bg-[#FAF7F3] p-4 sm:p-6">
+    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38] [&::-webkit-details-marker]:hidden">
       <div className="min-w-0"><h2 className="break-words font-impact text-lg font-semibold sm:text-xl">{programa}</h2><p className="mt-1 text-xs text-[#746A64]">{clases.length} {clases.length === 1 ? 'clase' : 'clases'}{!esAdmin && resumen.total > 0 ? ` · ${resumen.completas} de ${resumen.total} completadas` : ''}</p></div>
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-[#294A38] transition-transform group-open:rotate-180" fill="none"><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      <CollapseIndicator />
     </summary>
     {!esAdmin && resumen.total > 0 && <div role="progressbar" aria-label={`Progreso en ${programa}`} aria-valuenow={resumen.porcentaje} aria-valuemin={0} aria-valuemax={100} className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E7DDD5]"><div className="h-full rounded-full bg-[#294A38]" style={{ width: `${resumen.porcentaje}%` }} /></div>}
     <div className="mt-5 space-y-4">{programa === 'Bienvenida' ? tarjetas(visibles) : SECCIONES_CLASE.map(seccion => {
       const videos = visibles.filter(c => ubicacionClase(c.modulo).seccion === seccion)
       if (buscar && !videos.length) return null
-      return <details key={seccion} open={seccion === 'Clases' || Boolean(buscar)} className="rounded-2xl border border-[#E7DDD5] bg-[#F4EFEA]/35 p-3 sm:p-4">
-        <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold text-[#294A38]">{seccion}<span className="font-normal text-[#746A64]">· {videos.length}</span></summary>
+      return <details key={seccion} open={seccion === 'Clases' || Boolean(buscar)} className="group/seccion rounded-2xl border border-[#E7DDD5] bg-[#F4EFEA]/35 p-3 sm:p-4">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-xl text-sm font-semibold text-[#294A38] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38] [&::-webkit-details-marker]:hidden"><span className="min-w-0">{seccion}<span className="ml-2 font-normal text-[#746A64]">· {videos.length}</span></span><CollapseIndicator seccion /></summary>
         <div className="mt-3">{videos.length ? tarjetas(videos) : <p className="py-3 text-sm text-[#746A64]">Todavía no hay contenido publicado en esta sección.</p>}</div>
       </details>
     })}</div>

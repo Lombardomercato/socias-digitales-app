@@ -47,6 +47,20 @@ test('programa plegable sin portada, con clases y apoyo dentro; búsqueda mantie
   assert.equal((html.match(/data-poster-id/g) || []).length, 2)
   assert.ok(html.indexOf('data-poster-id') > html.indexOf('</summary>'))
   assert.ok(html.includes('Reproducir Clase 1'))
+  const summaries = [...html.matchAll(/<summary\b[^>]*>([\s\S]*?)<\/summary>/g)]
+  assert.equal(summaries.length, 3)
+  for (const [summary, content] of summaries) {
+    assert.ok(summary.includes('focus-visible:outline-2'))
+    assert.ok(content.includes('aria-hidden="true"'))
+    assert.ok(content.includes('h-11 w-11'))
+    assert.ok(content.includes('rounded-full border'))
+    assert.ok(content.includes('<svg'))
+    assert.ok(!content.includes('<button'))
+  }
+  assert.ok(html.includes('group/programa'))
+  assert.ok(html.includes('group-open/programa:rotate-180'))
+  assert.equal((html.match(/group\/seccion/g) || []).length, 2)
+  assert.equal((html.match(/group-open\/seccion:rotate-180/g) || []).length, 2)
   const found = renderToStaticMarkup(React.createElement(Component, { ...props, buscar: 'Hotmart' }))
   assert.ok(found.includes('open=""'))
   assert.ok(!found.includes('Reproducir Clase 1'))
