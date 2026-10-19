@@ -12,6 +12,7 @@ import { UnreadNoticesProvider, UnreadNoticeLink } from '@/components/UnreadNoti
 import { permisoResultados } from '@/lib/results-server'
 import { permisoMetricas } from '@/lib/metrics-server'
 import { permisoMiDia } from '@/lib/my-day-server'
+import { puedeVerLogros } from '@/lib/achievements'
 import { AgendaProvider } from './AgendaProvider'
 import { leerAgenda } from '@/lib/agenda-store'
 import { hitoParaAlumna } from '@/lib/agenda-management'
@@ -130,7 +131,7 @@ export default async function InicioPage() {
             </>
           )}
           <UnreadNoticeLink variante="tarjeta" />
-          <LockedModules venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} />
+          <LockedModules venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} logrosHabilitados={puedeVerLogros(perfil)} />
         </main>
       </div>
     </div>

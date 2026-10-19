@@ -2,8 +2,8 @@ import Link from 'next/link'
 import NavigationIcon from './NavigationIcon'
 import { MODULOS_SOCIAS } from '@/lib/modules'
 
-export default function LockedModules({venta=false, resultadosHabilitados=false, metricasHabilitadas=false, miDiaHabilitado=false}: {venta?:boolean; resultadosHabilitados?:boolean; metricasHabilitadas?:boolean; miDiaHabilitado?:boolean}) {
-  const abierto=(id:string)=>(id === 'resultados' && resultadosHabilitados)||(id === 'metricas' && metricasHabilitadas)||(id==='checklist' && miDiaHabilitado)
+export default function LockedModules({venta=false, resultadosHabilitados=false, metricasHabilitadas=false, miDiaHabilitado=false, logrosHabilitados=false}: {venta?:boolean; resultadosHabilitados?:boolean; metricasHabilitadas?:boolean; miDiaHabilitado?:boolean; logrosHabilitados?:boolean}) {
+  const abierto=(id:string)=>(id === 'resultados' && resultadosHabilitados)||(id === 'metricas' && metricasHabilitadas)||(id==='checklist' && miDiaHabilitado)||(id==='logros' && logrosHabilitados)
   return <section id="plan-socias" className="mt-9 scroll-mt-6" aria-labelledby="modulos-socias">
     <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
       <h2 id="modulos-socias" className="text-xl font-semibold">Tu espacio Socias Digitales</h2>
@@ -17,7 +17,7 @@ export default function LockedModules({venta=false, resultadosHabilitados=false,
         </div>
         <h3 className="mt-4 text-sm font-semibold">{modulo.nombre}</h3>
         <p className="mt-1 text-xs text-[#746a64]">{modulo.descripcion}</p>
-        <p className="mt-4 text-[11px] font-medium text-[#294A38]">{abierto(modulo.id) ? modulo.id==='checklist'?'Abrir mi día':modulo.id==='metricas'?'Abrir mis métricas':'Abrir mis resultados' : 'Acceso con Socias Digitales'}</p>
+        <p className="mt-4 text-[11px] font-medium text-[#294A38]">{abierto(modulo.id) ? modulo.id==='checklist'?'Abrir mi día':modulo.id==='metricas'?'Abrir mis métricas':modulo.id==='logros'?'Ver mis logros':'Abrir mis resultados' : 'Acceso con Socias Digitales'}</p>
       </Link>)}
     </div>
     <p className="mt-3 text-xs leading-5 text-[#746a64]">Flor habilita cada módulo según tu acceso y su disponibilidad.</p>

@@ -70,6 +70,16 @@ En `/admin/equipo`, “Cuenta de alumna de prueba” permite habilitar los módu
 
 Para probar ambos roles a la vez en Chrome, mantener la administración en `app.sociasdigitales.com` y abrir la alumna de prueba en el alias estable del mismo proyecto `socias-digitales-flor-preview-alex-santillan-projects.vercel.app`. Son dos sesiones por origen sobre la misma aplicación y base, no un preview ficticio. No compartir cookies ni tokens entre las dos. Los enlaces de alumnas, emails y recuperación siguen usando el dominio final; este alias es solo para la verificación interna. No usar las URLs inmutables de cada deployment como acceso habitual: exigirían volver a entrar en cada publicación.
 
+### Mis logros
+
+Disponible en `/logros`, desde Tu espacio Socias Digitales, para alumnas con Socias activo (incluye compatibilidad con afiliadas heredadas activas). Gratis y Desafío continúan restringidos; una administradora vuelve al panel de Flor. No tiene un permiso independiente nuevo: es un resumen personal de módulos ya existentes. Los hitos de Métricas y Mi día solo se consultan si Flor habilitó esos módulos; esta pantalla no los desbloquea.
+
+Se calculan ocho hitos: primera clase, tres clases, un programa completo (incluye sus videos de apoyo), primer análisis, cinco análisis, primera tarea, diez tareas y actividad en tres días distintos. Clases cuentan solo con publicación, acceso y revisión actual del video; “completada” sigue siendo la marca de la alumna, no prueba de reproducción íntegra. Un programa con contenido bloqueado o no reproducible no se considera completo. Los análisis usan el recuento exacto de registros propios, no una suma de ventas ni ingresos supuestos.
+
+Las tareas y días de actividad corresponden a los últimos 30 días inclusivos, según la fecha asignada a la tarea en Argentina, sin tareas archivadas ni futuras. La racha termina hoy o ayer y se limita a ese período; días distintos no significa consecutivos. “Actualizar avances” vuelve a consultar los registros. Un fallo conserva la última lectura, y una fuente fallida se distingue de cero o de un permiso pendiente. La cuenta de prueba ve sus propios avances sin incorporarse a estadísticas de Flor.
+
+No se crean insignias permanentes, certificados, nuevas tablas, puntos ni datos públicos. Las tablas heredadas de insignias se conservan sin modificaciones y no se mezclan con los hitos calculados. Cambiar tareas, completar/desmarcar clases o actualizar el catálogo/video puede cambiar el avance. No se envían emails/push ni se toca la configuración comercial al abrir o actualizar esta vista. La API GET `/api/logros` verifica sesión y plan, deriva siempre la usuaria de la sesión y responde con datos privados no cacheables; no acepta una alumna ajena. Reutiliza consultas bajo RLS, el lector de progreso y `resumen_mi_dia` existentes.
+
 ## Preparación técnica de una modificación
 
 Verificar deployment/commit, rama y remotos antes de editar. El repositorio correcto está en `Lombardomercato/socias-digitales-app`; no publicar sobre el origen heredado por error. Trabajar con configuración de prueba segura. Nunca copiar service role a cliente o consola de navegador.
