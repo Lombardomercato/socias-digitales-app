@@ -67,6 +67,8 @@ Supabase: preferir traslado del proyecto existente a una organización de Flor a
 
 R2 y Resend: la transferencia Vercel no les cambia propietario. Acordar mantener acceso delegado o migrarlos en pasos independientes con respaldo, prueba de URLs privadas, credenciales, remitentes y DNS. No rotar/eliminar claves activas ni objetos hasta validar el reemplazo. No copiar secretos a Claude, un documento o el repositorio para “facilitar” la transferencia.
 
+Además de videos, miniaturas y agenda, respaldar `materiales-clases/`: incluye los índices privados por clase y sus archivos adjuntos. Copiar solo el código no copia estos materiales. Los enlaces externos conservan los permisos que tengan en Drive u otros servicios.
+
 CORS de R2 al corte: origen `https://app.sociasdigitales.com`, GET/HEAD/PUT, headers `content-type` y `range`, expuestos `ETag`, `Content-Length`, `Accept-Ranges`, `Content-Range`, max age 3600. No es un bucket público. Un preview/local distinto no puede subir con ese CORS: usar un entorno de prueba autorizado y origen explícito, no `*` por comodidad.
 
 ## Configuración que se revisa sin revelar valores

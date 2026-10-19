@@ -68,6 +68,18 @@ export function firmarParte(key: string, uploadId: string, partNumber: number) {
     .digest('hex')
   return `https://${c.host}${c.uri}?${query}&X-Amz-Signature=${signature}`
 }
+export function firmarCargaMaterial(key: string, contentType: string) {
+  const c = config(key)
+  const query = queryString({
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': `${process.env.R2_ACCESS_KEY_ID}/${c.scope}`,
+    'X-Amz-Date': c.date, 'X-Amz-Expires': '600',
+    'X-Amz-SignedHeaders': 'content-type;host',
+  })
+  const canonical = ['PUT', c.uri, query, `content-type:${contentType}\nhost:${c.host}\n`, 'content-type;host', 'UNSIGNED-PAYLOAD'].join('\n')
+  const signature = createHmac('sha256', c.signing).update(['AWS4-HMAC-SHA256', c.date, c.scope, hash(canonical)].join('\n')).digest('hex')
+  return `https://${c.host}${c.uri}?${query}&X-Amz-Signature=${signature}`
+}
 export async function pedirR2(
   method: string,
   key: string,
@@ -75,7 +87,7 @@ export async function pedirR2(
   body: string | Uint8Array<ArrayBuffer> = '',
   contentType?: string,
   condicion?: { 'If-Match': string } | { 'If-None-Match': '*' },
-  opciones?: { sinCompresion?: boolean },
+  opciones?: { sinCompresion?: boolean; timeoutMs?: number },
 ) {
   const c = config(key),
     qs = queryString(query),
@@ -105,7 +117,7 @@ export async function pedirR2(
     },
     ...(body.length ? { body } : {}),
     cache: 'no-store',
-    signal: AbortSignal.timeout(25_000),
+    signal: AbortSignal.timeout(opciones?.timeoutMs ?? 25_000),
   })
 }
 export const xmlEscape = (s: string) =>

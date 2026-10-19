@@ -27,6 +27,7 @@ function editor(ficha, extra = {}, busy = false) {
     './VideoUpload': { default: props => React.createElement('section', { 'data-upload-for': props.claseId }, 'Elegir archivo') },
     './ClassProgressAdmin': { default: () => null },
     '@/components/ClassVideoThumbnail': { default: () => null },
+    './ClassMaterialsEditor': { default: props => React.createElement('section', { 'data-materials-for': props.claseId }, 'Materiales de la clase') },
   }).default
   const tree = Component({ clases: [], alumnas: [], ...extra })
   function find(predicate, node = tree) {

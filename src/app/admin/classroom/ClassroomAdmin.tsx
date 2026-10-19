@@ -8,6 +8,7 @@ import { PROGRAMAS_INICIALES, SECCIONES_CLASE, ubicacionClase, clasificacionClas
 import VideoUpload from './VideoUpload'
 import ClassProgressAdmin, {type EstadisticaClase} from './ClassProgressAdmin'
 import ClassVideoThumbnail from '@/components/ClassVideoThumbnail'
+import ClassMaterialsEditor from './ClassMaterialsEditor'
 
 interface Clase {
   id: string
@@ -73,6 +74,7 @@ export default function ClassroomAdmin({
     [modalError, setModalError] = useState(''),
     [programaNuevo, setProgramaNuevo] = useState(''),
     [programasLocales, setProgramasLocales] = useState<string[]>([])
+  const [materialOcupado, setMaterialOcupado] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLDivElement>(null)
   const continuarAlVideo = useRef(false)
@@ -110,7 +112,7 @@ export default function ClassroomAdmin({
   }
   async function guardar(e: React.FormEvent) {
     e.preventDefault()
-    if (!ficha || guardando || cargando) return
+    if (!ficha || guardando || cargando || materialOcupado) return
     setGuardando(true)
     setModalError('')
     try {
@@ -481,7 +483,7 @@ export default function ClassroomAdmin({
           aria-modal="true"
           aria-labelledby="clase-editor-titulo"
           onKeyDown={(e) => {
-            if (e.key === 'Escape' && !cargando && !guardando) setFicha(null)
+            if (e.key === 'Escape' && !cargando && !guardando && !materialOcupado) setFicha(null)
             if (e.key === 'Tab') {
               const controls = [...e.currentTarget.querySelectorAll<HTMLElement>('button, input, textarea, select, summary, a[href]')].filter(el => !el.matches(':disabled') && el.getClientRects().length > 0)
               const first = controls[0], last = controls[controls.length - 1]
@@ -499,7 +501,7 @@ export default function ClassroomAdmin({
                 {ficha.id ? 'Editar clase' : 'Nueva clase'}
               </h2>
               <button
-                disabled={cargando || guardando}
+                disabled={cargando || guardando || materialOcupado}
                 onClick={() => setFicha(null)}
                 aria-label="Cerrar editor"
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8CFC8] text-xl disabled:opacity-40"
@@ -515,7 +517,7 @@ export default function ClassroomAdmin({
               ))}
             </ol>
             <form onSubmit={guardar} className="mt-5 space-y-4">
-              <fieldset disabled={guardando || cargando} className="space-y-4">
+              <fieldset disabled={guardando || cargando || materialOcupado} className="space-y-4">
               <label className="block text-sm">
                 Título
                 <input
@@ -642,7 +644,7 @@ export default function ClassroomAdmin({
             </form>
             <div ref={videoRef} className="mt-5">
               {ficha.id ? (
-                <VideoUpload
+                <fieldset disabled={guardando || materialOcupado}><VideoUpload
                   key={ficha.id}
                   claseId={ficha.id}
                   tieneVideo={ficha.tieneVideo}
@@ -656,7 +658,7 @@ export default function ClassroomAdmin({
                     )
                     router.refresh()
                   }}
-                />
+                /></fieldset>
               ) : (
                 <p className="rounded-2xl border border-[#E7DDD5] p-4 text-sm text-[#746A64]">
                   Al guardar el borrador aparecerá aquí el selector de archivo.
@@ -664,6 +666,8 @@ export default function ClassroomAdmin({
                 </p>
               )}
             </div>
+            {ficha.id ? <ClassMaterialsEditor key={ficha.id} claseId={ficha.id} disabled={guardando || cargando} onBusy={setMaterialOcupado} />
+              : <section className="mt-5 rounded-2xl border border-[#E7DDD5] p-4"><h3 className="font-impact text-base font-semibold">Materiales de la clase</h3><p className="mt-2 text-sm text-[#746A64]">Después de guardar la ficha podés adjuntar PDF, documentos y enlaces en este mismo editor, sin salir de la clase.</p></section>}
           </div>
         </div>
       )}

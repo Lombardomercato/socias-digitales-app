@@ -28,6 +28,16 @@ Miniaturas automáticas de MP4 privados: captura local de un fotograma al elegir
 
 No recrear “Clase 1” vacío: Flor publicó **Bienvenida** en Desafío Socias en vivo. No eliminar archivos del bucket para ocultar una tarjeta: ocultar y borrar son operaciones diferentes.
 
+### Materiales de cada clase
+
+En el editor de una clase guardada, debajo de Video, aparece **Materiales de la clase**. Elegir **Subir archivo** o **Agregar enlace**, escribir un nombre para las alumnas y usar **Guardar material**. Esta acción se guarda por separado de la ficha; si la clase ya está publicada, el material queda disponible con el acceso actual de esa clase. En una clase nueva primero se guarda el borrador, sin necesidad de salir del editor. La sección de programa **Material de apoyo** sigue agrupando videos; los materiales adjuntos pertenecen a un video concreto.
+
+Se admiten PDF, DOCX, XLSX, PPTX, TXT, PNG, JPG/JPEG y WebP, hasta 25 MiB por archivo y 30 materiales activos por clase. Los enlaces requieren HTTPS; los permisos externos de Drive/Docs no se cambian desde la app. **Editar** modifica nombre y, para enlaces, destino. **Retirar** deja de mostrar el material sin borrar el archivo; **Materiales retirados → Restaurar** revierte esa acción. El historial tiene un límite de 100 entradas por clase. Usar material de confianza: la validación de formato no es un antivirus.
+
+Las alumnas encuentran los adjuntos debajo del reproductor. La lista, el enlace y cada descarga verifican sesión y el mismo permiso que el video. Los archivos se descargan, no se ejecutan como páginas de la plataforma. Un error de materiales muestra su propio reintento sin impedir la reproducción. No se envían emails o push al agregar un material.
+
+Persistencia privada en el bucket R2 existente: `materiales-clases/<clase>/indice-v1.json` y `archivos/<material>.<ext>`, con escrituras condicionales para no pisar otra edición. Los archivos pasan primero por `temporales/`, con URL de carga breve y ticket firmado ligado a administradora/clase. Al confirmar se valida tamaño y firma de formato y se crea otro objeto inmutable: reutilizar la URL temporal no cambia el material publicado. El reintento de confirmación no duplica ni restaura materiales retirados. Las cargas interrumpidas pueden dejar temporales; no existe limpieza automática en esta versión. Respaldar índices y archivos al transferir. No se agrega una tabla ni se cambian Auth/RLS, permisos de clases, videos o progreso.
+
 ### Administradoras
 
 Usar `/admin/equipo` para invitar a una persona o promover explícitamente una cuenta existente y confirmada. Confirmar la dirección antes de enviar. Una invitación administrativa concede poder sobre la app y sus alumnas: no es un alta Socias ni una invitación a Vercel/GitHub. La responsable debe probar aceptación/login con la nueva persona; no se envió una invitación real nueva durante esta entrega documental.

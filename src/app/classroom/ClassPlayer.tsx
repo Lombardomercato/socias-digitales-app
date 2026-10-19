@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { tiempoClase, validarProgreso, type CambioProgreso, type ProgresoClase } from '@/lib/class-progress'
+import ClassMaterials from '@/components/ClassMaterials'
 
 interface Props {
   clase: {id:string;titulo:string;modulo:string;tiene_video_privado?:boolean;vimeo_url:string|null}
@@ -103,6 +104,7 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
     </div>}
     {esAdmin && <p className="mt-4 text-xs text-[#746A64]">Vista administrativa · no registra progreso de alumna.</p>}
     {error && <div role="alert" className="mt-3 rounded-xl border border-[#EC9BB6] p-3 text-sm"><p>{error}</p><button type="button" onClick={()=>{if(fallido.current)void guardar(fallido.current)}} className="mt-2 min-h-11 rounded-full border px-4">Reintentar guardar</button></div>}
+    <ClassMaterials key={clase.id} claseId={clase.id} />
     {siguiente && <div className="mt-4 border-t border-[#E7DDD5] pt-4"><button type="button" onClick={()=>{guardarPosicion();onSiguiente()}} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full bg-[#294A38] px-5 py-3 text-left text-sm font-medium text-white"><span className="min-w-0">Siguiente: {siguiente}</span><span aria-hidden="true">→</span></button></div>}
   </dialog>
 }
