@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { autorizarAdmin } from '@/lib/admin-auth'
 import { esUuid } from '@/lib/class-management'
-import { archivoMaterial, claveMaterial, enlaceMaterial, tituloMaterial, MAX_HISTORIAL_MATERIALES, MAX_MATERIALES, type MaterialClase } from '@/lib/class-materials'
+import { archivoMaterial, claveMaterial, enlaceMaterial, moverMaterial, tituloMaterial, MAX_HISTORIAL_MATERIALES, MAX_MATERIALES, type MaterialClase } from '@/lib/class-materials'
 import { ConflictoMateriales, guardarMateriales, leerMateriales, revisionMateriales } from '@/lib/class-materials-store'
 import { consolidarArchivo, leerTicketMaterial, ticketMaterial } from '@/lib/class-materials-upload'
 import { firmarCargaMaterial } from '@/lib/r2-upload'
@@ -34,9 +34,9 @@ export async function POST(request: Request, context: Context) {
     if (!input || typeof input !== 'object') throw new Error('Solicitud no válida.')
     const keys: Record<string, string[]> = {
       preparar: ['titulo', 'nombre', 'bytes'], finalizar: ['ticket'], enlace: ['titulo', 'url'],
-      editar: ['materialId', 'titulo', 'url'], retirar: ['materialId'], restaurar: ['materialId'],
+      editar: ['materialId', 'titulo', 'url'], retirar: ['materialId'], restaurar: ['materialId'], mover: ['materialId', 'direccion'],
     }
-    if (!keys[input.action] || Object.keys(input).some(k => !['action', 'revision', ...keys[input.action]].includes(k))) throw new Error('Solicitud no válida.')
+    if (!Object.hasOwn(keys, input.action) || Object.keys(input).some(k => !['action', 'revision', ...keys[input.action]].includes(k))) throw new Error('Solicitud no válida.')
     const revision = revisionMateriales(input.revision)
     const clase = await auth.supabase.from('clases').select('id').eq('id', id).maybeSingle()
     if (clase.error) return NextResponse.json({ error: 'No pudimos verificar la clase.' }, { status: 503, headers })
@@ -46,7 +46,7 @@ export async function POST(request: Request, context: Context) {
     const ticket = input.action === 'finalizar' ? leerTicketMaterial(input.ticket, auth.user.id, id) : null
     if (ticket && actual.materiales.some(m => m.id === ticket.id)) return NextResponse.json(actual, { headers })
     if (actual.revision !== revision) throw new ConflictoMateriales('Otra administradora cambió los materiales. Recargá la lista; tu formulario se conserva.')
-    const lista = [...actual.materiales]
+    let lista = [...actual.materiales]
     const agrega = ['preparar', 'finalizar', 'enlace'].includes(input.action)
     if (agrega && (lista.filter(m => m.activo).length >= MAX_MATERIALES || lista.length >= MAX_HISTORIAL_MATERIALES)) throw new Error('Se alcanzó el límite de materiales. Retirá alguno o consultá al equipo.')
     if (input.action === 'preparar') {
@@ -58,6 +58,8 @@ export async function POST(request: Request, context: Context) {
       lista.push({ id: ticket.id, titulo: ticket.titulo, tipo: 'archivo', archivo: ticket.archivo, activo: true, creado: new Date().toISOString() })
     } else if (input.action === 'enlace') {
       lista.push({ id: randomUUID(), titulo: tituloMaterial(input.titulo), tipo: 'enlace', url: enlaceMaterial(input.url), activo: true, creado: new Date().toISOString() })
+    } else if (input.action === 'mover') {
+      lista = moverMaterial(lista, input.materialId, input.direccion)
     } else {
       if (!esUuid(input.materialId)) throw new Error('Material no válido.')
       const index = lista.findIndex(m => m.id === input.materialId)

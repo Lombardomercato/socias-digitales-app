@@ -72,3 +72,16 @@ export function detalleMaterial(m: MaterialClase) {
 export function materialesVisibles(clase: string, materiales: MaterialClase[]): MaterialVisible[] {
   return materiales.filter(m => m.activo).map(m => ({ id: m.id, titulo: m.titulo, tipo: m.tipo, detalle: detalleMaterial(m), href: `/api/classroom/${clase}/materiales/${m.id}` }))
 }
+// El orden del índice es el mismo que recibe la alumna. Los retirados no
+// participan del movimiento y conservan su posición e historial.
+export function moverMaterial(materiales: MaterialClase[], id: unknown, direccion: unknown): MaterialClase[] {
+  if (!esUuid(id) || (direccion !== 'arriba' && direccion !== 'abajo')) throw new Error('Movimiento no válido.')
+  const posiciones = materiales.flatMap((m, i) => m.activo ? [i] : [])
+  const actual = posiciones.findIndex(i => materiales[i].id === id)
+  if (actual < 0) throw new Error('Elegí un material disponible.')
+  const destino = actual + (direccion === 'arriba' ? -1 : 1)
+  if (destino < 0 || destino >= posiciones.length) throw new Error('El material ya está en esa posición.')
+  const copia = [...materiales], a = posiciones[actual], b = posiciones[destino]
+  ;[copia[a], copia[b]] = [copia[b], copia[a]]
+  return copia
+}

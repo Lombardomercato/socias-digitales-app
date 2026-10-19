@@ -14,8 +14,8 @@ function load(file, deps = {}) {
 }
 const management = load('src/lib/class-management.ts')
 const nueva = { titulo: 'Abrí tu cuenta en Hotmart', modulo: 'Desafío Socias en vivo', descripcion: '', orden: 1, vimeo_url: '', tieneVideo: false, activo: false, acceso_gratuito: false }
-function editor(ficha, extra = {}, busy = false) {
-  const updates = [], values = ['clases', 'Todos', ficha, busy, false, '', '', '', []]
+function editor(ficha, extra = {}, busy = false, materialStates = []) {
+  const updates = [], values = ['clases', 'Todos', ficha, busy, false, '', '', '', [], ...materialStates]
   let index = 0
   const Component = load('src/app/admin/classroom/ClassroomAdmin.tsx', {
     react: { ...React, useEffect: () => {}, useRef: () => ({ current: null }), useState: initial => { const n = index++; return [n < values.length ? values[n] : initial, value => updates.push([n, value])] } },
@@ -128,4 +128,26 @@ test('carga/guardado bloquea el formulario y un error conserva la ficha para rei
     assert.ok(!view.updates.some(([i]) => i === 2))
     assert.deepEqual(view.updates.at(-1), [3, false])
   } finally { global.fetch = before }
+})
+test('cerrar y Escape conservan materiales pendientes salvo confirmación explícita', () => {
+  const before = global.window
+  let confirms = 0, allow = false
+  global.window = { confirm: () => { confirms++; return allow } }
+  try {
+    const view = editor({ ...nueva, id: 'fixture' }, {}, false, [false, true])
+    view.find(n => n.props?.['aria-label'] === 'Cerrar editor').props.onClick()
+    assert.equal(confirms, 1)
+    assert.ok(!view.updates.some(([n]) => n === 2))
+    view.find(n => n.props?.role === 'dialog').props.onKeyDown({ key: 'Escape', preventDefault() {} })
+    assert.equal(confirms, 2)
+    assert.ok(!view.updates.some(([n]) => n === 2))
+    allow = true
+    view.find(n => n.props?.['aria-label'] === 'Cerrar editor').props.onClick()
+    assert.deepEqual(view.updates.at(-1), [2, null])
+    assert.ok(view.updates.some(([n, v]) => n === 10 && v === false))
+    const clean = editor({ ...nueva, id: 'fixture' })
+    clean.find(n => n.props?.['aria-label'] === 'Cerrar editor').props.onClick()
+    assert.equal(confirms, 3)
+    assert.deepEqual(clean.updates.at(-1), [2, null])
+  } finally { global.window = before }
 })

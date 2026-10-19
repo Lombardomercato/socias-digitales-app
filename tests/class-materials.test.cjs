@@ -156,6 +156,37 @@ test('concurrencia y datos corruptos fallan sin pisar el trabajo de otra adminis
   assert.equal((await s.admin.GET(new Request('https://app.test'), ctx)).status, 503)
   assert.equal(JSON.parse(new TextDecoder().decode(s.objects.get(s.index).body)).version, 99)
 })
+test('orden de materiales: intercambia activos sin alterar retirados, identidades ni archivos', async () => {
+  const s = sistema(), archivoId = '686ba97c-3730-4da0-9dca-86b1c5ce1a4b'
+  const retirado = { ...link, id: otroId, activo: false }
+  const archivo = { id: archivoId, titulo: 'Planilla', tipo: 'archivo', archivo: logic.archivoMaterial('plan.xlsx', 100), activo: true, creado: link.creado }
+  const saved = await s.store.guardarMateriales(claseId, [link, retirado, archivo], null, 'admin')
+  const response = await s.post({ action: 'mover', revision: saved.revision, materialId, direccion: 'abajo' })
+  assert.equal(response.status, 200)
+  const moved = await response.json()
+  assert.deepEqual(moved.materiales, [archivo, retirado, link])
+  const visible = await (await s.alumno.GET(new Request('https://app.test'), ctx)).json()
+  assert.deepEqual(visible.materiales.map(m => m.id), [archivoId, materialId])
+  assert.equal((await s.post({ action: 'mover', revision: saved.revision, materialId, direccion: 'arriba' })).status, 409)
+  assert.deepEqual((await s.store.leerMateriales(claseId)).materiales, moved.materiales)
+  const back = await (await s.post({ action: 'mover', revision: moved.revision, materialId, direccion: 'arriba' })).json()
+  assert.deepEqual(back.materiales, saved.materiales)
+  assert.ok(s.calls.every(c => c.key === s.index))
+})
+test('orden rechaza extremos, retirados, IDs ajenos, payload extra y cuentas sin permisos', async () => {
+  const s = sistema(), saved = await s.store.guardarMateriales(claseId, [link, { ...link, id: otroId, activo: false }], null, 'admin')
+  for (const body of [
+    { materialId, direccion: 'arriba' }, { materialId, direccion: 'abajo' },
+    { materialId: otroId, direccion: 'arriba' }, { materialId: 'ajeno', direccion: 'arriba' },
+    { materialId, direccion: 'otro' }, { materialId, direccion: 'abajo', materiales: [] },
+  ]) assert.equal((await s.post({ action: 'mover', revision: saved.revision, ...body })).status, 400)
+  assert.deepEqual((await s.store.leerMateriales(claseId)).materiales, saved.materiales)
+  for (const denied of [401, 403]) {
+    const no = sistema({ denied })
+    assert.equal((await no.post({ action: 'mover', revision: null, materialId, direccion: 'abajo' })).status, denied)
+    assert.equal(no.calls.length, 0)
+  }
+})
 test('la firma de carga restringe método, objeto temporal, tipo y diez minutos sin revelar la clave', () => {
   const { createHash, createHmac } = require('node:crypto')
   const env = { R2_S3_ACCOUNT_ID: 'fixture', R2_BUCKET_NAME: 'private', R2_ACCESS_KEY_ID: 'fixture-access', R2_SECRET_ACCESS_KEY: 'fixture-secret' }
@@ -193,4 +224,47 @@ test('listado móvil usa enlaces de descarga auténticos, estados vacíos/carga/
   assert.ok(editor.includes('Recargar materiales')); assert.ok(editor.includes('Materiales retirados'))
   assert.ok(editor.includes('carga.current')); assert.ok(editor.includes('pendiente.subido = true'))
   assert.ok(read('src/app/classroom/ClassPlayer.tsx').includes('<ClassMaterials key={clase.id}'))
+})
+test('editor: tipo y acción claros, advertencia solo para borradores y protección de doble envío', async () => {
+  const ui = load('src/components/ClassMaterials.tsx'), effects = [], busy = [], drafts = [], updates = []
+  const values = [{ materiales: [link], revision: '"r1"' }, '', '', false, 'enlace', 'Nueva guía', 'https://example.com/guia', null, 0, null, false, false]
+  let index = 0
+  const Component = load('src/app/admin/classroom/ClassMaterialsEditor.tsx', {
+    react: { ...React, useCallback: f => f, useEffect: f => effects.push(f), useRef: value => ({ current: value }), useState: initial => { const i = index++; return [i < values.length ? values[i] : initial, v => updates.push([i, v])] } },
+    '@/lib/class-materials': logic, '@/components/ClassMaterials': ui,
+  }).default
+  const tree = Component({ claseId, onBusy: v => busy.push(v), onDraftChange: v => drafts.push(v) })
+  const html = renderToStaticMarkup(tree)
+  assert.ok(html.includes('Tipo de material')); assert.ok(html.includes('Dirección del enlace'))
+  assert.ok(html.includes('Guardar enlace')); assert.ok(html.includes('No es el enlace del video.'))
+  assert.ok(html.includes('Tenés materiales sin guardar'))
+  effects[0](); assert.deepEqual(drafts, [true])
+  effects[1]()(); assert.deepEqual(drafts, [true, false])
+  const beforeWindow = global.window, listeners = []
+  global.window = { addEventListener: (...args) => listeners.push(args), removeEventListener: (...args) => listeners.push(args) }
+  try {
+    const cleanup = effects[2]()
+    let prevented = false
+    const event = { preventDefault() { prevented = true } }
+    listeners[0][1](event)
+    assert.equal(prevented, true); assert.equal(event.returnValue, '')
+    cleanup(); assert.equal(listeners[0][0], 'beforeunload'); assert.equal(listeners.length, 2)
+  } finally { global.window = beforeWindow }
+  function find(node) {
+    if (!node || typeof node !== 'object') return null
+    if (node.type === 'form') return node
+    for (const child of React.Children.toArray(node.props?.children)) { const result = find(child); if (result) return result }
+  }
+  const beforeFetch = global.fetch
+  let calls = 0, finish
+  global.fetch = () => { calls++; return new Promise(resolve => { finish = resolve }) }
+  try {
+    const form = find(tree), event = { preventDefault() {} }
+    form.props.onSubmit(event); form.props.onSubmit(event)
+    assert.equal(calls, 1); assert.deepEqual(busy, [true])
+    finish({ ok: true, json: async () => ({ materiales: [link], revision: '"r2"' }) })
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(busy, [true, false])
+    assert.ok(updates.some(([i, v]) => i === 5 && v === ''))
+  } finally { global.fetch = beforeFetch }
 })

@@ -75,12 +75,19 @@ export default function ClassroomAdmin({
     [programaNuevo, setProgramaNuevo] = useState(''),
     [programasLocales, setProgramasLocales] = useState<string[]>([])
   const [materialOcupado, setMaterialOcupado] = useState(false)
+  const [materialPendiente, setMaterialPendiente] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLDivElement>(null)
   const continuarAlVideo = useRef(false)
   const editorAbierto = Boolean(ficha)
   const puedePublicar = ficha ? puedePublicarClase(ficha) : false
   const pasoActual = !ficha?.id ? 1 : puedePublicar ? 3 : 2
+  function cerrarEditor() {
+    if (cargando || guardando || materialOcupado) return
+    if (materialPendiente && !window.confirm('Tenés materiales sin guardar. ¿Cerrar y descartar esos cambios?')) return
+    setMaterialPendiente(false)
+    setFicha(null)
+  }
   useEffect(() => {
     if (!editorAbierto) return
     const anterior = document.activeElement as HTMLElement | null
@@ -483,7 +490,7 @@ export default function ClassroomAdmin({
           aria-modal="true"
           aria-labelledby="clase-editor-titulo"
           onKeyDown={(e) => {
-            if (e.key === 'Escape' && !cargando && !guardando && !materialOcupado) setFicha(null)
+            if (e.key === 'Escape') { e.preventDefault(); cerrarEditor() }
             if (e.key === 'Tab') {
               const controls = [...e.currentTarget.querySelectorAll<HTMLElement>('button, input, textarea, select, summary, a[href]')].filter(el => !el.matches(':disabled') && el.getClientRects().length > 0)
               const first = controls[0], last = controls[controls.length - 1]
@@ -502,7 +509,7 @@ export default function ClassroomAdmin({
               </h2>
               <button
                 disabled={cargando || guardando || materialOcupado}
-                onClick={() => setFicha(null)}
+                onClick={cerrarEditor}
                 aria-label="Cerrar editor"
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8CFC8] text-xl disabled:opacity-40"
               >
@@ -666,7 +673,7 @@ export default function ClassroomAdmin({
                 </p>
               )}
             </div>
-            {ficha.id ? <ClassMaterialsEditor key={ficha.id} claseId={ficha.id} disabled={guardando || cargando} onBusy={setMaterialOcupado} />
+            {ficha.id ? <ClassMaterialsEditor key={ficha.id} claseId={ficha.id} disabled={guardando || cargando} onBusy={setMaterialOcupado} onDraftChange={setMaterialPendiente} />
               : <section className="mt-5 rounded-2xl border border-[#E7DDD5] p-4"><h3 className="font-impact text-base font-semibold">Materiales de la clase</h3><p className="mt-2 text-sm text-[#746A64]">Después de guardar la ficha podés adjuntar PDF, documentos y enlaces en este mismo editor, sin salir de la clase.</p></section>}
           </div>
         </div>

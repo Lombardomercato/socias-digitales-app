@@ -24,7 +24,7 @@ function enviarArchivo(carga: Carga, file: File, progreso: (n: number) => void) 
     xhr.send(file)
   })
 }
-export default function ClassMaterialsEditor({ claseId, disabled = false, onBusy }: { claseId: string; disabled?: boolean; onBusy: (busy: boolean) => void }) {
+export default function ClassMaterialsEditor({ claseId, disabled = false, onBusy, onDraftChange }: { claseId: string; disabled?: boolean; onBusy: (busy: boolean) => void; onDraftChange?: (dirty: boolean) => void }) {
   const [lista, setLista] = useState<Lista | null>(null)
   const [error, setError] = useState('')
   const [aviso, setAviso] = useState('')
@@ -38,6 +38,18 @@ export default function ClassMaterialsEditor({ claseId, disabled = false, onBusy
   const [recargar, setRecargar] = useState(false)
   const [lectura, setLectura] = useState(true)
   const carga = useRef<Carga | null>(null), fileRef = useRef<HTMLInputElement>(null)
+  const ocupado = useRef(false)
+  const original = lista?.materiales.find(m => m.id === edicion?.id)
+  const edicionPendiente = Boolean(edicion && original && (edicion.titulo !== original.titulo || (original.tipo === 'enlace' && edicion.url !== original.url)))
+  const pendiente = Boolean(titulo.trim() || url.trim() || file || edicionPendiente)
+  useEffect(() => { onDraftChange?.(pendiente) }, [pendiente, onDraftChange])
+  useEffect(() => () => onDraftChange?.(false), [onDraftChange])
+  useEffect(() => {
+    if (!pendiente && !busy) return
+    function advertir(event: BeforeUnloadEvent) { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', advertir)
+    return () => window.removeEventListener('beforeunload', advertir)
+  }, [pendiente, busy])
   const recibir = useCallback((data: Lista) => { setLista(data); setError(''); setRecargar(false); setLectura(false) }, [])
   useEffect(() => {
     const c = new AbortController()
@@ -58,11 +70,12 @@ export default function ClassMaterialsEditor({ claseId, disabled = false, onBusy
     return data
   }
   async function ejecutar(trabajo: () => Promise<void>) {
-    if (busy || disabled || !lista || lectura || recargar) return
+    if (ocupado.current || disabled || !lista || lectura || recargar) return
+    ocupado.current = true
     setBusy(true); onBusy(true); setError(''); setAviso('')
     try { await trabajo() }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'No pudimos guardar el material.') }
-    finally { setBusy(false); onBusy(false) }
+    finally { ocupado.current = false; setBusy(false); onBusy(false) }
   }
   async function agregar(e: React.FormEvent) {
     e.preventDefault()
@@ -86,31 +99,54 @@ export default function ClassMaterialsEditor({ claseId, disabled = false, onBusy
       setAviso('Material guardado. Sigue el acceso y la publicación de esta clase.')
     })
   }
-  function cambiarModo(nuevo: 'archivo' | 'enlace') { if (nuevo !== modo) { setFile(null); setPorcentaje(0) } setModo(nuevo); carga.current = null; setError(''); setAviso('') }
+  function cambiarModo(nuevo: 'archivo' | 'enlace') {
+    if (nuevo === modo) return
+    if ((file || url.trim()) && !window.confirm('Al cambiar el tipo se descarta el archivo o enlace sin guardar. El nombre se conserva. ¿Continuar?')) return
+    setFile(null); setUrl(''); setPorcentaje(0); setModo(nuevo); carga.current = null; setError(''); setAviso('')
+  }
+  function editar(m: MaterialClase) {
+    if (edicionPendiente && !window.confirm('Tenés cambios sin guardar en otro material. ¿Descartarlos?')) return
+    setEdicion({ id: m.id, titulo: m.titulo, ...(m.tipo === 'enlace' ? { url: m.url } : {}) })
+  }
+  function cancelarEdicion() {
+    if (edicionPendiente && !window.confirm('¿Descartar los cambios de este material?')) return
+    setEdicion(null)
+  }
+  async function mover(m: MaterialClase, direccion: 'arriba' | 'abajo') {
+    await ejecutar(async () => {
+      setLista(await api({ action: 'mover', materialId: m.id, direccion }))
+      setAviso('Orden guardado. Las alumnas verán los materiales en este orden.')
+    })
+  }
   const bloqueado = disabled || busy || lectura || !lista || recargar
   const activas = lista?.materiales.filter(m => m.activo) ?? [], retiradas = lista?.materiales.filter(m => !m.activo) ?? []
   function fila(m: MaterialClase) {
+    const posicion = activas.findIndex(a => a.id === m.id)
     return <li key={m.id} className="rounded-xl border border-[#E7DDD5] bg-[#FFFDFA] p-3">
-      <div className="flex items-start gap-3 text-[#294A38]"><MaterialIcon enlace={m.tipo === 'enlace'} /><div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold text-[#211C19]">{m.titulo}</p><p className="mt-1 break-words text-xs text-[#746A64]">{detalleMaterial(m)}</p></div></div>
-      {edicion?.id === m.id ? <form onSubmit={e => { e.preventDefault(); void ejecutar(async () => { setLista(await api({ action: 'editar', materialId: m.id, titulo: tituloMaterial(edicion.titulo), ...(m.tipo === 'enlace' ? { url: enlaceMaterial(edicion.url) } : {}) })); setEdicion(null); setAviso('Material actualizado.') }) }} className="mt-3 space-y-3"><fieldset disabled={bloqueado} className="space-y-3"><label className="block text-sm">Nombre del material<input required maxLength={120} value={edicion.titulo} onChange={e => setEdicion({ ...edicion, titulo: e.target.value })} className={campo} /></label>{m.tipo === 'enlace' && <label className="block text-sm">Enlace del material<input type="url" required maxLength={2048} value={edicion.url ?? ''} onChange={e => setEdicion({ ...edicion, url: e.target.value })} className={campo} /></label>}<div className="flex flex-wrap gap-2"><button className={boton}>Guardar material</button><button type="button" onClick={() => setEdicion(null)} className={boton}>Cancelar edición</button></div></fieldset></form>
-        : <div className="mt-2 flex flex-wrap gap-2">{m.activo && <><a href={`/api/classroom/${claseId}/materiales/${m.id}`} target="_blank" rel="noopener noreferrer" className={boton + ' inline-flex items-center'}>Abrir</a><button type="button" disabled={bloqueado} onClick={() => setEdicion({ id: m.id, titulo: m.titulo, ...(m.tipo === 'enlace' ? { url: m.url } : {}) })} className={boton}>Editar</button></>}<button type="button" disabled={bloqueado} onClick={() => void ejecutar(async () => { setLista(await api({ action: m.activo ? 'retirar' : 'restaurar', materialId: m.id })); setAviso(m.activo ? 'Material retirado. Podés restaurarlo más abajo.' : 'Material restaurado.') })} className={boton}>{m.activo ? 'Retirar' : 'Restaurar'}</button></div>}
+      <div className="flex items-start gap-3 text-[#294A38]"><MaterialIcon enlace={m.tipo === 'enlace'} /><div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold text-[#211C19]">{m.titulo}</p><p className="mt-1 break-words text-xs text-[#746A64]">{detalleMaterial(m)}</p></div>{m.activo && activas.length > 1 && <div role="group" aria-label={`Orden de ${m.titulo}`} className="flex shrink-0 flex-col gap-1"><button type="button" aria-label={`Subir ${m.titulo}`} title="Mover arriba" disabled={bloqueado || posicion === 0} onClick={() => void mover(m, 'arriba')} className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8CFC8] disabled:opacity-30"><OrdenIcon /></button><button type="button" aria-label={`Bajar ${m.titulo}`} title="Mover abajo" disabled={bloqueado || posicion === activas.length - 1} onClick={() => void mover(m, 'abajo')} className="flex h-11 w-11 items-center justify-center rounded-full border border-[#D8CFC8] disabled:opacity-30"><OrdenIcon abajo /></button></div>}</div>
+      {edicion?.id === m.id ? <form onSubmit={e => { e.preventDefault(); void ejecutar(async () => { setLista(await api({ action: 'editar', materialId: m.id, titulo: tituloMaterial(edicion.titulo), ...(m.tipo === 'enlace' ? { url: enlaceMaterial(edicion.url) } : {}) })); setEdicion(null); setAviso('Material actualizado.') }) }} className="mt-3 space-y-3"><fieldset disabled={bloqueado} className="space-y-3"><label className="block text-sm">Nombre del material<input required maxLength={120} value={edicion.titulo} onChange={e => setEdicion({ ...edicion, titulo: e.target.value })} className={campo} /></label>{m.tipo === 'enlace' && <label className="block text-sm">Enlace del material<input type="url" required maxLength={2048} value={edicion.url ?? ''} onChange={e => setEdicion({ ...edicion, url: e.target.value })} className={campo} /></label>}<div className="flex flex-wrap gap-2"><button className={boton}>Guardar cambios</button><button type="button" onClick={cancelarEdicion} className={boton}>Cancelar edición</button></div></fieldset></form>
+        : <div className="mt-2 flex flex-wrap gap-2">{m.activo && <><a href={`/api/classroom/${claseId}/materiales/${m.id}`} target="_blank" rel="noopener noreferrer" className={boton + ' inline-flex items-center'}>Abrir</a><button type="button" disabled={bloqueado} onClick={() => editar(m)} className={boton}>Editar</button></>}<button type="button" disabled={bloqueado} onClick={() => void ejecutar(async () => { setLista(await api({ action: m.activo ? 'retirar' : 'restaurar', materialId: m.id })); setAviso(m.activo ? 'Material retirado. Podés restaurarlo más abajo.' : 'Material restaurado.') })} className={boton}>{m.activo ? 'Retirar' : 'Restaurar'}</button></div>}
     </li>
   }
   return <section aria-label="Materiales de la clase" className="mt-5 rounded-2xl border border-[#E7DDD5] bg-[#F4EFEA]/50 p-4">
     <h3 className="font-impact text-base font-semibold">Materiales de la clase</h3><p className="mt-2 text-sm leading-5 text-[#746A64]">Archivos y enlaces que acompañan este video. Se guardan por separado y tienen el mismo acceso que la clase.</p>
     {lectura && <p role="status" className="mt-3 text-sm text-[#746A64]">Cargando materiales…</p>}
-    {lista && <><ul className="mt-4 space-y-2">{activas.map(fila)}</ul>{!activas.length && <p className="mt-3 text-sm text-[#746A64]">Esta clase todavía no tiene materiales.</p>}
+    {lista && <>{activas.length > 1 && <p className="mt-3 text-xs leading-5 text-[#746A64]">Usá las flechas para cambiar el orden. Cada movimiento se guarda al instante.</p>}<ul className="mt-4 space-y-2">{activas.map(fila)}</ul>{!activas.length && <p className="mt-3 text-sm text-[#746A64]">Esta clase todavía no tiene materiales.</p>}
       <form onSubmit={e => void agregar(e)} className="mt-4"><fieldset disabled={bloqueado} className="space-y-3"><legend className="mb-3 text-sm font-semibold">Agregar material</legend>
-        <div className="flex flex-wrap gap-2">{(['archivo', 'enlace'] as const).map(m => <button type="button" key={m} aria-pressed={modo === m} onClick={() => cambiarModo(m)} className={`${boton} ${modo === m ? 'border-[#EC9BB6] bg-[#F4CAD8]' : 'bg-[#FFFDFA]'}`}>{m === 'archivo' ? 'Subir archivo' : 'Agregar enlace'}</button>)}</div>
+        <div role="group" aria-label="Tipo de material" className="flex flex-wrap gap-2">{(['archivo', 'enlace'] as const).map(m => <button type="button" key={m} aria-pressed={modo === m} onClick={() => cambiarModo(m)} className={`${boton} inline-flex items-center gap-2 ${modo === m ? 'border-[#EC9BB6] bg-[#F4CAD8]' : 'bg-[#FFFDFA]'}`}><MaterialIcon enlace={m === 'enlace'} />{m === 'archivo' ? 'Archivo' : 'Enlace'}</button>)}</div>
         <label className="block text-sm">Nombre para las alumnas<input required maxLength={120} value={titulo} onChange={e => { setTitulo(e.target.value); carga.current = null }} className={campo} placeholder="Ej.: Guía de ejercicios" /></label>
-        {modo === 'enlace' ? <><label className="block text-sm">Enlace HTTPS<input key="material-link" type="url" required maxLength={2048} value={url} onChange={e => setUrl(e.target.value)} className={campo} placeholder="https://…" /></label><p className="text-xs leading-5 text-[#746A64]">Para Google Drive o Docs, revisá que las alumnas tengan permiso en ese servicio.</p></>
+        {modo === 'enlace' ? <><label className="block text-sm">Dirección del enlace<input key="material-link" type="url" required maxLength={2048} value={url} onChange={e => setUrl(e.target.value)} className={campo} placeholder="https://…" /></label><p className="text-xs leading-5 text-[#746A64]">Pegá la dirección completa (https://…). Para Drive o Docs, revisá los permisos en ese servicio. No es el enlace del video.</p></>
           : <><label className="block text-sm">Archivo<input key="material-file" ref={fileRef} type="file" accept={ACEPTAR_MATERIALES} onChange={e => { const elegido = e.target.files?.[0]; carga.current = null; setPorcentaje(0); setError(''); if (!elegido) { setFile(null); return } try { archivoMaterial(elegido.name, elegido.size); setFile(elegido); if (!titulo) setTitulo(elegido.name.replace(/\.[^.]+$/, '').slice(0, 120)) } catch (cause) { setFile(null); e.target.value = ''; setError(cause instanceof Error ? cause.message : 'Archivo no válido.') } }} className={campo + ' file:mr-3 file:rounded-full file:border-0 file:bg-[#F4CAD8] file:px-3 file:py-2 file:text-sm'} /></label><p className="text-xs leading-5 text-[#746A64]">PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), TXT o imágenes. Hasta 25 MB por archivo.</p></>}
-        <button disabled={modo === 'archivo' && !file} className="min-h-11 w-full rounded-full bg-[#294A38] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{busy ? modo === 'archivo' && porcentaje < 100 ? `Subiendo… ${porcentaje}%` : 'Guardando material…' : 'Guardar material'}</button>
+        <button disabled={modo === 'archivo' && !file} className="min-h-11 w-full rounded-full bg-[#294A38] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{busy ? modo === 'archivo' && porcentaje < 100 ? `Subiendo… ${porcentaje}%` : 'Guardando material…' : modo === 'archivo' ? 'Adjuntar archivo' : 'Guardar enlace'}</button>
       </fieldset></form>
       {retiradas.length > 0 && <details className="mt-4 border-t border-[#E7DDD5] pt-3"><summary className="min-h-11 cursor-pointer py-3 text-sm text-[#746A64]">Materiales retirados · {retiradas.length}</summary><ul className="mt-2 space-y-2">{retiradas.map(fila)}</ul></details>}
     </>}
     {aviso && <p role="status" className="mt-3 rounded-xl border border-[#E7DDD5] bg-[#FFFDFA] p-3 text-sm text-[#294A38]">{aviso}</p>}
+    {pendiente && !busy && <p role="status" className="mt-3 text-xs leading-5 text-[#746A64]">Tenés materiales sin guardar. Usá el botón de su formulario para conservarlos.</p>}
     {error && <p role="alert" className="mt-3 text-sm text-[#B01B30]">{error}</p>}
     {(!lista || recargar || error) && !busy && <button type="button" disabled={disabled || lectura} onClick={() => void cargar()} className={boton + ' mt-3'}>Recargar materiales</button>}
   </section>
+}
+function OrdenIcon({ abajo = false }: { abajo?: boolean }) {
+  return <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={abajo ? 'm6 9 6 6 6-6' : 'm6 15 6-6 6 6'} /></svg>
 }
