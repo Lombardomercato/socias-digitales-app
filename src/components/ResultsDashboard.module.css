@@ -23,6 +23,9 @@
 .panel { border:1px solid #E7DDD5; border-radius:24px; padding:24px; background:#FFFDFA; min-width:0; }
 .panel h3 { font-size:17px; font-weight:600; }
 .panelHead { display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:start; }
+.chartSwitch { display:flex; flex-wrap:wrap; gap:3px; padding:3px; border:1px solid #E7DDD5; border-radius:999px; background:#FAF7F3; }
+.chartSwitch button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; border-radius:999px; padding:8px 12px; color:#746A64; font-size:12px; cursor:pointer; }
+.chartSwitch button[aria-pressed=true] { background:#294A38; color:#FFFDFA; }
 .graph { width:100%; height:auto; display:block; margin-top:20px; }
 .monthList { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; margin-top:8px; }
 .month { border-radius:10px; border:1px solid transparent; padding:8px 2px; min-height:44px; font-size:11px; color:#746A64; cursor:pointer; }
@@ -42,7 +45,7 @@
 .table td:not(:first-child), .table th:not(:first-child) { text-align:right; }
 .share { margin-top:20px; border:1px solid #EC9BB6; background:#FAF7F3; border-radius:24px; padding:24px; }
 .shareLayout { margin-top:20px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:start; gap:24px; }
-.canvas { display:block; max-width:100%; width:300px; height:auto; border:1px solid #E7DDD5; border-radius:18px; }
+.canvas { display:block; max-width:100%; width:360px; height:auto; border:1px solid #E7DDD5; border-radius:18px; }
 .shareActions { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
 .error { margin-top:12px; color:#B01B30; font-size:13px; line-height:1.7; }
 @media(max-width:680px) {

@@ -4,36 +4,39 @@ import { useId, useState } from 'react'
 import dynamic from 'next/dynamic'
 import NavigationIcon from './NavigationIcon'
 import { tableroResultados, dineroTablero, type TableroResultados } from '@/lib/results-dashboard'
+import { geometriaResultados, cifraEjeResultados, type TipoGraficoResultados } from '@/lib/results-chart'
 import type { Resultado } from '@/lib/results'
 import styles from './ResultsDashboard.module.css'
 
 const ResultsShare = dynamic(()=>import('./ResultsShare'), { loading:()=> <p role="status" className={styles.empty}>Preparando tu imagen…</p> })
 
-function MonthlyChart({ data, selected }: { data: TableroResultados; selected:string }) {
-  const id = useId(), max = Math.max(1,...data.meses.map(m=>m.centavos))
-  const paso = 560/data.meses.length
-  return <svg viewBox="0 0 600 210" role="img" aria-labelledby={id} className={styles.graph}>
-    <title id={id}>Comisiones aprobadas por mes, en USD. Valores disponibles debajo del gráfico.</title>
-    {[25,105,185].map(y=><line key={y} x1="20" x2="580" y1={y} y2={y} stroke="#E7DDD5" strokeDasharray="3 5" />)}
-    {data.meses.map((m,i)=>{
-      const alto = m.centavos/max*160, ancho = paso*.56, x=20+i*paso+(paso-ancho)/2
-      return <g key={m.periodo}><title>{`${m.nombre}: ${dineroTablero(m.centavos)}`}</title><rect x={x} y={185-Math.max(alto,2)} width={ancho} height={Math.max(alto,2)} rx="5" fill={m.centavos ? m.periodo===selected?'#294A38':'#EC9BB6':'#E7DDD5'} /></g>
-    })}
+function MonthlyChart({ data, selected, tipo }: { data: TableroResultados; selected:string; tipo:TipoGraficoResultados }) {
+  const id = useId(), base=222
+  const serie=geometriaResultados(data.meses,{izquierda:48,derecha:588,arriba:22,abajo:base})
+  return <svg viewBox="0 0 600 245" role="img" aria-labelledby={id} className={styles.graph}>
+    <title id={id}>{`Gráfico de ${tipo==='linea'?'línea':'barras'}: comisiones aprobadas por mes, en USD. Valores disponibles debajo del gráfico.`}</title>
+    {serie.marcas.map(m=><g key={m.y}><line x1="48" x2="588" y1={m.y} y2={m.y} stroke="#E7DDD5" strokeDasharray="3 5" /><text x="0" y={m.y+4} fontSize="13" fill="#746A64">{cifraEjeResultados(m.centavos)}</text></g>)}
+    {tipo==='linea' && <><polygon points={serie.area} fill="#F4CAD8" opacity=".65" /><polyline points={serie.linea} fill="none" stroke="#294A38" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" /></>}
+    {serie.puntos.map(p=><g key={p.periodo}><title>{`${p.nombre}: ${dineroTablero(p.centavos)}`}</title>{tipo==='linea'?<circle cx={p.x} cy={p.y} r={p.periodo===selected?6:4} fill={p.periodo===selected?'#EC9BB6':'#FFFDFA'} stroke="#294A38" strokeWidth="2" />:p.centavos>0?<rect x={p.x-serie.paso*.26} y={p.y} width={serie.paso*.52} height={base-p.y} rx="5" fill={p.periodo===selected?'#294A38':'#EC9BB6'} />:null}</g>)}
   </svg>
+}
+function ChartSwitch({tipo,onChange}:{tipo:TipoGraficoResultados;onChange:(t:TipoGraficoResultados)=>void}) {
+  return <div role="group" aria-label="Visualización del gráfico" className={styles.chartSwitch}>{(['linea','barras'] as const).map(t=><button type="button" key={t} aria-pressed={tipo===t} onClick={()=>onChange(t)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={t==='linea'?'M3 17 8 12l5 3 8-11':'M5 20V12m7 8V4m7 16V8'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>{t==='linea'?'Línea':'Barras'}</button>)}</div>
 }
 export default function ResultsDashboard({ resultados, periodoActual, errorCarga=false, comunidad=false }: {
   resultados: Resultado[]; periodoActual:string; errorCarga?:boolean; comunidad?:boolean
 }) {
   const [cantidad,setCantidad]=useState(6)
   const [fin,setFin]=useState(periodoActual)
-  const [mesElegido,setMesElegido]=useState(periodoActual)
+  const [mesElegido,setMesElegido]=useState<string|null>(null)
   const [compartir,setCompartir]=useState(false)
+  const [grafico,setGrafico]=useState<TipoGraficoResultados>('linea')
   const data=tableroResultados(resultados,fin,cantidad)
-  const seleccionado=data.meses.find(m=>m.periodo===mesElegido) ?? data.meses[data.meses.length-1]
+  const seleccionado=data.meses.find(m=>m.periodo===mesElegido) ?? data.mejorMes ?? data.meses[data.meses.length-1]
   const ranking=data.meses.filter(m=>m.centavos>0).sort((a,b)=>b.centavos-a.centavos).slice(0,3)
   const titulo=comunidad?'Resultados de la comunidad':'Mi camino en números'
   const pendientes=resultados.filter(r=>r.estado==='pendiente').length
-  function cambiarPeriodo(nuevo:string) { setFin(nuevo); setMesElegido(nuevo); setCompartir(false) }
+  function cambiarPeriodo(nuevo:string) { setFin(nuevo); setMesElegido(null); setCompartir(false) }
   return <section aria-label="Tablero de comisiones aprobadas" className={styles.dashboard}>
     <div className={styles.toolbar}>
       <div><p className={styles.eyebrow}>Resultados que construimos</p><h2 className="mt-2 text-xl font-semibold">{titulo}</h2></div>
@@ -57,8 +60,8 @@ export default function ResultsDashboard({ resultados, periodoActual, errorCarga
     {errorCarga?<p role="status" className={styles.empty}>El tablero no está disponible hasta recuperar el historial completo. No se generan imágenes con información incompleta.</p>:<>
       <div className={styles.charts}>
         <article className={styles.panel}>
-          <div className={styles.panelHead}><div><h3>{comunidad?'El camino de la comunidad':'Así viene tu camino'}</h3><p className={styles.muted}>Comisiones por mes · USD</p></div><span className="rounded-full border border-[#e7ddd5] px-3 py-2 text-xs text-[#294A38]">{cantidad} meses</span></div>
-          <MonthlyChart data={data} selected={seleccionado.periodo} />
+          <div className={styles.panelHead}><div><h3>{comunidad?'El camino de la comunidad':'Así viene tu camino'}</h3><p className={styles.muted}>Comisiones por mes · USD</p></div><ChartSwitch tipo={grafico} onChange={tipo=>{setGrafico(tipo);setCompartir(false)}} /></div>
+          <MonthlyChart data={data} selected={seleccionado.periodo} tipo={grafico} />
           <div className={styles.monthList} aria-label="Explorar meses">{data.meses.map(m=><button key={m.periodo} type="button" className={styles.month} aria-label={m.nombre} aria-pressed={m.periodo===seleccionado.periodo} onClick={()=>setMesElegido(m.periodo)}>{m.corto}</button>)}</div>
           <div className={styles.selected} aria-live="polite"><span>{seleccionado.nombre}<br /><span className={styles.muted}>{seleccionado.registros} {seleccionado.registros===1?'registro aprobado':'registros aprobados'}</span></span><strong>{dineroTablero(seleccionado.centavos)}</strong></div>
           <details className={styles.disclosure}><summary>Ver todos los valores</summary><table className={styles.table}><caption className="sr-only">Comisiones aprobadas, en USD, por mes</caption><thead><tr><th scope="col">Mes</th><th scope="col">Registros</th><th scope="col">USD</th></tr></thead><tbody>{data.meses.map(m=><tr key={m.periodo}><th scope="row">{m.nombre}</th><td>{m.registros}</td><td>{dineroTablero(m.centavos)}</td></tr>)}</tbody></table></details>
@@ -70,8 +73,8 @@ export default function ResultsDashboard({ resultados, periodoActual, errorCarga
         </article>
       </div>
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[22px] border border-[#e7ddd5] bg-[#FAF7F3] p-5"><div><h3 className="text-base font-semibold">Lo que lográs, se comparte.</h3><p className={styles.muted}>Una imagen lista para tu historia o publicación. Sin comprobantes ni datos personales.</p></div><button type="button" className={styles.button} disabled={!data.registros} aria-expanded={compartir} onClick={()=>setCompartir(!compartir)}><NavigationIcon name="resultados" />{compartir?'Cerrar imagen':'Preparar imagen'}</button></div>
-      {compartir && data.registros>0 && <ResultsShare data={data} comunidad={comunidad} />}
-      <p className={styles.footnote}>Carga manual · Comisiones declaradas en USD, no facturación bruta ni ganancia neta. La revisión es de Flor, no una certificación de las plataformas. {pendientes>0?`${pendientes} registros en revisión, todavía fuera del tablero. `:''}{data.excluidos>0?`${data.excluidos} aprobados históricos no se grafican por falta de comprobante, monto válido o mes reconocible.`:''}</p>
+      {compartir && data.registros>0 && <ResultsShare data={data} comunidad={comunidad} graficoInicial={grafico} />}
+      <p className={styles.footnote}>Carga manual · Comisiones declaradas en USD, no facturación bruta ni ganancia neta. La revisión es de Flor, no una certificación de las plataformas. {pendientes>0?`${pendientes} ${pendientes===1?'registro en revisión, todavía fuera':'registros en revisión, todavía fuera'} del tablero. `:''}{data.excluidos>0?`${data.excluidos} aprobados históricos no se grafican por falta de comprobante, monto válido o mes reconocible.`:''}</p>
     </>}
   </section>
 }
