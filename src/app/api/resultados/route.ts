@@ -26,7 +26,9 @@ async function guardar(req: NextRequest) {
     const form = await req.formData()
     if (typeof form.get('datos') !== 'string') throw new Error('Revisá el formulario.')
     datos = validarResultado(JSON.parse(form.get('datos') as string))
+    if (datos.monto === null || datos.monto <= 0) throw new Error('Ingresá la comisión en USD que figura en tu comprobante.')
     const captura = form.get('captura')
+    if (captura === null) throw new Error('Adjuntá el comprobante para que Flor pueda revisar tu resultado.')
     if (captura !== null) {
       if (typeof captura === 'string' || captura.size === 0 || captura.size > MAX_CAPTURA) throw new Error('La captura debe pesar hasta 3 MB.')
       bytes = new Uint8Array(await captura.arrayBuffer()); mime = captura.type

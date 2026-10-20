@@ -15,6 +15,12 @@ async function revisar(req: NextRequest) {
   let x
   try { x=await req.json() } catch { return NextResponse.json({error:'Datos no válidos.'},{status:400}) }
   if(!x || typeof x.id!=='string' || !UUID_RESULTADO.test(x.id) || !ESTADOS_RESULTADO.includes(x.estado) || !ESTADOS_RESULTADO.includes(x.anterior)) return NextResponse.json({error:'Estado no válido.'},{status:400})
+  if(x.estado==='aprobado') {
+    const {data:resultado,error:lectura}=await supabase.from('resultados').select('archivo_url').eq('id',x.id).maybeSingle()
+    if(lectura) return NextResponse.json({error:'No pudimos comprobar el comprobante. Reintentá la revisión.'},{status:503})
+    if(!resultado) return NextResponse.json({error:'El resultado ya no está disponible.'},{status:409})
+    if(!resultado.archivo_url) return NextResponse.json({error:'No se puede aprobar sin comprobante. La alumna debe enviar una nueva carga con su captura.'},{status:400})
+  }
   const {data,error}=await supabase.from('resultados').update({estado:x.estado}).eq('id',x.id).eq('estado',x.anterior).select('id').maybeSingle()
   if(error) return NextResponse.json({error:'No pudimos guardar la revisión. Intentá nuevamente.'},{status:503})
   if(!data) return NextResponse.json({error:'El resultado cambió o ya no está disponible. Actualizá antes de revisarlo.'},{status:409})

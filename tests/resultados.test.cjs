@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Pruebas CommonJS del runner nativo de Node. */
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -18,6 +19,8 @@ function cargar(file, deps = {}) {
 const datos = cargar('src/lib/results.ts')
 const ID = '978b67ea-a440-4c98-a782-dbd44a50b6b2'
 const USER = '06bb7999-997b-49c8-ba80-b8d05bca4a84'
+const PNG = Uint8Array.from([137,80,78,71,13,10,26,10])
+const COMPROBANTE = `${USER}/${ID}/${require('node:crypto').createHash('sha256').update(PNG).digest('hex')}.png`
 const base = { id: ID, descripcion: ' Mi primer resultado ', monto: 100.25, periodo: '2026-10', producto_id: null }
 test('valida campos y no acepta identidad, estado o importes manipulados', () => {
   assert.deepEqual(datos.validarResultado(base), { id: ID, descripcion: 'Mi primer resultado', monto: 100.25, mes: 'Octubre 2026', producto_id: null })
@@ -69,7 +72,7 @@ function api(file, { user={id:USER}, permitido=true, admin=false, accesoError=fa
   })
   return {...handler,llamadas,storage}
 }
-function solicitud(valor=base,{origin='https://app.sociasdigitales.com',file=null}={}) {
+function solicitud(valor=base,{origin='https://app.sociasdigitales.com',file=new File([PNG],'comprobante.png',{type:'image/png'})}={}) {
   return {headers:new Headers({origin}),nextUrl:{origin:'https://app.sociasdigitales.com'},json:async()=>valor,formData:async()=>{
     const f=new FormData(); f.set('datos',JSON.stringify(valor)); if(file)f.set('captura',file);return f
   }}
@@ -85,8 +88,8 @@ test('guardar fuerza identidad de sesión y revisión; reintento confirmado no d
   const a=api(POST,{respuestas:{'resultados:insert':{data:{id:ID},error:null}}})
   assert.equal((await a.POST(solicitud())).body.ok,true)
   const creado=a.llamadas.find(x=>x[1]==='insert')[2]
-  assert.equal(creado.alumna_id,USER);assert.equal(creado.estado,'pendiente');assert.equal(creado.tipo,'testimonio')
-  const existente={...datos.validarResultado(base),alumna_id:USER,archivo_url:null}
+  assert.equal(creado.alumna_id,USER);assert.equal(creado.estado,'pendiente');assert.equal(creado.tipo,'captura')
+  const existente={...datos.validarResultado(base),alumna_id:USER,archivo_url:COMPROBANTE}
   const b=api(POST,{privilegiadas:{resultados:{data:existente,error:null}}})
   assert.equal((await b.POST(solicitud())).body.ok,true)
   assert.ok(!b.llamadas.some(x=>x[1]==='insert'))
@@ -115,11 +118,26 @@ test('solo administración revisa, compara estado anterior y comunica conflictos
   assert.equal((await api(PATCH).PATCH(solicitud({id:ID,estado:'aprobado',anterior:'pendiente'}))).status,403)
   const perfil={data:{rol:'admin'},error:null}
   for(const [r,status] of [[{data:{id:ID},error:null},200],[{data:null,error:null},409],[{data:null,error:{}},503]]) {
-    const a=api(PATCH,{respuestas:{perfiles:perfil,'resultados:update':r}})
+    const a=api(PATCH,{respuestas:{perfiles:perfil,resultados:{data:{archivo_url:COMPROBANTE},error:null},'resultados:update':r}})
     assert.equal((await a.PATCH(solicitud({id:ID,estado:'aprobado',anterior:'pendiente'}))).status,status)
     assert.ok(a.llamadas.some(x=>x[1]==='eq'&&x[2]==='estado'&&x[3]==='pendiente'))
   }
   assert.equal((await api(PATCH,{respuestas:{perfiles:perfil}}).PATCH(solicitud({id:ID,estado:'inventado',anterior:'pendiente'}))).status,400)
+})
+test('el circuito exige comprobante y monto en nuevas cargas; no aprueba sin evidencia',async()=>{
+  for(const valor of [{...base,monto:null},{...base,monto:0}]) {
+    const a=api(POST);assert.equal((await a.POST(solicitud(valor))).status,400);assert.equal(a.storage.length,0);assert.ok(!a.llamadas.some(x=>x[1]==='insert'))
+  }
+  const sinArchivo=api(POST)
+  assert.equal((await sinArchivo.POST(solicitud(base,{file:null}))).status,400)
+  assert.ok(!sinArchivo.llamadas.some(x=>x[1]==='insert'))
+  for(const [resultado,status] of [[{data:{archivo_url:null},error:null},400],[{data:null,error:{}},503],[{data:null,error:null},409]]) {
+    const a=api(PATCH,{respuestas:{perfiles:{data:{rol:'admin'}},resultados:resultado}})
+    assert.equal((await a.PATCH(solicitud({id:ID,estado:'aprobado',anterior:'pendiente'}))).status,status)
+    assert.ok(!a.llamadas.some(x=>x[1]==='update'))
+  }
+  const rechazar=api(PATCH,{respuestas:{perfiles:{data:{rol:'admin'}},'resultados:update':{data:{id:ID},error:null}}})
+  assert.equal((await rechazar.PATCH(solicitud({id:ID,estado:'rechazado',anterior:'pendiente'}))).status,200)
 })
 const ACCESO='src/app/api/admin/resultados/acceso/route.ts'
 test('habilita solo Socias activas; se puede cerrar después y no hay acceso automático',async()=>{
