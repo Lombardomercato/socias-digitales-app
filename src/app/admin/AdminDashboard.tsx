@@ -26,6 +26,9 @@ interface Alumna {
   pais: string | null
   created_at: string
   ultimo_acceso: string | null
+  email?: string | null
+  email_confirmado?: boolean | null
+  cuenta_encontrada?: boolean | null
 }
 
 interface Stats {
@@ -48,6 +51,7 @@ interface Stats {
 interface Props {
   alumnas: Alumna[]
   stats: Stats
+  errorDirectorio?: boolean
 }
 
 function diasSinIngresar(ultimoAcceso: string | null, fechaReferencia: number) {
@@ -67,7 +71,20 @@ function etiquetaTipoUsuario(tipo: string | null | undefined) {
   return 'Gratuito'
 }
 
-export default function AdminDashboard({ alumnas, stats }: Props) {
+function EmailCuenta({ alumna, errorDirectorio }: { alumna: Alumna; errorDirectorio: boolean }) {
+  const estado = errorDirectorio ? 'Estado del email sin verificar'
+    : alumna.cuenta_encontrada === false ? 'Cuenta de acceso no encontrada'
+    : alumna.email_confirmado === true ? 'Email confirmado'
+    : alumna.email_confirmado === false ? 'Email sin confirmar'
+    : 'Estado del email sin verificar'
+  const confirmado = !errorDirectorio && alumna.cuenta_encontrada !== false && alumna.email_confirmado === true
+  return <div className="mt-1 min-w-0">
+    <p className="break-all text-xs leading-5 text-[#746A64]">{alumna.email || 'Email no disponible'}</p>
+    <p className={`mt-0.5 text-[11px] leading-5 ${confirmado ? 'text-[#294A38]' : 'text-[#746A64]'}`}>{estado}</p>
+  </div>
+}
+
+export default function AdminDashboard({ alumnas, stats, errorDirectorio = false }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [busqueda, setBusqueda] = useState('')
@@ -214,11 +231,12 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
 
           <section id="acceso-actividad" className="scroll-mt-5 rounded-[24px] bg-white p-5 sm:p-6">
             {mensajeFicha && <p role="status" className="mb-4 rounded-xl border border-[#294A38]/25 bg-[#F4EFEA] px-4 py-3 text-sm leading-6 text-[#294A38]">{mensajeFicha}</p>}
+            {errorDirectorio && <div role="alert" className="mb-4 rounded-xl border border-[#EC9BB6] bg-[#F4CAD8]/35 p-4 text-sm leading-6 text-[#655B56]"><p className="font-semibold text-[#211C19]">No pudimos consultar el directorio de cuentas.</p><p className="mt-1">La lista de alumnas sigue disponible, pero el estado del email no está verificado. No significa que la cuenta no exista o que falte confirmar el correo.</p><a href="/admin" className="mt-2 inline-flex min-h-11 items-center font-semibold text-[#294A38] underline underline-offset-4">Recargar directorio</a></div>}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Usuarias</p><h2 className="mt-1 font-serif text-2xl font-semibold">Acceso y actividad</h2></div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <a href="/api/exportar-alumnas" download className="text-sm font-medium text-[#294A38]">Descargar lista&nbsp; ↓</a>
-                <input type="text" aria-label="Buscar alumnas" placeholder="Buscar por nombre o país" value={busqueda} onChange={e => setBusqueda(e.target.value)} className="min-w-0 w-full rounded-full border-0 bg-[#F4EFEA] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#EC9BB6] sm:w-auto" />
+                <input type="text" aria-label="Buscar alumnas por nombre, email o país" placeholder="Nombre, email o país" value={busqueda} onChange={e => setBusqueda(e.target.value)} className="min-w-0 w-full rounded-full border-0 bg-[#F4EFEA] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#EC9BB6] sm:w-auto" />
               </div>
             </div>
 
@@ -255,7 +273,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               {alumnasFiltradas.map(alumna => <article key={alumna.id} className="rounded-[18px] border border-[#e7ddd5] bg-[#FAF7F3] p-4">
                 <div className="flex min-w-0 items-start gap-3">
                   {alumna.avatar_url ? <img src={alumna.avatar_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F4CAD8] text-xs font-semibold">{(alumna.nombre || 'SD').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase()}</span>}
-                  <div className="min-w-0 flex-1"><h3 className="break-words text-sm font-semibold">{alumna.nombre || 'Sin nombre'}</h3><p className="mt-1 text-xs text-[#746a64]">{alumna.whatsapp || 'Sin teléfono'}</p></div>
+                  <div className="min-w-0 flex-1"><h3 className="break-words text-sm font-semibold">{alumna.nombre || 'Sin nombre'}</h3><EmailCuenta alumna={alumna} errorDirectorio={errorDirectorio} /><p className="mt-1 text-xs text-[#746a64]">{alumna.whatsapp || 'Sin teléfono'}</p></div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full border border-[#e7ddd5] px-2.5 py-1 text-xs capitalize">{alumna.estado || 'activa'}</span><span className="rounded-full bg-[#F4CAD8] px-2.5 py-1 text-xs">{etiquetaTipoUsuario(tipoAcceso(alumna))}</span></div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-[#746a64]">País</dt><dd className="mt-1">{alumna.pais || '—'}</dd></div><div><dt className="text-[#746a64]">Ingreso</dt><dd className="mt-1">{formatFecha(alumna.created_at)}</dd></div><div><dt className="text-[#746a64]">Actividad</dt><dd className="mt-1">{diasSinIngresar(alumna.ultimo_acceso, stats.fechaReferencia)}</dd></div><div><dt className="text-[#746a64]">Progreso</dt><dd className="mt-1 tabular-nums">{alumna.progreso ?? 0}%</dd></div></dl>
@@ -281,6 +299,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                         )}
                         <div>
                           <p className="font-semibold text-[#211c19]">{alumna.nombre || 'Sin nombre'}</p>
+                          <EmailCuenta alumna={alumna} errorDirectorio={errorDirectorio} />
                           {alumna.whatsapp && <p className="mt-0.5 text-xs text-[#746a64]">{alumna.whatsapp}</p>}
                         </div>
                       </div>
@@ -337,6 +356,12 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                   <p className="text-sm text-gray-500">Desde {formatFecha(alumnaSeleccionada.created_at)}</p>
                 </div>
               </div>
+
+              <section aria-label="Cuenta de acceso" className="min-w-0 rounded-xl border border-[#E7DDD5] bg-[#FAF7F3] p-4">
+                <h4 className="text-xs font-semibold text-[#211C19]">Email de acceso · solo consulta</h4>
+                <EmailCuenta alumna={alumnaSeleccionada} errorDirectorio={errorDirectorio} />
+                <p className="mt-3 text-xs leading-5 text-[#746A64]">Un email confirmado verifica la dirección; no acredita un pago. Desde esta ficha no se envían correos ni se muestran o cambian contraseñas.</p>
+              </section>
 
               <fieldset disabled={guardando || eliminando} className="grid min-w-0 grid-cols-1 gap-4 border-0 p-0 sm:grid-cols-2">
                 {[

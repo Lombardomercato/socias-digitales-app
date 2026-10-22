@@ -5,7 +5,7 @@ export const TIPOS_ACCESO = [
 ] as const
 
 export type TipoAcceso = typeof TIPOS_ACCESO[number]['id']
-type Usuaria = { id?: string; tipo_usuario?: string | null; rol?: string | null; estado?: string | null; nombre?: string | null; pais?: string | null }
+type Usuaria = { id?: string; tipo_usuario?: string | null; rol?: string | null; estado?: string | null; nombre?: string | null; pais?: string | null; email?: string | null }
 
 export function tipoAcceso(usuaria: Usuaria): TipoAcceso {
   if (usuaria.tipo_usuario === 'desafio' || usuaria.tipo_usuario === 'socia' || usuaria.tipo_usuario === 'gratuito') return usuaria.tipo_usuario
@@ -23,6 +23,6 @@ export function filtrarUsuarias<T extends Usuaria>(usuarias: readonly T[], filtr
   return usuarias.filter(usuaria => usuaria.rol !== 'admin' && !esCuentaPrueba(usuaria.id)
     && (filtros.estado === 'todas' || usuaria.estado === filtros.estado)
     && (filtros.tipo === 'todas' || tipoAcceso(usuaria) === filtros.tipo)
-    && (!consulta || [usuaria.nombre, usuaria.pais].some(valor => valor?.toLocaleLowerCase('es-AR').includes(consulta))))
+    && (!consulta || [usuaria.nombre, usuaria.pais, usuaria.email].some(valor => valor?.toLocaleLowerCase('es-AR').includes(consulta))))
 }
 import { esCuentaPrueba } from './test-accounts'

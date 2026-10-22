@@ -19,7 +19,7 @@ function fixture({ user = { id: 'actor' }, role = 'admin', roleError = null, rol
       },
     }; return q
   } }
-  const Page = load('src/app/admin/page.tsx', { '@/lib/supabase/server': { createClient: async () => supabase }, 'next/navigation': { redirect: location => { throw new Error('redirect:' + location) } }, './AdminDashboard': { default: Dashboard }, './AdminRecovery': { default: Recovery }, '@/lib/test-accounts': { FILTRO_CUENTAS_PRUEBA: '(test)', esCuentaPrueba: () => false } }).default
+  const Page = load('src/app/admin/page.tsx', { '@/lib/supabase/server': { createClient: async () => supabase }, '@/lib/supabase/admin': { createAdminClient: () => ({}), isAdminSupabaseConfigured: () => true }, '@/lib/admin-team': { identidadesDeCuentas: async () => new Map() }, 'next/navigation': { redirect: location => { throw new Error('redirect:' + location) } }, './AdminDashboard': { default: Dashboard }, './AdminRecovery': { default: Recovery }, '@/lib/test-accounts': { FILTRO_CUENTAS_PRUEBA: '(test)', esCuentaPrueba: () => false } }).default
   return { Page, calls }
 }
 test('un error de alumnas o cifras nunca aparece como vacío o cero; usa recuperación explícita', async () => {

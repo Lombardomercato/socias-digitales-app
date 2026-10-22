@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import AdminDashboard from './AdminDashboard'
 import AdminRecovery from './AdminRecovery'
 import { FILTRO_CUENTAS_PRUEBA, esCuentaPrueba } from '@/lib/test-accounts'
+import { createAdminClient, isAdminSupabaseConfigured } from '@/lib/supabase/admin'
+import { identidadesDeCuentas, type IdentidadCuenta } from '@/lib/admin-team'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -54,5 +56,21 @@ export default async function AdminPage() {
     ? Math.round((stats.activas / stats.totalAlumnas) * 100)
     : 0
 
-  return <AdminDashboard alumnas={alumnas ?? []} stats={{ ...stats, retencion }} />
+  // Solo cuentas presentes en la lista ya autorizada, sin administradoras ni
+  // pruebas. Una falla del directorio no convierte cuentas en no confirmadas.
+  let identidades: Map<string, IdentidadCuenta> | null = null
+  let errorDirectorio = false
+  if (alumnas.length) {
+    try {
+      if (!isAdminSupabaseConfigured()) throw new Error('directory_unavailable')
+      identidades = await identidadesDeCuentas(createAdminClient(), alumnas.map(alumna => alumna.id))
+    } catch { errorDirectorio = true; console.error('admin_student_directory_read_failed') }
+  }
+  const alumnasConCuenta = alumnas.map(alumna => ({
+    ...alumna,
+    email: identidades?.get(alumna.id)?.email ?? null,
+    email_confirmado: identidades?.get(alumna.id)?.email_confirmado ?? null,
+    cuenta_encontrada: identidades?.get(alumna.id)?.cuenta_encontrada ?? null,
+  }))
+  return <AdminDashboard alumnas={alumnasConCuenta} stats={{ ...stats, retencion }} errorDirectorio={errorDirectorio} />
 }

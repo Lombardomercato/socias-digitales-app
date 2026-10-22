@@ -11,6 +11,10 @@ Fecha: 15/10/2026. Complementa el inventario de `estado-plataforma.md`. No inclu
 3. En Usuarias / Acceso y actividad, revisar tipo, estado y permisos de la ficha. Gratis, Desafío y Socias no son roles administrativos.
 4. Estrategia y los módulos Socias tienen autorizaciones propias. No promover a admin a una alumna para resolver un bloqueo.
 
+**Identificar la cuenta por email:** Acceso y actividad permite buscar por nombre, email de acceso o país, combinado con tipo y estado. El email canónico y su confirmación aparecen en el listado y en Ver ficha, solo como consulta. Email confirmado significa dirección verificada, no compra acreditada, alta Socias ni módulos habilitados. Email sin confirmar, estado sin verificar y cuenta de acceso no encontrada son situaciones diferentes; no activar una compra solo por coincidencia de nombre.
+
+Si falla o tarda demasiado el directorio de cuentas, la lista y las cifras siguen disponibles con un aviso y **Recargar directorio**. La falta de lectura no se presenta como un correo sin confirmar ni como una cuenta inexistente. La ficha no modifica el email o la contraseña ni envía correos. Esta mejora reutiliza la lectura de Auth que ya usa Equipo, limitada a IDs del listado administrativo; no crea una tabla o permisos nuevos.
+
 ### Subir y organizar una clase
 
 Organización: **Programa → Sección → Clase**. Bienvenida es independiente del Desafío; su contenido se presenta directamente. Desafío Socias contiene **Clases** y **Material de apoyo**, con orden por sección. Los programas son plegables, sin portadas; las miniaturas corresponden a los videos. Elegir programa y sección en el editor o usar “Agregar a material de apoyo”. Mover una clase conserva su ID, archivo, publicación, acceso y progreso.
