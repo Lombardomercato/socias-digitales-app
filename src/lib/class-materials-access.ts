@@ -12,7 +12,7 @@ export async function autorizarMateriales(id: string) {
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) return fallo('Iniciá sesión para ver los materiales.', 401)
   const [perfil, clase] = await Promise.all([
-    supabase.from('perfiles').select('rol,tipo_usuario,desafio_socias_habilitada').eq('id', user.id).maybeSingle(),
+    supabase.from('perfiles').select('rol,tipo_usuario,estado,desafio_socias_habilitada').eq('id', user.id).maybeSingle(),
     supabase.from('clases').select('activo,acceso_gratuito').eq('id', id).maybeSingle(),
   ])
   if (perfil.error || clase.error) return fallo('No pudimos verificar tu acceso.', 503)

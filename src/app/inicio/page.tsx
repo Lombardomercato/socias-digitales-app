@@ -17,6 +17,7 @@ import { AgendaProvider } from './AgendaProvider'
 import { leerAgenda } from '@/lib/agenda-store'
 import { hitoParaAlumna } from '@/lib/agenda-management'
 import type { HitoAgenda } from '@/lib/agenda'
+import { accesoInicio } from '@/lib/home-access'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -27,25 +28,29 @@ export default async function InicioPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: perfil } = await supabase
+  const { data: perfil, error: errorPerfil } = await supabase
     .from('perfiles')
     .select('nombre, avatar_url, rol, tipo_usuario, estado, desafio_socias_habilitada, desafio_socias_estado')
     .eq('id', user.id)
     .maybeSingle()
 
   if (perfil?.rol === 'admin') redirect('/admin')
+  if (errorPerfil || !perfil) return <main className="min-h-screen bg-[#F4EFEA] px-5 py-12"><section className="mx-auto max-w-xl rounded-3xl border border-[#E7DDD5] bg-[#FFFDFA] p-6"><h1 className="font-serif text-3xl">No pudimos comprobar tu acceso.</h1><p role="alert" className="mt-4 text-sm leading-6">Volvé a intentarlo. Tu cuenta y tus avances no se modificaron.</p><a href="/inicio" className="mt-6 inline-flex min-h-11 items-center rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white">Reintentar</a></section></main>
   const [accesoResultados,accesoMetricas,accesoMiDia] = await Promise.all([permisoResultados(supabase,user.id),permisoMetricas(supabase,user.id),permisoMiDia(supabase,user.id)])
   const resumenAvisos = await leerAvisosSinLeer(supabase, user.id)
   const nombre = perfil?.nombre?.trim().split(' ')[0] || user.user_metadata?.nombre || 'Socia'
 
-  const tipoUsuario = perfil?.tipo_usuario ?? (perfil?.rol === 'afiliada' || perfil?.rol === 'afiliada_lanzamiento' ? 'socia' : 'gratuito')
-  const habilitada = Boolean(perfil?.desafio_socias_habilitada)
+  const acceso = accesoInicio(perfil)
+  const tipoUsuario = acceso.nivel
+  const habilitada = acceso.formacion
   const esDesafio = tipoUsuario === 'desafio'
-  const mostrarClase = habilitada || tipoUsuario === 'socia'
+  const mostrarClase = acceso.formacion
   const { data: accesoEstrategia } = await supabase.from('accesos_estrategia').select('habilitada').eq('usuaria_id', user.id).maybeSingle()
-  const estrategiaHabilitada = habilitada && Boolean(accesoEstrategia?.habilitada)
+  // El guardado heredado de Estrategia aún exige Desafío en RLS. No anunciar
+  // un módulo habilitado para una Socia que todavía no puede persistirlo.
+  const estrategiaHabilitada = habilitada && Boolean(perfil.desafio_socias_habilitada && accesoEstrategia?.habilitada)
   const ahoraInicial = await leerHoraServidor()
-  const esGratuito = tipoUsuario === 'gratuito' && !habilitada
+  const esGratuito = acceso.gratuito
   const clasesGratuitas = esGratuito && perfil ? await leerCatalogoClases(perfil) : []
   const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
   let hitos: HitoAgenda[] = [], errorAgenda = false
@@ -85,7 +90,7 @@ export default async function InicioPage() {
         <main className="min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">{habilitada ? 'Desafío Socias' : esDesafio ? 'Desafío Socias' : 'Acceso gratuito'}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">{acceso.etiqueta}</p>
               <h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Hola, {nombre}.</h1>
             </div>
             <Link href="/perfil" className="inline-flex items-center gap-2 text-sm font-medium text-[#294A38]">Mi perfil <ArrowIcon diagonal /></Link>
@@ -93,7 +98,7 @@ export default async function InicioPage() {
 
           {mostrarClase && <div className="mt-5"><ProximaClase ahoraInicial={ahoraInicial} variante="banner" /></div>}
 
-          {esGratuito ? <FreeStart clases={clasesGratuitas} /> : !habilitada && esDesafio ? (
+          {acceso.suspendido ? <section className="mt-7 max-w-3xl rounded-[24px] border border-[#EC9BB6] bg-[#F4CAD8] p-6 sm:p-8"><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Tu acceso</p><h2 className="mt-3 font-serif text-3xl font-semibold">Tu acceso al contenido pago está pausado.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/70">Tus datos y avances siguen guardados. Si necesitás revisar tu acceso, comunicate con el equipo de Socias Digitales. Podés seguir entrando a tu perfil y tus avisos.</p><Link href="/perfil" className="mt-6 inline-flex min-h-11 items-center rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white">Ir a mi perfil <ArrowIcon /></Link></section> : esGratuito ? <FreeStart clases={clasesGratuitas} /> : !habilitada && esDesafio ? (
             <section className="mt-7 max-w-3xl rounded-[24px] bg-[#F4CAD8] p-6 sm:p-8">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Inscripción recibida</p>
               <h2 className="mt-3 font-serif text-3xl font-semibold">{accesoCerrado ? 'Tu acceso no está habilitado.' : 'Tu acceso está en revisión.'}</h2>
@@ -111,13 +116,13 @@ export default async function InicioPage() {
                 <article className="flex min-h-[250px] flex-col items-start justify-between rounded-[26px] bg-[#F4CAD8] p-6 sm:p-8">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Tu próximo paso</p>
-                    <h2 className="mt-4 max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">Avanzá con tu estrategia.</h2>
-                    <p className="mt-3 text-sm text-[#211c19]/65">{estrategiaHabilitada ? 'Tu estrategia está habilitada.' : 'Flor habilitará este espacio para vos.'}</p>
+                    <h2 className="mt-4 max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">{acceso.sociaActiva ? 'Qué bueno tenerte acá, Socia.' : 'Avanzá con tu estrategia.'}</h2>
+                    <p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/65">{acceso.sociaActiva ? 'Empezá por Bienvenida y seguí tus clases en orden. Vas a encontrar los materiales debajo de cada video y podés retomar donde quedaste.' : estrategiaHabilitada ? 'Tu estrategia está habilitada.' : 'Flor habilitará este espacio para vos.'}</p>
                   </div>
-                  {estrategiaHabilitada ? <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Ver mi estrategia <ArrowIcon /></Link> : <button type="button" disabled className="mt-7 inline-flex items-center gap-3 rounded-full border border-[#294A38]/30 bg-[#FAF7F3]/70 px-5 py-3 text-sm font-semibold text-[#294A38]"><NavigationIcon name="lanzamiento" />Pendiente de habilitación</button>}
+                  {acceso.sociaActiva ? <Link href="/clases" className="mt-7 inline-flex min-h-11 items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Empezar o continuar mis clases <ArrowIcon /></Link> : estrategiaHabilitada ? <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Ver mi estrategia <ArrowIcon /></Link> : <button type="button" disabled className="mt-7 inline-flex items-center gap-3 rounded-full border border-[#294A38]/30 bg-[#FAF7F3]/70 px-5 py-3 text-sm font-semibold text-[#294A38]"><NavigationIcon name="lanzamiento" />Pendiente de habilitación</button>}
                 </article>
                 <Link href="/clases" className="flex min-h-[250px] items-start flex-col justify-between rounded-[26px] bg-[#294A38] p-6 text-white transition hover:bg-[#203a2c] sm:p-8">
-                  <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#FAF7F3]/80">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#FAF7F3]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#FAF7F3]/90">Volvé a ver las grabaciones del Desafío Socias.</p></div>
+                  <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#FAF7F3]/80">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#FAF7F3]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#FAF7F3]/90">{acceso.sociaActiva ? 'Tu formación, tus grabaciones y los materiales de cada clase.' : 'Volvé a ver las grabaciones del Desafío Socias.'}</p></div>
                   <span className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#FAF7F3] px-5 py-3 text-sm font-semibold text-[#294A38]">Ir a clases <ArrowIcon /></span>
                 </Link>
               </section>

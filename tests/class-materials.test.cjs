@@ -135,7 +135,7 @@ test('permisos: anónimas, gratuitas privadas y clase oculta no reciben lista, e
     assert.equal((await s.download.GET(new Request('https://app.test'), { params: Promise.resolve({ id: claseId, materialId }) })).status, status)
     assert.equal(s.calls.length, 0)
   }
-  for (const options of [{ perfil: { rol: 'alumna', desafio_socias_habilitada: true } }, { perfil: { rol: 'alumna', tipo_usuario: 'socia' } }, { perfil: { rol: 'alumna', tipo_usuario: 'gratuito' }, clase: { activo: true, acceso_gratuito: true } }]) {
+  for (const options of [{ perfil: { rol: 'alumna', estado: 'activa', desafio_socias_habilitada: true } }, { perfil: { rol: 'alumna', estado: 'activa', tipo_usuario: 'socia' } }, { perfil: { rol: 'alumna', tipo_usuario: 'gratuito' }, clase: { activo: true, acceso_gratuito: true } }]) {
     const s = sistema(options)
     assert.equal((await s.alumno.GET(new Request('https://app.test'), ctx)).status, 200)
   }
@@ -144,6 +144,18 @@ test('permisos: anónimas, gratuitas privadas y clase oculta no reciben lista, e
     assert.equal((await s.post({ action: 'enlace', revision: null, titulo: 'PDF', url: link.url })).status, denied)
     assert.equal(s.calls.length, 0)
   }
+})
+test('materiales privados se retiran al pausar/cancelar: lista y descarga se autorizan en cada acceso', async () => {
+  for (const estado of ['pausada', 'cancelada', undefined]) {
+    for (const perfil of [{ rol: 'alumna', tipo_usuario: 'socia', estado }, { rol: 'alumna', desafio_socias_habilitada: true, estado }]) {
+      const s = sistema({ perfil })
+      assert.equal((await s.alumno.GET(new Request('https://app.test'), ctx)).status, 403)
+      assert.equal((await s.download.GET(new Request('https://app.test'), { params: Promise.resolve({ id: claseId, materialId }) })).status, 403)
+      assert.equal(s.calls.length, 0)
+    }
+  }
+  const libre = sistema({ perfil: { rol: 'alumna', estado: 'pausada', tipo_usuario: 'socia' }, clase: { activo: true, acceso_gratuito: true } })
+  assert.equal((await libre.alumno.GET(new Request('https://app.test'), ctx)).status, 200)
 })
 test('concurrencia y datos corruptos fallan sin pisar el trabajo de otra administradora', async () => {
   const s = sistema()

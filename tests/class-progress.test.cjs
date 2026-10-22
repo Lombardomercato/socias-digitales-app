@@ -32,13 +32,14 @@ test('respuesta de progreso no revela ids de otras alumnas ni revisión o claves
 })
 function api({user={id:'alumna'},perfil={rol:'alumna',tipo_usuario:'gratuito'},clase={activo:true,acceso_gratuito:true,video_key:'v.mp4'},fail=false}={}) {
   let writes=[]
+  let reads=0
   const client={auth:{getUser:async()=>({data:{user}})},from:t=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:t==='perfiles'?perfil:clase})})})})}
   const api=load('src/app/api/classroom/[id]/progreso/route.ts',{
     'next/server':{NextResponse:{json:(body,opts={})=>({body,status:opts.status??200,headers:opts.headers})}},
     '@/lib/supabase/server':{createClient:async()=>client},'@/lib/supabase/admin':{createAdminClient:()=>({rpc:async(name,payload)=>{writes.push({name,payload});return {data:fail?null:[{clase_id:id,posicion_seg:0,duracion_seg:0,completada:true}],error:fail?{}:null}}})},
-    '@/lib/class-access':access,'@/lib/class-progress':helpers,'@/lib/class-progress-server':server,'@/lib/class-management':management,
+    '@/lib/class-access':access,'@/lib/class-progress':helpers,'@/lib/class-progress-server':{...server,leerProgresoClases:async()=>{reads++;return [{clase_id:id,posicion_seg:25,duracion_seg:120,completada:false}]}},'@/lib/class-management':management,
   })
-  return {...api,writes}
+  return {...api,writes,reads:()=>reads}
 }
 const context={params:Promise.resolve({id})}
 const request=(payload,origin='https://app.test')=>new Request('https://app.test/api/classroom/x/progreso',{method:'POST',headers:{origin},body:JSON.stringify(payload)})
@@ -60,11 +61,28 @@ test('guardar una clase gratuita vincula exclusivamente al usuario de getUser',a
   assert.equal(res.status,200);assert.equal(res.headers['Cache-Control'],'private, no-store')
   assert.equal(handler.writes[0].payload.p_alumna,'alumna');assert.equal(handler.writes[0].payload.p_posicion,null)
 })
-test('Desafío habilitado y Socias conservan acceso, no alcanza metadata editable',async()=>{
-  for(const perfil of [{rol:'alumna',desafio_socias_habilitada:true},{rol:'alumna',tipo_usuario:'socia'}]){
+test('Desafío habilitado y Socias activas conservan acceso, no alcanza metadata editable',async()=>{
+  for(const perfil of [{rol:'alumna',estado:'activa',desafio_socias_habilitada:true},{rol:'alumna',estado:'activa',tipo_usuario:'socia'}]){
     assert.equal((await api({perfil,clase:{activo:true,acceso_gratuito:false,video_key:'v.mp4'}}).POST(request({action:'posicion',posicion:25,duracion:120}),context)).status,200)
   }
   assert.equal((await api({user:{id:'u',user_metadata:{rol:'admin',tipo_usuario:'socia'}},clase:{activo:true,acceso_gratuito:false,video_key:'v.mp4'}}).POST(request({action:'completada',completada:true}),context)).status,403)
+})
+test('progreso de clases privadas rechaza Socias y Desafío pausadas, canceladas o sin estado antes de leer/escribir',async()=>{
+  for(const estado of ['pausada','cancelada',undefined]) {
+    for(const perfil of [{rol:'alumna',tipo_usuario:'socia',estado},{rol:'alumna',desafio_socias_habilitada:true,estado}]) {
+      const handler=api({perfil,clase:{activo:true,acceso_gratuito:false,video_key:'v.mp4'}})
+      assert.equal((await handler.GET(new Request('https://app.test'),context)).status,403)
+      assert.equal((await handler.POST(request({action:'completada',completada:true}),context)).status,403)
+      assert.equal(handler.reads(),0);assert.equal(handler.writes.length,0)
+    }
+  }
+})
+test('lectura de progreso propio conserva muestras gratuitas y clases activas autorizadas',async()=>{
+  for(const options of [{perfil:{rol:'alumna',tipo_usuario:'socia',estado:'activa'},clase:{activo:true,acceso_gratuito:false,video_key:'v.mp4'}},{perfil:{rol:'alumna',tipo_usuario:'socia',estado:'pausada'}}]) {
+    const handler=api(options),response=await handler.GET(new Request('https://app.test'),context)
+    assert.equal(response.status,200);assert.equal(handler.reads(),1)
+    assert.equal(response.body.progreso.clase_id,id)
+  }
 })
 test('error de base nunca simula progreso guardado',async()=>{
   const res=await api({fail:true}).POST(request({action:'completada',completada:true}),context)

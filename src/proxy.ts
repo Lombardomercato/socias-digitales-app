@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { obtenerRutaInicio } from '@/lib/access'
 import { necesitaBienvenida } from '@/lib/perfil-preguntas'
+import { puedeVerClasesPrivadas, type PerfilClases } from '@/lib/class-access'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -50,9 +51,9 @@ export async function proxy(request: NextRequest) {
     return redirectConCookies(`/login?next=${encodeURIComponent(destino)}`)
   }
 
-  let perfil: { rol: string; plan: string | null; desafio_socias_habilitada: boolean } | null = null
+  let perfil: (PerfilClases & { plan: string | null }) | null = null
   if (userId) {
-    const { data } = await supabase.from('perfiles').select('rol, plan, desafio_socias_habilitada').eq('id', userId).maybeSingle()
+    const { data } = await supabase.from('perfiles').select('rol, plan, tipo_usuario, estado, desafio_socias_habilitada').eq('id', userId).maybeSingle()
     perfil = data
   }
 
@@ -89,8 +90,8 @@ export async function proxy(request: NextRequest) {
   if (userId && perfil?.rol !== 'admin' && rutasProtegidas.some(r => pathname.startsWith(r))) {
     const permitida = [...rutasIniciales, ...rutasDesafio].some(r => pathname.startsWith(r))
     if (!permitida) return redirectConCookies('/inicio?acceso=bloqueado')
-    const requiereDesafio = pathname.startsWith('/lanzamiento') || pathname.startsWith('/classroom/')
-    if (requiereDesafio && !perfil?.desafio_socias_habilitada) {
+    const requiereFormacion = pathname.startsWith('/lanzamiento') || pathname.startsWith('/classroom/')
+    if (requiereFormacion && !puedeVerClasesPrivadas(perfil)) {
       return redirectConCookies('/inicio?acceso=pendiente')
     }
   }

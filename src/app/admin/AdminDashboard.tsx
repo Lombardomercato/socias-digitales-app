@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import NavigationIcon from '@/components/NavigationIcon'
 import AdminSectionMenu from '@/components/AdminSectionMenu'
 import { ADMIN_SECTIONS } from '@/lib/admin-sections'
 import { TIPOS_ACCESO, tipoAcceso, contarTipos, filtrarUsuarias, type TipoAcceso } from '@/lib/admin-usuarias'
+import { versionFicha } from '@/lib/admin-profile-update'
 
 interface Alumna {
   id: string
@@ -77,6 +78,9 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
   const [guardando, setGuardando] = useState(false)
   const [eliminando, setEliminando] = useState(false)
   const [confirmarEliminar, setConfirmarEliminar] = useState(false)
+  const [errorFicha, setErrorFicha] = useState('')
+  const [mensajeFicha, setMensajeFicha] = useState('')
+  const operacionEnCurso = useRef(false)
 
   async function cerrarSesion() {
     await supabase.auth.signOut()
@@ -105,58 +109,58 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
   const activasPct = stats.totalAlumnas ? Math.round((stats.activas / stats.totalAlumnas) * 100) : 0
 
   function abrirFicha(alumna: Alumna) {
+    if (operacionEnCurso.current) return
     setAlumnaSeleccionada(alumna)
     setEditando({ ...alumna })
+    setErrorFicha('')
+    setMensajeFicha('')
+    setConfirmarEliminar(false)
   }
 
   async function guardarFicha() {
-    if (!alumnaSeleccionada) return
+    if (!alumnaSeleccionada || operacionEnCurso.current) return
+    operacionEnCurso.current = true
     setGuardando(true)
-    const tipoUsuario = editando.tipo_usuario ?? alumnaSeleccionada.tipo_usuario ?? 'gratuito'
-    const cambioTipo = tipoUsuario !== alumnaSeleccionada.tipo_usuario
-    const patch: Record<string, unknown> = {
-      nombre: editando.nombre,
-      whatsapp: editando.whatsapp,
-      pais: editando.pais,
-      estado: editando.estado,
-      plan: editando.plan,
-      tipo_usuario: tipoUsuario,
-    }
-    if (cambioTipo) {
-      patch.rol = tipoUsuario === 'socia' ? 'afiliada' : 'alumna'
-      patch.desafio_socias_estado = tipoUsuario === 'desafio'
-        ? alumnaSeleccionada.tipo_usuario === 'desafio' ? alumnaSeleccionada.desafio_socias_estado : 'pendiente'
-        : 'no_aplica'
-      patch.desafio_socias_habilitada = tipoUsuario === 'desafio' && alumnaSeleccionada.tipo_usuario === 'desafio'
-        ? Boolean(alumnaSeleccionada.desafio_socias_habilitada)
-        : false
-      if (!patch.desafio_socias_habilitada) {
-        patch.desafio_socias_habilitada_at = null
-        patch.desafio_socias_habilitada_por = null
+    setErrorFicha('')
+    try {
+      const cambios = {
+        nombre: editando.nombre ?? '', whatsapp: editando.whatsapp ?? null, pais: editando.pais ?? null,
+        estado: editando.estado ?? alumnaSeleccionada.estado,
+        tipo_usuario: editando.tipo_usuario ?? tipoAcceso(alumnaSeleccionada),
       }
-    }
-    const { error } = await supabase.from('perfiles').update(patch).eq('id', alumnaSeleccionada.id)
-    setGuardando(false)
-    if (error) {
-      window.alert('No se pudieron guardar los cambios. Revisá la conexión e intentá de nuevo.')
-      return
-    }
-    setAlumnaSeleccionada(null)
-    router.refresh()
+      const respuesta = await fetch(`/api/admin/usuarias/${alumnaSeleccionada.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cambios, esperado: versionFicha(alumnaSeleccionada) }),
+        signal: AbortSignal.timeout(20_000),
+      })
+      const resultado = await respuesta.json()
+      if (!respuesta.ok || resultado.ok !== true || resultado.perfil?.id !== alumnaSeleccionada.id) throw new Error(resultado.error || 'No pudimos confirmar el guardado. Recargá la ficha antes de reintentar.')
+      setAlumnaSeleccionada(null)
+      setMensajeFicha('Ficha guardada. El acceso fue actualizado manualmente; esto no confirma un pago ni envía una bienvenida.')
+      router.refresh()
+    } catch (error) { setErrorFicha(error instanceof Error && !['TypeError', 'SyntaxError', 'TimeoutError', 'AbortError'].includes(error.name) ? error.message : 'No pudimos confirmar el guardado. Tus cambios siguen acá; recargá la ficha para comprobar su estado antes de reintentar.') }
+    finally { operacionEnCurso.current = false; setGuardando(false) }
   }
 
   async function eliminarAlumna() {
-    if (!alumnaSeleccionada) return
+    if (!alumnaSeleccionada || operacionEnCurso.current) return
+    operacionEnCurso.current = true
     setEliminando(true)
-    await fetch('/api/eliminar-alumna', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: alumnaSeleccionada.id }),
-    })
-    setEliminando(false)
-    setConfirmarEliminar(false)
-    setAlumnaSeleccionada(null)
-    router.refresh()
+    setErrorFicha('')
+    try {
+      const respuesta = await fetch('/api/eliminar-alumna', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: alumnaSeleccionada.id }),
+        signal: AbortSignal.timeout(20_000),
+      })
+      const resultado = await respuesta.json()
+      if (!respuesta.ok || resultado.ok !== true) throw new Error(resultado.error || 'No pudimos confirmar la eliminación. Recargá la lista antes de reintentar.')
+      setConfirmarEliminar(false)
+      setAlumnaSeleccionada(null)
+      setMensajeFicha('Cuenta eliminada. La eliminación no se puede deshacer desde la plataforma.')
+      router.refresh()
+    } catch (error) { setErrorFicha(error instanceof Error && !['TypeError', 'SyntaxError', 'TimeoutError', 'AbortError'].includes(error.name) ? error.message : 'No pudimos confirmar la eliminación. Revisá la conexión y recargá la lista antes de reintentar.') }
+    finally { operacionEnCurso.current = false; setEliminando(false) }
   }
 
   return (
@@ -209,6 +213,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
           </section>
 
           <section id="acceso-actividad" className="scroll-mt-5 rounded-[24px] bg-white p-5 sm:p-6">
+            {mensajeFicha && <p role="status" className="mb-4 rounded-xl border border-[#294A38]/25 bg-[#F4EFEA] px-4 py-3 text-sm leading-6 text-[#294A38]">{mensajeFicha}</p>}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#746a64]">Usuarias</p><h2 className="mt-1 font-serif text-2xl font-semibold">Acceso y actividad</h2></div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -316,7 +321,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[calc(100dvh-1.5rem)] overflow-y-auto">
             <div className="sticky top-0 z-10 bg-white p-4 sm:p-6 border-b border-gray-100 flex justify-between items-center gap-3">
               <h3 id="ficha-alumna-titulo" className="text-lg font-bold text-gray-900">Ficha de alumna</h3>
-              <button type="button" aria-label="Cerrar ficha" onClick={() => setAlumnaSeleccionada(null)} className="flex h-11 w-11 shrink-0 items-center justify-center text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              <button type="button" aria-label="Cerrar ficha" disabled={guardando || eliminando} onClick={() => setAlumnaSeleccionada(null)} className="flex h-11 w-11 shrink-0 items-center justify-center text-gray-400 hover:text-gray-600 text-xl disabled:opacity-40">✕</button>
             </div>
 
             <div className="p-4 sm:p-6 space-y-4">
@@ -333,7 +338,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <fieldset disabled={guardando || eliminando} className="grid min-w-0 grid-cols-1 gap-4 border-0 p-0 sm:grid-cols-2">
                 {[
                   { label: 'Nombre', key: 'nombre', type: 'text' },
                   { label: 'WhatsApp', key: 'whatsapp', type: 'text' },
@@ -366,16 +371,10 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 </div>
 
                 <div>
-                  <label htmlFor="ficha-plan" className="block text-xs font-medium text-gray-500 mb-1">Plan</label>
-                  <select id="ficha-plan" value={editando.plan ?? 'basico'} onChange={e => setEditando(prev => ({ ...prev, plan: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300">
-                    <option value="basico">Básico</option><option value="premium">Premium</option><option value="vip">VIP</option>
-                  </select>
-                </div>
-                <div>
                   <label htmlFor="ficha-tipo" className="block text-xs font-medium text-gray-500 mb-1">Tipo de usuaria</label>
                   <select
                     id="ficha-tipo"
-                    value={editando.tipo_usuario ?? 'gratuito'}
+                    value={editando.tipo_usuario ?? tipoAcceso(alumnaSeleccionada)}
                     onChange={e => setEditando(prev => ({ ...prev, tipo_usuario: e.target.value }))}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
                   >
@@ -385,6 +384,10 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                   </select>
                   {editando.tipo_usuario === 'desafio' && !alumnaSeleccionada.desafio_socias_habilitada && <p className="mt-2 text-xs leading-5 text-[#746a64]">Quedará pendiente. Flor habilita el acceso y envía la bienvenida desde Solicitudes del Desafío.</p>}
                 </div>
+              </fieldset>
+              <div className="rounded-xl border border-[#EC9BB6]/50 bg-[#F4EFEA] p-4 text-sm leading-6 text-[#655B56]">
+                <p><strong className="text-[#211c19]">Activación manual.</strong> Asignar Socia y Activa habilita sus clases privadas; no acredita un cobro ni crea una suscripción. Verificá el pago por separado.</p>
+                <p className="mt-2">Pausar o cancelar suspende el contenido de pago sin borrar respuestas ni progreso. Los módulos con autorización propia se gestionan desde cada apartado.</p>
               </div>
 
               {/* Info de solo lectura */}
@@ -405,8 +408,10 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
             </div>
 
             <div className="p-4 sm:p-6 border-t border-gray-100 space-y-3">
+              {errorFicha && <p role="alert" className="rounded-xl border border-[#B01B30]/25 bg-[#F4CAD8]/30 px-4 py-3 text-sm leading-6 text-[#B01B30]">{errorFicha}</p>}
               <div className="flex gap-3">
                 <button
+                  disabled={guardando || eliminando}
                   onClick={() => setAlumnaSeleccionada(null)}
                   className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50"
                 >
@@ -414,7 +419,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 </button>
                 <button
                   onClick={guardarFicha}
-                  disabled={guardando}
+                  disabled={guardando || eliminando}
                   className="flex-1 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white py-2.5 rounded-lg text-sm font-medium"
                 >
                   {guardando ? 'Guardando...' : 'Guardar cambios'}
@@ -422,6 +427,7 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
               </div>
               {!confirmarEliminar ? (
                 <button
+                  disabled={guardando || eliminando}
                   onClick={() => setConfirmarEliminar(true)}
                   className="w-full border border-red-200 text-red-500 hover:bg-red-50 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
@@ -431,8 +437,8 @@ export default function AdminDashboard({ alumnas, stats }: Props) {
                 <div className="bg-red-50 rounded-lg p-3 space-y-2">
                   <p className="text-sm text-red-700 font-medium text-center">¿Segura? Esta acción no se puede deshacer.</p>
                   <div className="flex gap-2">
-                    <button onClick={() => setConfirmarEliminar(false)} className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg text-sm">Cancelar</button>
-                    <button onClick={eliminarAlumna} disabled={eliminando} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold">
+                    <button disabled={guardando || eliminando} onClick={() => setConfirmarEliminar(false)} className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-lg text-sm">Cancelar</button>
+                    <button onClick={eliminarAlumna} disabled={guardando || eliminando} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-bold">
                       {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
                     </button>
                   </div>

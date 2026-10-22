@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminDashboard from './AdminDashboard'
+import AdminRecovery from './AdminRecovery'
 import { FILTRO_CUENTAS_PRUEBA, esCuentaPrueba } from '@/lib/test-accounts'
 
 export default async function AdminPage() {
@@ -8,29 +9,27 @@ export default async function AdminPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: perfil } = await supabase
+  const { data: perfil, error: errorPerfil } = await Promise.resolve(supabase
     .from('perfiles')
     .select('rol')
     .eq('id', user.id)
-    .single()
+    .single()).catch(() => ({ data: null, error: new Error('profile_read_failed') }))
 
+  if (errorPerfil) return <AdminRecovery />
   if (perfil?.rol !== 'admin') redirect('/perfil')
 
   const hoy = new Date()
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString()
   const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString()
 
-  const [
-    { data: perfiles },
-    { data: pagosDelMes },
-    { data: todosLosPagos },
-    { data: ventasAfiliadas },
-  ] = await Promise.all([
+  const lecturas = await Promise.all([
     supabase.from('perfiles').select('*').not('id', 'in', FILTRO_CUENTAS_PRUEBA).order('created_at', { ascending: false }),
     supabase.from('pagos').select('monto').or(`alumna_id.is.null,alumna_id.not.in.${FILTRO_CUENTAS_PRUEBA}`).gte('fecha', inicioMes).eq('estado', 'completado'),
     supabase.from('pagos').select('monto').or(`alumna_id.is.null,alumna_id.not.in.${FILTRO_CUENTAS_PRUEBA}`).eq('estado', 'completado'),
     supabase.from('ventas_afiliadas').select('*').not('afiliada_id', 'in', FILTRO_CUENTAS_PRUEBA).gte('fecha', inicioMes),
-  ])
+  ]).catch(() => null)
+  if (!lecturas || lecturas.some(lectura => lectura.error || !Array.isArray(lectura.data))) return <AdminRecovery />
+  const [{ data: perfiles }, { data: pagosDelMes }, { data: todosLosPagos }, { data: ventasAfiliadas }] = lecturas
 
   // Administración no es un tipo de alumna ni forma parte de estos indicadores.
   const alumnas = perfiles?.filter(perfil => perfil.rol !== 'admin' && !esCuentaPrueba(perfil.id)) ?? []

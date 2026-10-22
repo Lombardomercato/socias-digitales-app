@@ -5,6 +5,7 @@ import ClassPlayer from './ClassPlayer'
 import ClassroomProgram from './ClassroomProgram'
 import { ubicacionClase, ordenarClases } from '@/lib/class-management'
 import { claseParaContinuar, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
+import { puedeVerClasesPrivadas } from '@/lib/class-access'
 
 export interface Clase {
   id: string
@@ -28,6 +29,7 @@ interface Perfil {
   plan: string | null
   desafio_socias_habilitada?: boolean
   tipo_usuario?: string | null
+  estado?: string | null
 }
 
 interface Props {
@@ -57,9 +59,11 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
   const onProgreso=useCallback((p:ProgresoClase)=>{setProgreso(prev=>[...prev.filter(v=>v.clase_id!==p.clase_id),p])},[])
   const onError=useCallback((mensaje:string)=>setErrorVideo(mensaje),[])
 
-  const tieneAcceso = esAdmin || Boolean(perfil?.desafio_socias_habilitada) || perfil?.tipo_usuario === 'socia'
+  const tieneAcceso = esAdmin || puedeVerClasesPrivadas(perfil)
+  const accesoPausado = !esAdmin && (perfil?.estado === 'pausada' || perfil?.estado === 'cancelada')
   const modulos = [...new Set(clases.map(clase => ubicacionClase(clase.modulo).programa))].sort((a,b) => a === 'Bienvenida' ? -1 : b === 'Bienvenida' ? 1 : a.localeCompare(b, 'es'))
   const continuar = esAdmin ? null : claseParaContinuar(clases,progreso)
+  const programaInicial = continuar ? ubicacionClase(continuar.clase.modulo).programa : !esAdmin && !errorProgreso && progreso.length === 0 ? 'Bienvenida' : null
   const disponibles = ordenarClases(clases.filter(c => (c.puede_ver ?? tieneAcceso) && (c.tiene_video_privado || c.vimeo_url)))
   const siguientes = claseAbierta ? disponibles.filter(c=>ubicacionClase(c.modulo).programa===ubicacionClase(claseAbierta.modulo).programa && ubicacionClase(c.modulo).seccion===ubicacionClase(claseAbierta.modulo).seccion) : []
   const siguiente = claseAbierta ? siguientes[siguientes.findIndex(c=>c.id===claseAbierta.id)+1] : undefined
@@ -110,7 +114,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
           <div>
             <p className="font-impact text-[10px] font-semibold uppercase tracking-[0.22em] text-[#294A38]">Tu programa</p>
             <h1 className="mt-2 max-w-3xl font-serif text-4xl leading-[1.04] tracking-[-0.04em] sm:text-5xl">Tus clases</h1>
-            {!tieneAcceso && <p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">Empezá con las clases gratuitas y explorá el plan Socias.</p>}
+            {!tieneAcceso && <p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">{accesoPausado ? 'Tu acceso pago está pausado. Tus avances se conservan y las clases de muestra siguen disponibles.' : 'Empezá con las clases gratuitas y explorá el plan Socias.'}</p>}
           </div>
           <div className="flex items-center gap-4 rounded-[22px] bg-[#294A38] p-5 text-white">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/12 text-[#F4CAD8]"><Icon name="book" className="h-6 w-6" /></span>
@@ -138,7 +142,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
               const visibles=clasesDelModulo.filter(c=>c.titulo.toLocaleLowerCase('es').includes(buscar.toLocaleLowerCase('es')))
               if(!visibles.length)return null
               return (
-                <ClassroomProgram key={modulo} programa={modulo} clases={clasesDelModulo} progreso={progreso} buscar={buscar} esAdmin={esAdmin} tieneAcceso={tieneAcceso} cargando={Boolean(cargandoVideo)} abierto={Boolean(continuar && ubicacionClase(continuar.clase.modulo).programa === modulo)} onAbrir={clase => void abrirClase(clase)} />
+                <ClassroomProgram key={modulo} programa={modulo} clases={clasesDelModulo} progreso={progreso} buscar={buscar} esAdmin={esAdmin} tieneAcceso={tieneAcceso} cargando={Boolean(cargandoVideo)} abierto={programaInicial === modulo} onAbrir={clase => void abrirClase(clase)} />
               )
             })}
           </div>

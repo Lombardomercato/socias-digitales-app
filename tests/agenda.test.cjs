@@ -30,7 +30,7 @@ test('fecha completa y hora usan Argentina, independientemente de la zona del di
 test('contador en la barra izquierda y banner fino antes de estrategia; móvil mantiene el contador', () => {
   const inicio = fs.readFileSync(path.resolve(__dirname,'../src/app/inicio/page.tsx'),'utf8')
   assert.equal((inicio.match(/<ProximaClase /g) || []).length, 2)
-  assert.ok(inicio.indexOf('variante="contador"') < inicio.indexOf('<main '))
+  assert.ok(inicio.indexOf('variante="contador"') < inicio.indexOf('<main className="min-w-0'))
   assert.ok(inicio.indexOf('variante="banner"') > inicio.indexOf('<main '))
   assert.ok(inicio.indexOf('variante="banner"') < inicio.indexOf('Avanzá con tu estrategia'))
   const componente = fs.readFileSync(path.resolve(__dirname,'../src/app/inicio/ProximaClase.tsx'),'utf8')

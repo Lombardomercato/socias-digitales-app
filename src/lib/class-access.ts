@@ -1,11 +1,19 @@
-export interface PerfilClases { rol?: string; tipo_usuario?: string | null; desafio_socias_habilitada?: boolean }
+export interface PerfilClases { rol?: string; tipo_usuario?: string | null; estado?: string | null; desafio_socias_habilitada?: boolean }
 export interface ClaseAcceso { activo: boolean; acceso_gratuito?: boolean }
 
 // Los permisos provienen del perfil protegido y de la clase, nunca del navegador.
+export function puedeVerClasesPrivadas(perfil: PerfilClases | null) {
+  if (!perfil) return false
+  if (perfil.rol === 'admin') return true
+  return perfil.estado === 'activa' && Boolean(perfil.desafio_socias_habilitada || perfil.tipo_usuario === 'socia')
+}
+
 export function puedeVerClase(perfil: PerfilClases | null, clase: ClaseAcceso) {
   if (!perfil) return false
   if (perfil.rol === 'admin') return true
-  return clase.activo && Boolean(clase.acceso_gratuito || perfil.desafio_socias_habilitada || perfil.tipo_usuario === 'socia')
+  // Las muestras siguen siendo contenido libre para cuentas autenticadas.
+  // Pausar un acceso pago impide emitir nuevos permisos para clases privadas.
+  return clase.activo && Boolean(clase.acceso_gratuito || puedeVerClasesPrivadas(perfil))
 }
 
 export interface ClaseCatalogo {

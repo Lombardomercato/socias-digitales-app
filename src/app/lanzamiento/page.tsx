@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import LanzamientoCliente from './LanzamientoCliente'
 import Link from 'next/link'
+import { puedeVerClasesPrivadas } from '@/lib/class-access'
 
 export default async function LanzamientoPage() {
   const supabase = await createClient()
@@ -10,15 +11,15 @@ export default async function LanzamientoPage() {
 
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('nombre, rol, desafio_socias_habilitada')
+    .select('nombre, rol, tipo_usuario, estado, desafio_socias_habilitada')
     .eq('id', user.id)
     .maybeSingle()
 
-  if (!perfil || (perfil.rol !== 'admin' && !perfil.desafio_socias_habilitada)) redirect('/inicio?acceso=pendiente')
+  if (!perfil || !puedeVerClasesPrivadas(perfil)) redirect('/inicio?acceso=pendiente')
   if (perfil.rol === 'admin') redirect('/admin/lanzamiento')
 
   const { data: acceso } = await supabase.from('accesos_estrategia').select('habilitada').eq('usuaria_id', user.id).maybeSingle()
-  if (!acceso?.habilitada) return (
+  if (!perfil.desafio_socias_habilitada || !acceso?.habilitada) return (
     <main className="min-h-screen bg-[#FAF7F3] px-5 py-12 text-[#171413]">
       <section className="mx-auto max-w-xl rounded-3xl border border-[#EC9BB6]/60 bg-[#F4EFEA] p-8">
         <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="mb-8 h-12 w-auto" />

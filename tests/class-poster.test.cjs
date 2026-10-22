@@ -38,9 +38,20 @@ test('anónima, gratuita sin acceso y clase oculta no reciben fotogramas privado
 test('una miniatura faltante no inicia reproducción; solo admin recibe revisión para generarla', async () => {
   const admin = await api().GET(new Request('https://app.test'), ctx)
   assert.equal((await admin.json()).revision, poster.revisionMiniatura('private-video.mp4'))
-  const alumna = await api({ perfil: { rol: 'alumna', desafio_socias_habilitada: true } }).GET(new Request('https://app.test'), ctx)
+  const alumna = await api({ perfil: { rol: 'alumna', estado: 'activa', desafio_socias_habilitada: true } }).GET(new Request('https://app.test'), ctx)
   assert.equal(alumna.status, 204)
   assert.equal(alumna.headers.get('Cache-Control'), 'private, no-store')
+})
+test('miniaturas privadas requieren Socias o Desafío activos antes de leer R2', async () => {
+  for (const estado of ['pausada', 'cancelada', undefined]) {
+    for (const perfil of [{ rol: 'alumna', tipo_usuario: 'socia', estado }, { rol: 'alumna', desafio_socias_habilitada: true, estado }]) {
+      const handler = api({ perfil })
+      assert.equal((await handler.GET(new Request('https://app.test'), ctx)).status, 403)
+      assert.equal(handler.calls.length, 0)
+    }
+  }
+  const socia = api({ perfil: { rol: 'alumna', tipo_usuario: 'socia', estado: 'activa' }, r2status: 200 })
+  assert.equal((await socia.GET(new Request('https://app.test'), ctx)).status, 200)
 })
 test('POST requiere admin, JPEG limitado y revisión vigente; nunca modifica clase o video', async () => {
   for (const status of [401, 403]) assert.equal((await api({ status }).POST(req(), ctx)).status, status)

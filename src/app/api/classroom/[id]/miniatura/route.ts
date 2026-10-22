@@ -13,7 +13,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) return new NextResponse(null, { status: 401, headers })
   const [{ data: perfil }, { data: clase }] = await Promise.all([
-    supabase.from('perfiles').select('rol,tipo_usuario,desafio_socias_habilitada').eq('id', user.id).maybeSingle(),
+    supabase.from('perfiles').select('rol,tipo_usuario,estado,desafio_socias_habilitada').eq('id', user.id).maybeSingle(),
     supabase.from('clases').select('video_key,activo,acceso_gratuito').eq('id', id).maybeSingle(),
   ])
   if (!clase || !puedeVerClase(perfil, clase)) return new NextResponse(null, { status: 403, headers })
