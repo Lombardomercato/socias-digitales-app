@@ -76,3 +76,17 @@ Ampliación del 22/10: email de acceso y confirmación, solo lectura, desde el d
 Sin sesión o con rol de alumna no se consulta el directorio. Si Auth falla o supera el presupuesto de cinco segundos, se conserva el panel y se informa estado desconocido con recarga; no se confunde con email pendiente o cuenta no encontrada. La paginación del directorio no devuelve resultados parciales al llegar a su límite. No se cambian cuentas, módulos, contraseñas, campañas o esquema. El guardado de ficha conserva su validación y no acepta campos de identidad de Auth.
 
 Pasaron 282 pruebas automáticas, incluyendo ocho de directorio/servidor y cinco de UI/filtros. Lista, ficha con email largo, error y vacío se revisaron con datos ficticios locales y CSS del build en 320/360/390/430 y 1280 px CSS sin desborde horizontal. El entorno de QA es inerte y queda fuera del repositorio. El listado heredado de perfiles aún necesita paginación propia antes de superar el máximo de filas del API; esta entrega no resuelve ese límite ni implementa cobros automáticos.
+
+### Publicación y comprobación real del directorio
+
+Commit publicado `418e4be42f1eafe88c9f1d782a478dd8827a4d87`, deployment `dpl_Af3pF1noWLd2PskTxoo5Nt1ft8VX`, READY en `app.sociasdigitales.com` y alias conservados. Árbol `85e247f694cc8bf99309fb0e972155b069de7b7b`, idéntico al commit local `998442ffac63ae111ef86818e3b23c13bbf7782e`. La versión anterior recuperable es `dpl_9yAfGPNeT22TNv7BuHdbYjA8ZJBW` / `360d4a2ff6bb32cb4cab786103c67d347c2685e3`. Esta entrega no cambia esquema ni datos.
+
+Desde las sesiones reales existentes se comprobó:
+
+- Buscar el email canónico de una alumna con mayúsculas y espacios reduce el listado a su única cuenta; una búsqueda sin coincidencias muestra vacío explícito.
+- Su ficha muestra ese mismo email, confirmación y la indicación de solo consulta, sin campo para editarlo. No se guardó ni modificó esa ficha.
+- Equipo continúa leyendo su directorio. La alumna de prueba que intenta `/admin` vuelve a `/inicio` sin panel ni buscador administrativo.
+- Listado y ficha no desbordan en 320/360/390/430 y 1280 px CSS; búsqueda y campos de ficha usan 16 px en móvil. Las emulaciones se retiraron al terminar.
+- El próximo hito conserva el cambio pedido a Clase 4 del viernes 23/10/2026 a las 19:30 Argentina, contador activo y botón sin enlace. No se enviaron comunicaciones.
+
+No hubo errores de ejecución registrados en el intervalo revisado de diez minutos. Esta comprobación no reemplaza el alta nueva con recepción en casilla, activación/pausa/reactivación controlada, políticas reales de base ni conciliación de pagos; continúan abiertos.
