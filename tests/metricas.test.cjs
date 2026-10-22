@@ -133,7 +133,7 @@ test('solo Flor habilita Socias activas; se verifica que el acceso realmente se 
 function fixture(historial=[]) {
   const cells=[];let cursor=0;let refreshes=0
   const hooks={useState(initial){const i=cursor++;if(!(i in cells))cells[i]=typeof initial==='function'?initial():initial;return [cells[i],v=>cells[i]=typeof v==='function'?v(cells[i]):v]},useRef(initial){const i=cursor++;if(!(i in cells))cells[i]={current:initial};return cells[i]}}
-  const comp=cargar('src/app/metricas/MetricasCliente.tsx',{'react':hooks,'next/navigation':{useRouter:()=>({refresh:()=>refreshes++})},'next/link':{default:()=>null},'@/components/ArrowIcon':{default:()=>null},'@/components/MetricsVisuals':{ResumenMetricas:()=>null,EvolucionMetricas:()=>null}})
+  const comp=cargar('src/app/metricas/MetricasCliente.tsx',{'react':hooks,'next/navigation':{useRouter:()=>({refresh:()=>refreshes++})},'next/link':{default:()=>null},'@/components/ArrowIcon':{default:()=>null},'@/components/CampaignMetricsDashboard':{default:()=>null},'@/components/MetricsVisuals':{ResumenMetricas:()=>null,EvolucionMetricas:()=>null}})
   const render=()=>{cursor=0;return comp.default({historial,fechaInicial:'2026-10-13'})}
   function find(t,p){if(!t||typeof t!=='object')return null;if(p(t))return t;for(const child of [t.props?.children].flat(Infinity)){const r=find(child,p);if(r)return r}return null}
   const input=(label)=>{const l=find(render(),e=>e.type==='label'&&[e.props.children].flat().includes(label));return find(l,e=>e.type==='input')}

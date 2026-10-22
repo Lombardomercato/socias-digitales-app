@@ -104,7 +104,7 @@ test('Flor es la única que habilita Socias activas; puede cerrar un acceso sin 
 })
 function fixture(tareas = []) {
   const cells = []; let cursor = 0, refreshes = 0
-  const hooks = { useState(initial) { const i = cursor++; if (!(i in cells)) cells[i] = typeof initial === 'function' ? initial() : initial; return [cells[i], v => cells[i] = typeof v === 'function' ? v(cells[i]) : v] }, useRef(initial) { const i = cursor++; if (!(i in cells)) cells[i] = { current: initial }; return cells[i] } }
+  const hooks = { useEffect() {}, useState(initial) { const i = cursor++; if (!(i in cells)) cells[i] = typeof initial === 'function' ? initial() : initial; return [cells[i], v => cells[i] = typeof v === 'function' ? v(cells[i]) : v] }, useRef(initial) { const i = cursor++; if (!(i in cells)) cells[i] = { current: initial }; return cells[i] } }
   const comp = cargar('src/app/checklist/ChecklistCliente.tsx', { react: hooks, 'next/navigation': { useRouter: () => ({ refresh: () => refreshes++, push() {} }) }, 'next/link': { default: () => null }, '@/components/ArrowIcon': { default: () => null }, '@/components/NavigationIcon': { default: () => null } })
   const render = () => { cursor = 0; return comp.default({ tareas, semana: [], fecha: fila.fecha, hoy: fila.fecha }) }
   function find(t, p) { if (!t || typeof t !== 'object') return null; if (p(t)) return t; for (const child of [t.props?.children].flat(Infinity)) { const r = find(child, p); if (r) return r } return null }

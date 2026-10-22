@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ArrowIcon from '@/components/ArrowIcon'
+import CampaignMetricsDashboard from '@/components/CampaignMetricsDashboard'
 import { ResumenMetricas, EvolucionMetricas } from '@/components/MetricsVisuals'
 import { CAMPOS_DINERO, CAMPOS_CONTEO, ESTRATEGIAS_METRICAS, validarMetrica, claveCampana, fechaMetrica, calcularMetricas, dineroMetrica, type Metrica, type DatosMetrica } from '@/lib/metrics'
 
@@ -40,6 +41,7 @@ export default function MetricasCliente({historial,fechaInicial,errorCarga=false
   const intento=useRef<string|null>(null)
   const ocupado=useRef(false)
   const formRef=useRef<HTMLFormElement>(null)
+  const historialRef=useRef<HTMLElement>(null)
   const registros=new Map(historial.map(m=>[m.id,m]))
   Object.values(locales).forEach(m=>{const original=registros.get(m.id);if(!original || m.version>original.version)registros.set(m.id,m)})
   const todos=[...registros.values()].sort((a,b)=>b.fecha.localeCompare(a.fecha)||b.actualizado_at.localeCompare(a.actualizado_at))
@@ -76,7 +78,10 @@ export default function MetricasCliente({historial,fechaInicial,errorCarga=false
     <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.22em] text-[#294A38]">Socias Digitales</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Mis métricas</h1></div><button type="button" onClick={nuevo} disabled={guardando} className="inline-flex rounded-full border border-[#294A38]/30 px-5 py-3 text-sm font-medium text-[#294A38]">Nuevo análisis +</button></div>
       {errorCarga && <p role="alert" className="mt-5 rounded-xl border border-[#EC9BB6] bg-[#F4CAD8] p-4 text-sm">No pudimos cargar el historial. Tus datos del formulario se conservan. <button type="button" onClick={()=>router.refresh()} className="underline">Reintentar</button></p>}
-      <form ref={formRef} onSubmit={guardar} className="mt-6 scroll-mt-5">
+      <CampaignMetricsDashboard registros={todos} errorCarga={errorCarga} limitado={limitado} onNueva={()=>formRef.current?.scrollIntoView({behavior:'instant',block:'start'})} onVer={clave=>{setFiltroCampana(clave);historialRef.current?.scrollIntoView({behavior:'instant',block:'start'})}} />
+      <form ref={formRef} onSubmit={guardar} aria-labelledby="registrar-metricas" className="mt-8 scroll-mt-5">
+        <h2 id="registrar-metricas" className="mb-2 text-xl font-semibold">Cargar o actualizar un análisis</h2>
+        <p className="mb-4 text-xs leading-5 text-[#746a64]">Probá los números acá abajo. El tablero de campañas cambia recién cuando guardás.</p>
         <fieldset disabled={guardando} className="space-y-4">
           <section className="grid gap-4 rounded-[22px] border border-[#e7ddd5] bg-white p-5 sm:grid-cols-[1.5fr_1fr_1fr]">
             <label className="block min-w-0 text-sm font-medium">Campaña<input required maxLength={100} value={form.campana} onChange={e=>modificar('campana',e.target.value)} placeholder="Ej. Socias · octubre" className={campo} /></label>
@@ -93,7 +98,7 @@ export default function MetricasCliente({historial,fechaInicial,errorCarga=false
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-[#746a64]">{editando?'Editando un análisis guardado.':'Nuevo registro de tu campaña.'}</p><button type="submit" disabled={guardando||errorCarga||conflicto} className={boton}>{guardando?'Guardando…':editando?'Actualizar análisis':'Guardar análisis'}<ArrowIcon /></button></div>
       </form>
       <section className="mt-8" aria-labelledby="calculo-metricas"><h2 id="calculo-metricas" className="mb-4 text-xl font-semibold">Tu análisis</h2><ResumenMetricas datos={datos} /></section>
-      <section className="mt-8" aria-labelledby="historial-metricas">
+      <section ref={historialRef} className="mt-8 scroll-mt-5" aria-labelledby="historial-metricas">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 id="historial-metricas" className="text-xl font-semibold">Historial y evolución</h2>{campanas.length>0 && <label className="min-w-0 w-full text-xs text-[#746a64] sm:w-auto">Campaña <select value={claveSeleccionada} onChange={e=>setFiltroCampana(e.target.value)} className="mt-2 block w-full min-w-0 max-w-full rounded-full border border-[#e7ddd5] bg-white px-3 py-2 text-sm sm:ml-2 sm:mt-0 sm:inline-block sm:w-auto">{campanas.map(([clave,m])=><option key={clave} value={clave}>{m.campana} · {ESTRATEGIAS_METRICAS[m.estrategia]}</option>)}</select></label>}</div>
         {limitado && <p className="mb-3 text-xs text-[#746a64]">Mostramos tus últimos 500 análisis guardados.</p>}
         {!errorCarga && <EvolucionMetricas registros={filtrados} />}

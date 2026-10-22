@@ -98,6 +98,18 @@ Las tareas y días de actividad corresponden a los últimos 30 días inclusivos,
 
 No se crean insignias permanentes, certificados, nuevas tablas, puntos ni datos públicos. Las tablas heredadas de insignias se conservan sin modificaciones y no se mezclan con los hitos calculados. Cambiar tareas, completar/desmarcar clases o actualizar el catálogo/video puede cambiar el avance. No se envían emails/push ni se toca la configuración comercial al abrir o actualizar esta vista. La API GET `/api/logros` verifica sesión y plan, deriva siempre la usuaria de la sesión y responde con datos privados no cacheables; no acepta una alumna ajena. Reutiliza consultas bajo RLS, el lector de progreso y `resumen_mi_dia` existentes.
 
+### Comparar campañas en Mis métricas
+
+En `/metricas`, el tablero superior usa el último análisis guardado por cuenta, nombre normalizado de campaña y estrategia. La fecha tiene prioridad sobre una carga tardía; un empate se resuelve por actualización e ID. Seleccionar **Campaña A** y, si existe otra propia, **Comparar con**. Las tarjetas muestran ventas declaradas, gasto real, comisiones/neto estimados, costo por venta y conversión de mensajes a ventas. Las barras alternan ventas, gasto y neto, con escala común desde cero y valores negativos sin ocultar. **Ver evolución de A/B** lleva al historial de esa campaña, sin cambiar o borrar el formulario.
+
+La diferencia es A menos B, no ventas nuevas entre fechas ni una prueba causal. Las conversiones se comparan en puntos porcentuales; sin denominador o importe informado, se conserva —, no cero. No se suman las fotos diarias ni se elige una campaña ganadora. Fechas, productos y madurez pueden diferir. Son datos declarados y cálculos, no las comisiones con comprobante revisadas en Resultados. Si falla el historial, el tablero no muestra cifras; al llegar a 500 análisis advierte que la vista es parcial. El formulario sigue calculando antes de guardar; el tablero solo cambia con registros confirmados. No incorpora nuevas consultas, exportaciones o escrituras.
+
+### Reprogramar una tarea en Mi día
+
+En `/checklist`, **Reprogramar** aparece solo en tareas pendientes no archivadas. Elegir mañana (según la fecha actual de Argentina), hoy u otra fecha válida; revisar el destino y pulsar **Confirmar nueva fecha**. **Cancelar reprogramación** no guarda nada. Mientras está abierta se bloquean cambios de día locales y otras ediciones; recargar o cerrar la pestaña solicita la advertencia nativa cuando el navegador la admite. No se intercepta el historial ni toda la navegación de la app.
+
+Se usa PATCH de la tarea existente, con el mismo ID, propietaria, texto, categoría y creación, conservando el estado pendiente y aumentando su versión. Solo una respuesta concordante confirma éxito: la tarea sale del día de origen y un enlace abre el destino. El resumen del otro día se obtiene al refrescar o entrar en él. Un error conserva fecha y formulario; un conflicto o respuesta incoherente obliga a recargar y reabrir la versión actual, sin pisarla. La espera de red tiene un límite de 20 segundos con AbortController; abortar no demuestra que el servidor no haya guardado. Reintentar la misma operación reutiliza ID, versión y datos y permite confirmar una respuesta perdida sin duplicar. No hay operación masiva, recurrencia automática ni borrado; permisos y API existentes se mantienen.
+
 ## Preparación técnica de una modificación
 
 Verificar deployment/commit, rama y remotos antes de editar. El repositorio correcto está en `Lombardomercato/socias-digitales-app`; no publicar sobre el origen heredado por error. Trabajar con configuración de prueba segura. Nunca copiar service role a cliente o consola de navegador.
