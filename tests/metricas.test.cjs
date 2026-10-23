@@ -11,6 +11,7 @@ function cargar(file,deps={}) {
     if(name in deps)return deps[name]
     if(name==='server-only')return {}
     if(name==='@/lib/metrics')return helpers
+    if(name==='@/components/SuccessCelebration')return {default:()=>null,useSuccessCelebration:()=>({celebration:null,celebrate(){},dismiss(){}})}
     return require(name)
   },m,m.exports)
   return m.exports

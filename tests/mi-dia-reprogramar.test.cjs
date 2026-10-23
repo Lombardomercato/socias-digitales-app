@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const test = require('node:test'), assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path'), ts = require('typescript')
 const read = file => fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8')
-function load(file, deps = {}) { const m = { exports: {} }; new Function('require', 'module', 'exports', ts.transpileModule(read(file), { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(name => name === 'server-only' ? {} : name in deps ? deps[name] : require(name), m, m.exports); return m.exports }
+function load(file, deps = {}) { const m = { exports: {} }; new Function('require', 'module', 'exports', ts.transpileModule(read(file), { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(name => name === 'server-only' ? {} : name in deps ? deps[name] : name === '@/components/SuccessCelebration' ? { default: () => null, useSuccessCelebration: () => ({ celebration: null, celebrate() {}, dismiss() {} }) } : require(name), m, m.exports); return m.exports }
 const day = load('src/lib/my-day.ts'), metrics = load('src/lib/metrics.ts')
 const USER = '06bb7999-997b-49c8-ba80-b8d05bca4a84', ID = '85c4f8b8-21df-4772-9c7b-0ba2ea52efa5'
 const fila = { id: ID, alumna_id: USER, texto: 'Preparar contenido', categoria: 'negocio_digital', fecha: '2026-10-22', completada: false, archivada: false, version: 1, creado_en: '2026-10-20T18:00:00Z', actualizada_en: '2026-10-20T18:00:00Z' }

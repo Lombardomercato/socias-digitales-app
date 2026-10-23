@@ -5,8 +5,9 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ArrowIcon from '@/components/ArrowIcon'
 import CampaignMetricsDashboard from '@/components/CampaignMetricsDashboard'
+import SuccessCelebration, { useSuccessCelebration } from '@/components/SuccessCelebration'
 import { ResumenMetricas, EvolucionMetricas } from '@/components/MetricsVisuals'
-import { CAMPOS_DINERO, CAMPOS_CONTEO, ESTRATEGIAS_METRICAS, validarMetrica, claveCampana, fechaMetrica, calcularMetricas, dineroMetrica, type Metrica, type DatosMetrica } from '@/lib/metrics'
+import { CAMPOS_DINERO, CAMPOS_CONTEO, ESTRATEGIAS_METRICAS, validarMetrica, mismosDatos, claveCampana, fechaMetrica, calcularMetricas, dineroMetrica, type Metrica, type DatosMetrica } from '@/lib/metrics'
 
 const campo='mt-2 w-full min-w-0 rounded-xl border border-[#e7ddd5] bg-[#FAF7F3] px-3 py-2.5 text-sm outline-none focus:border-[#294A38]'
 const boton='inline-flex items-center justify-center gap-2 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60'
@@ -42,6 +43,7 @@ export default function MetricasCliente({historial,fechaInicial,errorCarga=false
   const ocupado=useRef(false)
   const formRef=useRef<HTMLFormElement>(null)
   const historialRef=useRef<HTMLElement>(null)
+  const {celebration,celebrate,dismiss}=useSuccessCelebration()
   const registros=new Map(historial.map(m=>[m.id,m]))
   Object.values(locales).forEach(m=>{const original=registros.get(m.id);if(!original || m.version>original.version)registros.set(m.id,m)})
   const todos=[...registros.values()].sort((a,b)=>b.fecha.localeCompare(a.fecha)||b.actualizado_at.localeCompare(a.actualizado_at))
@@ -60,20 +62,23 @@ export default function MetricasCliente({historial,fechaInicial,errorCarga=false
   async function guardar(e:React.FormEvent) {
     e.preventDefault()
     if(ocupado.current || conflicto) return
+    dismiss()
     ocupado.current=true;setGuardando(true);setError('');setGuardado('')
     try {
       intento.current??=crypto.randomUUID()
       const entrada={...datos,id:editando?.id??intento.current,version:editando?.version??null}
-      validarMetrica(entrada,editando?'editar':'crear')
+      const validada=validarMetrica(entrada,editando?'editar':'crear')
       const response=await fetch('/api/metricas',{method:editando?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(entrada)})
       const data=await response.json()
       if(!response.ok || !data.ok || !data.metrica) {if(response.status===409 && editando){setConflicto(true);router.refresh()}throw new Error(data.error||'No pudimos guardar el análisis.')}
       const m=data.metrica as Metrica
+      if(m.id===entrada.id && m.version===(editando?editando.version+1:1) && mismosDatos(m,validada.datos)) celebrate({key:`metrica:${m.id}:${m.version}`,title:'¡Así se construye!',message:'Tu análisis quedó guardado.',variant:'gentle'})
       setLocales(prev=>({...prev,[m.id]:m}));setEditando({id:m.id,version:m.version});setFiltroCampana(claveCampana(m));setGuardado('Análisis guardado. Ya aparece en tu historial.');intento.current=null;router.refresh()
     }catch(causa){setError(causa instanceof Error?causa.message:'No pudimos conectarnos. Tus datos siguen en el formulario.')}
     finally{setGuardando(false);ocupado.current=false}
   }
   return <div className="min-h-screen bg-[#F4EFEA] text-[#211c19]">
+    <SuccessCelebration celebration={celebration} />
     <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8"><Link href="/inicio"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto" /></Link><Link href="/inicio" className="inline-flex items-center gap-2 text-sm text-[#294A38]">Mi espacio <ArrowIcon /></Link></header>
     <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.22em] text-[#294A38]">Socias Digitales</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Mis métricas</h1></div><button type="button" onClick={nuevo} disabled={guardando} className="inline-flex rounded-full border border-[#294A38]/30 px-5 py-3 text-sm font-medium text-[#294A38]">Nuevo análisis +</button></div>

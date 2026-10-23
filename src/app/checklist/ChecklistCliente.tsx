@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import NavigationIcon from '@/components/NavigationIcon'
 import ArrowIcon from '@/components/ArrowIcon'
+import SuccessCelebration, { useSuccessCelebration } from '@/components/SuccessCelebration'
 import { CATEGORIAS_DIA, nombreDia, moverDia, semanaDia, resumenTareas, progresoDia, validarTarea, fechaDiaValida, type CategoriaDia, type TareaDia, type ResumenDia, type DatosTarea } from '@/lib/my-day'
 
 const campo = 'w-full min-w-0 rounded-xl border border-[#e7ddd5] bg-[#FAF7F3] px-4 py-3 text-sm outline-none focus:border-[#294A38]'
@@ -35,6 +36,7 @@ export default function ChecklistCliente({ tareas, semana, fecha, hoy, admin = f
   const [reprogramacion, setReprogramacion] = useState<{ tarea: TareaDia; destino: string; conflicto: boolean } | null>(null)
   const [destinoGuardado, setDestinoGuardado] = useState<string | null>(null)
   const reprogramacionRef = useRef<HTMLHeadingElement>(null)
+  const { celebration, celebrate, dismiss } = useSuccessCelebration()
   const reprogramando = Boolean(reprogramacion)
   useEffect(() => {
     if (!reprogramando) return
@@ -54,6 +56,7 @@ export default function ChecklistCliente({ tareas, semana, fecha, hoy, admin = f
   function editar(t: TareaDia) { setTexto(t.texto); setCategoria(t.categoria); setEditando(t); setConflicto(false); setError(''); setMensaje(''); intento.current = null; formRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' }) }
   async function guardar(datos: DatosTarea, tarea: TareaDia | null) {
     if (bloqueo.current) return false
+    dismiss()
     bloqueo.current = true; setOcupado(tarea?.id ?? 'nueva'); setError(''); setMensaje(''); setDestinoGuardado(null)
     const controlador = new AbortController()
     const plazo = setTimeout(() => controlador.abort(), 20_000)
@@ -77,6 +80,7 @@ export default function ChecklistCliente({ tareas, semana, fecha, hoy, admin = f
         router.refresh()
         throw new Error('No pudimos confirmar la nueva fecha. Recargá la tarea para comprobar su estado antes de reintentar.')
       }
+      if (tarea && !tarea.completada && !tarea.archivada && datos.completada === true && !datos.archivada && guardada.id === tarea.id && guardada.alumna_id === tarea.alumna_id && guardada.completada === true && guardada.archivada === false && guardada.version === tarea.version + 1 && guardada.fecha === datos.fecha && guardada.texto === tarea.texto && guardada.categoria === tarea.categoria && guardada.creado_en === tarea.creado_en) celebrate({ key: `tarea:${guardada.id}`, title: '¡Un paso más, Socia!', message: 'Tu tarea quedó completada.' })
       setLocales(prev => ({ ...prev, [guardada.id]: guardada })); if (!tarea) intento.current = null
       setMensaje(datos.archivada ? 'Tarea archivada. Podés recuperarla desde Archivadas.' : tarea?.archivada ? 'Tarea recuperada.' : datos.completada ? 'Tarea completada.' : 'Tarea guardada.')
       router.refresh()
@@ -122,6 +126,7 @@ export default function ChecklistCliente({ tareas, semana, fecha, hoy, admin = f
     }
   }
   return <div className="min-h-screen bg-[#F4EFEA] text-[#211c19]">
+    <SuccessCelebration celebration={celebration} />
     <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8"><Link href={admin ? '/admin' : '/inicio'}><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto" /></Link><Link href={admin ? '/admin' : '/inicio'} className="inline-flex items-center gap-2 text-sm text-[#294A38]">{admin ? 'Panel de Flor' : 'Mi espacio'} <ArrowIcon /></Link></header>
     <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.22em] text-[#294A38]">Tu agenda</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Mi día</h1><p className="mt-2 text-sm first-letter:uppercase text-[#746a64]">{nombreDia(fecha)}</p></div><div className="flex flex-wrap items-center gap-2"><button type="button" disabled={navegacionBloqueada || !fechaDiaValida(moverDia(fecha, -1))} onClick={() => router.push(`/checklist?fecha=${moverDia(fecha, -1)}`)} aria-label="Día anterior" className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e7ddd5] bg-white text-[#294A38] disabled:opacity-40"><ArrowIcon className="rotate-180" /></button><label className="sr-only" htmlFor="fecha-mi-dia">Elegir fecha</label><input id="fecha-mi-dia" type="date" min="2000-01-01" max="2099-12-31" value={fecha} disabled={navegacionBloqueada} onChange={e => { if (fechaDiaValida(e.target.value)) router.push(`/checklist?fecha=${e.target.value}`) }} className="min-w-0 rounded-full border border-[#e7ddd5] bg-white px-3 py-2 text-sm disabled:opacity-50" /><button type="button" disabled={navegacionBloqueada || !fechaDiaValida(moverDia(fecha, 1))} onClick={() => router.push(`/checklist?fecha=${moverDia(fecha, 1)}`)} aria-label="Día siguiente" className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e7ddd5] bg-white text-[#294A38] disabled:opacity-40"><ArrowIcon /></button>{fecha !== hoy && <button type="button" disabled={navegacionBloqueada} onClick={() => router.push('/checklist')} className="rounded-full px-3 py-2 text-sm font-medium text-[#294A38] disabled:opacity-50">Hoy</button>}</div></div>

@@ -12,6 +12,7 @@ function cargar(file, deps = {}) {
     if (n === 'server-only') return {}
     if (n === '@/lib/my-day' || n === './my-day') return helpers
     if (n === '@/lib/metrics') return metricas
+    if (n === '@/components/SuccessCelebration') return { default: () => null, useSuccessCelebration: () => ({ celebration: null, celebrate() {}, dismiss() {} }) }
     return require(n)
   }, m, m.exports)
   return m.exports

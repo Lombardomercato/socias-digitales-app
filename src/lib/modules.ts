@@ -6,7 +6,7 @@ export const MODULOS_SOCIAS = [
   { id: 'metricas', nombre: 'Mis métricas', descripcion: 'La evolución de tu negocio', href: '/metricas', icon: 'resultados' },
   { id: 'checklist', nombre: 'Mi día', descripcion: 'Tareas y hábitos', href: '/checklist', icon: 'checklist' },
   { id: 'comunidad', nombre: 'Comunidad', descripcion: 'Logros y conversaciones', href: '/comunidad', icon: 'comunidad' },
-  { id: 'logros', nombre: 'Mis logros', descripcion: 'Reconocimientos y avances', href: '/logros', icon: 'logros' },
+  { id: 'logros', nombre: 'Mis logros', descripcion: 'Tu nivel y próximos logros', href: '/logros', icon: 'logros' },
   { id: 'ranking', nombre: 'Ranking', descripcion: 'Resultados de la comunidad', href: '/ranking', icon: 'logros' },
 ] as const
 

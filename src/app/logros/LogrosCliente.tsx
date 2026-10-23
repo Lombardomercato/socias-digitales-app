@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRef, useState } from 'react'
 import ArrowIcon from '@/components/ArrowIcon'
 import NavigationIcon from '@/components/NavigationIcon'
+import PersonalRankCard from '@/components/PersonalRankCard'
 import { hitosLogros, type DatosLogros, type HitoLogro } from '@/lib/achievements'
 
 const grupos = [
@@ -55,12 +56,13 @@ export default function LogrosCliente({ inicial }: { inicial: DatosLogros }) {
     finally { ocupado.current = false; setCargando(false) }
   }
   return <div className="min-h-screen bg-[#F4EFEA] text-[#211C19]">
-    <header className="flex min-h-[76px] flex-wrap items-center justify-between gap-3 border-b border-[#E7DDD5] px-5 py-3 sm:px-8"><Link href="/inicio" aria-label="Socias Digitales, mi espacio"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto max-w-[180px] object-contain" /></Link><Link href="/inicio" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[#294A38]">Mi espacio <ArrowIcon /></Link></header>
+    <header className="sd-glass-header flex min-h-[76px] flex-wrap items-center justify-between gap-3 border-b border-[#E7DDD5] px-5 py-3 sm:px-8"><Link href="/inicio" aria-label="Socias Digitales, mi espacio"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto max-w-[180px] object-contain" /></Link><Link href="/inicio" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[#294A38]">Mi espacio <ArrowIcon /></Link></header>
     <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] font-semibold uppercase tracking-[.22em] text-[#294A38]">Socias Digitales</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Mis logros</h1><p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">Cada paso cuenta. Acá ves el recorrido que estás construyendo con tus clases, tus números y tus acciones.</p></div><button type="button" onClick={() => void actualizar()} disabled={cargando} aria-busy={cargando} className={boton}>{cargando ? 'Actualizando…' : 'Actualizar avances'}</button></div>
       {error && <p role="alert" className="mt-5 rounded-xl border border-[#EC9BB6] bg-[#F4CAD8]/50 p-4 text-sm">{error} La pantalla conserva la última lectura; podés reintentar.</p>}
       {aviso && <p role="status" className="mt-5 rounded-xl border border-[#E7DDD5] bg-[#FFFDFA] p-4 text-sm text-[#294A38]">{aviso}</p>}
       {parcial && <p role="alert" className="mt-5 rounded-xl border border-[#E7DDD5] bg-[#FFFDFA] p-4 text-sm">Algunos avances no están disponibles. No los contamos como cero ni como alcanzados. Usá “Actualizar avances” para reintentar.</p>}
+      <PersonalRankCard datos={datos} />
       <section aria-label="Resumen de avances" className="mt-7 grid gap-3 sm:grid-cols-3">
         <Resumen nombre="Clases completadas" valor={datos.clases.estado === 'lista' ? String(datos.clases.datos.completadas) : '—'} detalle={datos.clases.estado === 'lista' ? `De ${datos.clases.datos.disponibles} clases disponibles` : 'Lectura no disponible'} />
         <Resumen nombre="Hitos alcanzados" valor={parcial ? '—' : String(alcanzados)} detalle={parcial ? 'Lectura parcial · revisá las tarjetas' : 'Según tus registros actuales'} rosa />

@@ -4,6 +4,16 @@ Fecha: 15/10/2026. Complementa el inventario de `estado-plataforma.md`. No inclu
 
 ## Operación de Flor
 
+### Celebraciones y nivel personal
+
+Desde el 23/10, Mis logros incluye un nivel personal calculado desde las fuentes propias ya autorizadas. Inicio pasa a En marcha con una clase o una tarea; En foco requiere tres clases y actividad en tres días distintos; En acción suma diez tareas; Socia TOP suma un programa completo, incluido su material de apoyo. Tareas y días usan la fecha asignada a cada tarea dentro de los últimos treinta días, no la hora del clic. Clases y programas usan el progreso actual. No hay XP permanente ni clasificación pública: desmarcar, archivar, reprogramar o cambiar contenido puede modificar el nivel. Un error o módulo sin habilitar no se cuenta como cero y no produce una imagen de rango.
+
+**Preparar mi historia** genera localmente un PNG vertical 1080×1920 con nivel, conteos y fechas. No incluye nombre, email, textos de tareas, ventas ni comprobantes. La alumna revisa la imagen y elige Descargar PNG o Compartir imagen; el selector del dispositivo depende de su soporte, con descarga de respaldo. Nada se publica automáticamente en Instagram. Inicio sin avances no habilita una historia.
+
+Completar una tarea o marcar una clase, enviar un resultado a revisión y guardar un análisis pueden mostrar una felicitación breve, solo después de la respuesta confirmada del guardado. En resultados no significa aprobación de Flor; en clases no acredita reproducción íntegra. No se celebra una carga inicial, un error, desmarcar ni reprogramar. Mi día, clases y resultados deduplican por registro durante la visita; Métricas usa registro y versión. Sin sonidos ni vibración; con movimiento reducido se conserva el mensaje y no caen papelitos. El reproductor conserva el mensaje dentro de su diálogo nativo.
+
+**Comunidad sigue bloqueada para alumnas.** El muro requiere revisar el esquema y las políticas reales del proyecto antes de habilitar publicaciones, comentarios, reacciones y moderación. La conexión actual deniega esa revisión. No reutilizar resultados privados como publicaciones, abrir políticas a ciegas ni crear un almacenamiento alternativo para eludir la restricción. Próxima etapa: texto voluntario, comentarios y reacciones, con controles de autora y moderación de Flor, tras obtener acceso autorizado.
+
 ### Accesos de alumnas
 
 1. Copiar el enlace correspondiente desde Invitaciones: Gratuito, Desafío o Socias.

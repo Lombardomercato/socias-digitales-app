@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { tiempoClase, validarProgreso, type CambioProgreso, type ProgresoClase } from '@/lib/class-progress'
 import ClassMaterials from '@/components/ClassMaterials'
+import SuccessCelebration, { useSuccessCelebration } from '@/components/SuccessCelebration'
 
 interface Props {
   clase: {id:string;titulo:string;modulo:string;tiene_video_privado?:boolean;vimeo_url:string|null}
@@ -29,6 +30,7 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
   const [guardando,setGuardando]=useState(false)
   const [videoFallido,setVideoFallido]=useState(false)
   const [termino,setTermino]=useState(false)
+  const { celebration, celebrate } = useSuccessCelebration()
 
   const guardar=useCallback((cambio:CambioProgreso) => {
     if(esAdmin)return Promise.resolve()
@@ -39,11 +41,13 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
       })
       const data=await response.json()
       if(!response.ok)throw new Error(data.error??'No pudimos guardar tu progreso.')
+      if (!data.progreso || data.progreso.clase_id !== clase.id || typeof data.progreso.completada !== 'boolean') throw new Error('No pudimos confirmar tu progreso. Reintentá guardar.')
       onProgreso(data.progreso)
       fallido.current=null
       onError('')
       setEstado('Progreso guardado')
       setError('')
+      if (cambio.action === 'completada' && cambio.completada && data.progreso.completada) celebrate({ key: `clase:${clase.id}`, title: '¡Un paso más, Socia!', message: 'Tu clase quedó marcada como completada.' })
     }).catch(causa=>{
       const mensaje=causa instanceof TypeError?'No pudimos guardar tu progreso. Revisá tu conexión y reintentá.':causa instanceof Error?causa.message:'No pudimos guardar tu progreso.'
       fallido.current=cambio
@@ -51,7 +55,7 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
     })
     cadena.current=trabajo
     return trabajo
-  },[clase.id,esAdmin,onProgreso,onError])
+  },[clase.id,esAdmin,onProgreso,onError,celebrate])
 
   const guardarPosicion=useCallback(()=>{
     const video=videoRef.current
@@ -104,6 +108,7 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
     </div>}
     {esAdmin && <p className="mt-4 text-xs text-[#746A64]">Vista administrativa · no registra progreso de alumna.</p>}
     {error && <div role="alert" className="mt-3 rounded-xl border border-[#EC9BB6] p-3 text-sm"><p>{error}</p><button type="button" onClick={()=>{if(fallido.current)void guardar(fallido.current)}} className="mt-2 min-h-11 rounded-full border px-4">Reintentar guardar</button></div>}
+    <SuccessCelebration celebration={celebration} placement="inline" />
     <ClassMaterials key={clase.id} claseId={clase.id} />
     {siguiente && <div className="mt-4 border-t border-[#E7DDD5] pt-4"><button type="button" onClick={()=>{guardarPosicion();onSiguiente()}} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full bg-[#294A38] px-5 py-3 text-left text-sm font-medium text-white"><span className="min-w-0">Siguiente: {siguiente}</span><span aria-hidden="true">→</span></button></div>}
   </dialog>

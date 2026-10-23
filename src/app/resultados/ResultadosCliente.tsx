@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import ArrowIcon from '@/components/ArrowIcon'
 import NavigationIcon from '@/components/NavigationIcon'
 import ResultsDashboard from '@/components/ResultsDashboard'
+import SuccessCelebration, { useSuccessCelebration } from '@/components/SuccessCelebration'
 import { ESTADO_RESULTADO, MAX_CAPTURA, dineroResultado, type Resultado, type EstadoResultado } from '@/lib/results'
 
 const campo = 'mt-2 w-full rounded-xl border border-[#e7ddd5] bg-[#FAF7F3] px-4 py-3 text-sm outline-none focus:border-[#294A38]'
@@ -37,6 +38,7 @@ export default function ResultadosCliente({ misResultados, productos, periodoIni
   const intento = useRef<string | null>(null)
   const ocupado = useRef(false)
   const urlPreview = useRef('')
+  const { celebration, celebrate } = useSuccessCelebration()
   useEffect(() => () => { if (urlPreview.current) URL.revokeObjectURL(urlPreview.current) }, [])
   function cambiarArchivo(file: File | null) {
     if (urlPreview.current) URL.revokeObjectURL(urlPreview.current)
@@ -58,14 +60,16 @@ export default function ResultadosCliente({ misResultados, productos, periodoIni
       if (archivo) form.set('captura', archivo)
       const response = await fetch('/api/resultados', { method: 'POST', body: form })
       const respuesta = await response.json()
-      if (!response.ok || !respuesta.ok) throw new Error(respuesta.error || 'No pudimos guardar el resultado.')
+      if (!response.ok || !respuesta.ok || respuesta.id !== intento.current) throw new Error(respuesta.error || 'No pudimos confirmar el resultado. Tus datos se conservan para reintentar.')
+      celebrate({ key: `resultado:${respuesta.id}`, title: '¡Bien ahí, Socia!', message: 'Recibimos tu resultado. Flor lo va a revisar.' })
       setExito(true); setMostrarForm(false); setDescripcion(''); setMonto(''); setProducto(''); cambiarArchivo(null); intento.current = null
       router.refresh()
     } catch (causa) { setError(causa instanceof Error ? causa.message : 'No pudimos conectarnos. Tus datos siguen en el formulario.') }
     finally { ocupado.current = false; setEnviando(false) }
   }
   return <div className="min-h-screen bg-[#F4EFEA] text-[#211c19]">
-    <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
+    <SuccessCelebration celebration={celebration} />
+    <header className="sd-glass-header flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
       <Link href="/inicio"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto" /></Link>
       <Link href="/inicio" className="inline-flex items-center gap-2 text-sm text-[#294A38]">Mi espacio <ArrowIcon /></Link>
     </header>

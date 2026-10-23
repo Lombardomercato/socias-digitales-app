@@ -42,7 +42,9 @@ En verde oscuro: títulos, números y textos claros. En fondos crema/rosa: texto
 - Radios de tarjeta del orden de 20–26 px y botones redondeados, bordes discretos y espaciado compacto coherente. Mantener la escala existente en vez de imponer un kit nuevo.
 - Transiciones cortas, funcionales (aprox. 160 ms), foco visible, estados de guardado/error y botones deshabilitados honestos.
 
-No glow, brillos, neón, glassmorphism, degradados decorativos, sombras ornamentales fuertes o estética “IA”. No llenar el panel de explicaciones obvias como “un solo panel para todo”. Priorizar títulos, datos, fotos reales y acciones concretas.
+No glow, brillos, neón, degradados decorativos, sombras ornamentales fuertes o estética “IA”. No llenar el panel de explicaciones obvias como “un solo panel para todo”. Priorizar títulos, datos, fotos reales y acciones concretas.
+
+**Ampliación aprobada el 23/10/2026:** se permiten transparencias suaves tipo vidrio esmerilado en superficies puntuales (`sd-glass-panel`, `sd-glass-header` y navegación), sin convertir toda la app en glassmorphism. Conservar opacidad completa del texto, borde rosa discreto y fondo opaco de respaldo; respetar contraste y reducción de transparencias. No aplicar filtros a video, iframe o contenido del diálogo nativo. Las celebraciones reutilizan `SuccessCelebration`: mensaje confirmado, papelitos breves y deterministas, sin sonidos, vibración ni robo de foco. Con movimiento reducido queda solo el mensaje estático. Las historias para redes reutilizan colores y tipografías de marca, sin nombres, comprobantes ni cifras privadas incorporadas automáticamente.
 
 ## Jerarquía y estados
 

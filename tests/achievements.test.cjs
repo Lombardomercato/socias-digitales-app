@@ -95,7 +95,7 @@ test('API de logros: anónimas 401, plan no autorizado/admin 403, perfil fallido
     assert.equal(called, status === 200 ? 'yo' : undefined)
   }
 })
-const uiDeps = { 'next/link': { default: ({ prefetch, ...props }) => React.createElement('a', props) }, '@/components/NavigationIcon': { default: () => null }, '@/components/ArrowIcon': { default: () => null }, '@/lib/achievements': logic }
+const uiDeps = { 'next/link': { default: ({ prefetch, ...props }) => React.createElement('a', props) }, '@/components/PersonalRankCard': { default: () => null }, '@/components/NavigationIcon': { default: () => null }, '@/components/ArrowIcon': { default: () => null }, '@/lib/achievements': logic }
 test('tarjetas accesibles: progreso auténtico, estados sin datos, bordes y acciones de 44px', () => {
   const ui = load('src/app/logros/LogrosCliente.tsx', uiDeps)
   for (const h of logic.hitosLogros(base)) {
