@@ -59,6 +59,8 @@ test('títulos se escapan, controles accesibles y tarjetas móviles con fondo s�
   assert.ok(!body.includes('<script>')); assert.match(body, /&lt;script&gt;/)
   assert.match(body, /border-\[#E7DDD5\]/); assert.match(body, /bg-\[#FFFDFA\]/)
   assert.match(body, /min-h-11/); assert.match(body, /break-words/)
+  // El tema global reconoce text-white en superficies verdes para sus títulos.
+  assert.match(body, /<article class="[^"]*bg-\[#294A38\][^"]*text-white/)
   const loading = renderToStaticMarkup(React.createElement(HomeCampusLoading))
   assert.match(loading, /role="status"/); assert.ok(!loading.includes('progressbar')); assert.ok(!loading.includes('%'))
 })
