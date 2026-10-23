@@ -114,6 +114,28 @@ test('SSR Inicio: Desafío habilitado recibe el mismo campus con su propio acces
   assert.equal(p.calls.filter(call => call === 'campus').length, 1)
   assert.ok(p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
 })
+test('SSR Inicio: lateral de formación fijo en escritorio, desplazable y accesible sin fijar el contenido principal', async () => {
+  for (const perfil of [socia, { ...socia, tipo_usuario: 'desafio', desafio_socias_habilitada: true }]) {
+    const html = renderToStaticMarkup(await pagina({ perfil }).page())
+    const header = html.match(/<header[^>]*>/)?.[0]
+    const aside = html.match(/<aside[^>]*>([\s\S]*?)<\/aside>/)?.[1]
+    assert.ok(header?.includes('lg:sticky lg:top-0 lg:z-40 lg:bg-[#FAF7F3]'))
+    assert.match(aside, /role="region" aria-label="Menú y próximo encuentro" tabindex="0"/)
+    for (const value of ['lg:sticky', 'lg:top-[104px]', 'lg:max-h-[calc(100dvh-132px)]', 'lg:overflow-y-auto', 'focus-visible:outline-2']) assert.ok(aside.includes(value))
+    assert.ok(aside.includes('Navegación principal'))
+    assert.ok(aside.includes('data-proximo-hito="contador"'))
+    assert.ok(!html.match(/<main[^>]*>/)?.[0].includes('sticky'))
+    assert.equal((html.match(/data-proximo-hito="banner"/g) || []).length, 1)
+  }
+})
+test('SSR Inicio: lateral fijo no aparece en accesos sin formación ni cambia su encabezado', async () => {
+  for (const perfil of [{ ...socia, tipo_usuario: 'gratuito' }, { ...socia, estado: 'pausada' }, { ...socia, tipo_usuario: 'desafio', desafio_socias_habilitada: false }]) {
+    const html = renderToStaticMarkup(await pagina({ perfil }).page())
+    assert.ok(!html.includes('Menú y próximo encuentro'))
+    assert.ok(!html.match(/<header[^>]*>/)?.[0].includes('sticky'))
+    assert.ok(!html.includes('<aside'))
+  }
+})
 test('SSR Inicio: pausar/cancelar conserva perfil y avisos, sin CTA formativo ni consulta de agenda privada', async () => {
   for (const tipo_usuario of ['socia', 'desafio']) for (const estado of ['pausada', 'cancelada']) {
     const p = pagina({ perfil: { ...socia, tipo_usuario, estado, desafio_socias_habilitada: true }, estrategia: true })

@@ -66,7 +66,7 @@ export default async function InicioPage() {
     <UnreadNoticesProvider inicial={resumenAvisos}>
     <AgendaProvider inicial={hitos} errorInicial={errorAgenda}>
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
-      <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
+      <header className={`flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8 ${mostrarClase ? 'lg:sticky lg:top-0 lg:z-40 lg:bg-[#FAF7F3]' : ''}`}>
         <Link href="/inicio" aria-label="Socias Digitales, inicio">
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto object-contain" />
         </Link>
@@ -78,6 +78,7 @@ export default async function InicioPage() {
 
       <div className={`mx-auto grid max-w-[1400px] ${mostrarClase ? 'lg:grid-cols-[220px_minmax(0,1fr)]' : ''}`}>
         {mostrarClase && <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
+          <div role="region" aria-label="Menú y próximo encuentro" tabIndex={0} className="lg:sticky lg:top-[104px] lg:max-h-[calc(100dvh-132px)] lg:overflow-y-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38]">
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Mi espacio</p>
           <nav className="mt-5 space-y-1.5" aria-label="Navegación principal">
             <Link href="/inicio" aria-current="page" className="flex items-center gap-3 rounded-xl bg-[#F4CAD8] px-3 py-3 text-sm font-semibold"><NavigationIcon name="inicio" />Inicio</Link>
@@ -89,6 +90,7 @@ export default async function InicioPage() {
             <UnreadNoticeLink variante="menu" />
           </nav>
           <ProximaClase ahoraInicial={ahoraInicial} variante="contador" />
+          </div>
         </aside>}
 
         <main className="min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
