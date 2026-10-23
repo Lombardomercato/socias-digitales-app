@@ -5,6 +5,7 @@ import { fechaDiaValida } from '@/lib/my-day'
 import { fechaArgentina } from '@/lib/metrics'
 import { redirect } from 'next/navigation'
 import ChecklistCliente from './ChecklistCliente'
+import { leerPlanEstudio } from '@/lib/study-planner-server'
 
 export default async function ChecklistPage({ searchParams }: { searchParams: Promise<{ fecha?: string }> }) {
   const supabase = await createClient()
@@ -16,5 +17,9 @@ export default async function ChecklistPage({ searchParams }: { searchParams: Pr
   const hoy = fechaArgentina()
   const params = await searchParams
   const fecha = fechaDiaValida(params.fecha) ? params.fecha : hoy
-  return <ChecklistCliente key={fecha} {...await leerMiDia(supabase, user.id, fecha)} fecha={fecha} hoy={hoy} admin={acceso.admin} />
+  const [dia, planEstudio] = await Promise.all([
+    leerMiDia(supabase, user.id, fecha),
+    acceso.admin ? Promise.resolve(null) : leerPlanEstudio(supabase, user.id),
+  ])
+  return <ChecklistCliente key={fecha} {...dia} fecha={fecha} hoy={hoy} admin={acceso.admin} planEstudio={planEstudio} alumnaId={user.id} />
 }

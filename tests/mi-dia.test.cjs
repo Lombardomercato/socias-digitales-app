@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -12,6 +13,8 @@ function cargar(file, deps = {}) {
     if (n === 'server-only') return {}
     if (n === '@/lib/my-day' || n === './my-day') return helpers
     if (n === '@/lib/metrics') return metricas
+    if (n === '@/components/StudyPlannerClient') return { default: () => null }
+    if (n === '@/components/WeeklyPlanSummary') return resumenSemanal
     if (n === '@/components/SuccessCelebration') return { default: () => null, useSuccessCelebration: () => ({ celebration: null, celebrate() {}, dismiss() {} }) }
     return require(n)
   }, m, m.exports)
@@ -19,6 +22,11 @@ function cargar(file, deps = {}) {
 }
 const helpers = cargar('src/lib/my-day.ts')
 const metricas = cargar('src/lib/metrics.ts')
+const semanaHelpers = cargar('src/lib/my-day-week.ts')
+const resumenSemanal = cargar('src/components/WeeklyPlanSummary.tsx', {
+  '@/lib/my-day-week': semanaHelpers,
+  './NavigationIcon': { default: () => null },
+})
 const USER = '06bb7999-997b-49c8-ba80-b8d05bca4a84'
 const ID = '85c4f8b8-21df-4772-9c7b-0ba2ea52efa5'
 const base = { id: ID, version: null, texto: '  Preparar   contenido  ', categoria: 'negocio_digital', fecha: '2026-10-13', completada: false, archivada: false }

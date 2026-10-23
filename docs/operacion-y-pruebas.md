@@ -12,6 +12,16 @@ El campus reutiliza el catálogo publicado y el progreso de esa sesión; no depe
 
 El avance cuenta solo clases publicadas, autorizadas y reproducibles de la revisión actual. Es la marca manual de la alumna, no una certificación. Un programa con contenido bloqueado o sin video no se declara completo. Ante un fallo del progreso se conserva el catálogo pero no se inventan ceros, porcentajes ni una próxima clase; si falla el catálogo, su disponibilidad queda desconocida. Reintentar vuelve a consultar sin modificar datos. No hay diplomas, puntos, nuevos permisos, envíos ni cambios de esquema.
 
+### Plan de estudio y resumen semanal
+
+Desde Inicio, **Plan de estudio** lleva al bloque integrado en Mi día. Solo permite planificar con formación y Mi día habilitados; no abre ese módulo a Desafío ni cambia la decisión de Flor. El plan propone la próxima clase disponible de cada programa, priorizando la que tiene minuto guardado. Elegir programa y fecha de hoy en adelante, revisar el nombre editable y presionar **Confirmar en mi agenda**. No se guarda nada al abrir, elegir o cancelar.
+
+La confirmación crea una tarea pendiente normal de **Negocio digital**, con una nota legible sobre la clase y su programa. No crea una relación permanente clase–tarea: editar o renombrar la clase no actualiza la nota, y completar la tarea no marca el video como visto. Después puede editarse, reprogramarse, completarse o archivarse desde Mi día. No agrega asistencia, certificados, avisos, emails ni recordatorios automáticos.
+
+El formulario y el nombre se conservan ante un error. Un doble clic queda bloqueado; reintentar una respuesta perdida conserva UUID y contenido enviados. Si no se confirmó el guardado, los campos quedan congelados y se ofrece revisar la fecha antes de crear otra tarea. Un conflicto, sesión vencida o permiso revocado exige volver a comprobar la agenda. El mismo envío se recupera sin duplicarse, pero no hay unicidad por clase/fecha entre visitas o dispositivos. Cerrar o recargar solicita advertencia nativa cuando el navegador la admite; no se intercepta toda la navegación de la plataforma ni se conserva el borrador después de cerrar.
+
+**Tu semana** resume lunes a domingo de la fecha elegida: planeadas, completadas, por hacer y días con tareas. Excluye archivadas y usa el agregado existente, no solo las primeras 500 tareas visibles del día. Cada día abre su agenda; con un formulario activo se bloquea el cambio local de fecha. Los errores y agregados incoherentes se muestran como desconocidos, no como cero o porcentajes inventados. El campus y los logros conservan sus reglas independientes.
+
 ### Celebraciones y nivel personal
 
 Desde el 23/10, Mis logros incluye un nivel personal calculado desde las fuentes propias ya autorizadas. Inicio pasa a En marcha con una clase o una tarea; En foco requiere tres clases y actividad en tres días distintos; En acción suma diez tareas; Socia TOP suma un programa completo, incluido su material de apoyo. Tareas y días usan la fecha asignada a cada tarea dentro de los últimos treinta días, no la hora del clic. Clases y programas usan el progreso actual. No hay XP permanente ni clasificación pública: desmarcar, archivar, reprogramar o cambiar contenido puede modificar el nivel. Un error o módulo sin habilitar no se cuenta como cero y no produce una imagen de rango.

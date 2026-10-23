@@ -8,10 +8,15 @@ const ROOT = path.resolve(__dirname, '..')
 function load(file, deps = {}) {
   const m = { exports: {} }
   const code = ts.transpileModule(fs.readFileSync(path.join(ROOT, file), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText
-  new Function('require', 'module', 'exports', code)(name => name in deps ? deps[name] : name === '@/lib/my-day' ? day : name === '@/lib/metrics' ? metrics : require(name), m, m.exports)
+  new Function('require', 'module', 'exports', code)(name => name in deps ? deps[name] : name === '@/lib/my-day' ? day : name === '@/lib/metrics' ? metrics : name === '@/components/StudyPlannerClient' ? { default: () => null } : name === '@/components/WeeklyPlanSummary' ? resumenSemanal : require(name), m, m.exports)
   return m.exports
 }
 const day = load('src/lib/my-day.ts'), metrics = load('src/lib/metrics.ts')
+const semanaHelpers = load('src/lib/my-day-week.ts', { './my-day': day })
+const resumenSemanal = load('src/components/WeeklyPlanSummary.tsx', {
+  '@/lib/my-day-week': semanaHelpers,
+  './NavigationIcon': { default: () => null },
+})
 const USER = '06bb7999-997b-49c8-ba80-b8d05bca4a84', ID = '85c4f8b8-21df-4772-9c7b-0ba2ea52efa5'
 const fila = { id: ID, alumna_id: USER, texto: 'Preparar contenido', categoria: 'negocio_digital', fecha: '2026-10-22', completada: false, archivada: false, version: 1, creado_en: '2026-10-20T18:00:00Z', actualizada_en: '2026-10-20T18:00:00Z' }
 function view(file, props) {
