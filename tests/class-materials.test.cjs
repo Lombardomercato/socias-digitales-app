@@ -110,6 +110,7 @@ test('carga completa: temporal firmado, archivo final inmutable, descarga proteg
   assert.deepEqual(new Uint8Array(await descarga.arrayBuffer()), body)
   assert.equal(descarga.headers.get('content-type'), 'application/octet-stream')
   assert.equal(descarga.headers.get('x-content-type-options'), 'nosniff')
+  assert.equal(descarga.headers.get('content-security-policy'), "sandbox allow-downloads; default-src 'none'")
   assert.ok(descarga.headers.get('content-disposition').includes('attachment;'))
   const replay = await (await s.post({ action: 'finalizar', revision: null, ticket: prepared.ticket })).json()
   assert.equal(replay.materiales.length, 1)

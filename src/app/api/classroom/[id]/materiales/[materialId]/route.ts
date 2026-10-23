@@ -22,7 +22,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return new NextResponse(file.body, { headers: {
       ...HEADERS_MATERIALES, 'Content-Type': 'application/octet-stream',
       'Content-Disposition': `attachment; filename="material.${material.archivo.extension}"; filename*=UTF-8''${encodeURIComponent(material.archivo.nombre).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())}`,
-      'Content-Length': String(material.archivo.bytes), 'Content-Security-Policy': "sandbox; default-src 'none'",
+      'Content-Length': String(material.archivo.bytes), 'Content-Security-Policy': "sandbox allow-downloads; default-src 'none'",
     } })
   } catch {
     console.error('class_material_download_failed')
