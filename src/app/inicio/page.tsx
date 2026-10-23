@@ -21,6 +21,7 @@ import type { HitoAgenda } from '@/lib/agenda'
 import { accesoInicio } from '@/lib/home-access'
 import CampusFormation from './CampusFormation'
 import { HomeCampusLoading } from '@/components/HomeCampus'
+import { fechaArgentina } from '@/lib/metrics'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -48,7 +49,7 @@ export default async function InicioPage() {
   const habilitada = acceso.formacion
   const esDesafio = tipoUsuario === 'desafio'
   const mostrarClase = acceso.formacion
-  const { data: accesoEstrategia } = await supabase.from('accesos_estrategia').select('habilitada').eq('usuaria_id', user.id).maybeSingle()
+  const { data: accesoEstrategia, error: errorEstrategia } = await supabase.from('accesos_estrategia').select('habilitada').eq('usuaria_id', user.id).maybeSingle()
   // El guardado heredado de Estrategia aún exige Desafío en RLS. No anunciar
   // un módulo habilitado para una Socia que todavía no puede persistirlo.
   const estrategiaHabilitada = habilitada && Boolean(perfil.desafio_socias_habilitada && accesoEstrategia?.habilitada)
@@ -115,18 +116,17 @@ export default async function InicioPage() {
             </section>
           ) : (
             <>
-              <Suspense fallback={<HomeCampusLoading />}><CampusFormation supabase={supabase} usuariaId={user.id} perfil={perfil} /></Suspense>
-              <section aria-label="Otros espacios" className={`mt-4 grid gap-3 ${accesoMiDia.permitido ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              <Suspense fallback={<HomeCampusLoading />}><CampusFormation supabase={supabase} usuariaId={user.id} perfil={perfil} permisoMiDia={accesoMiDia} fecha={fechaArgentina(new Date(ahoraInicial))} /></Suspense>
+              <section aria-label="Otros espacios" className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[
-                  ...(accesoMiDia.permitido ? [{ label: 'Plan de estudio', href: '/checklist#plan-de-estudio', note: 'Reservá tu próximo paso', tone: 'bg-[#F4CAD8] border border-[#EC9BB6]' }] : []),
-                  { label: 'Estrategia', href: '/lanzamiento', note: estrategiaHabilitada ? 'Etapas y tareas' : 'Pendiente de habilitación', tone: 'bg-white border border-[#E7DDD5]' },
+                  { label: 'Estrategia', href: '/lanzamiento', note: errorEstrategia ? 'Acceso sin comprobar' : estrategiaHabilitada ? 'Etapas y tareas' : 'Pendiente de habilitación', tone: 'bg-[#FFFDFA] border border-[#E7DDD5]' },
                   { label: 'Mi perfil', href: '/perfil', note: 'Tus datos y cuenta', tone: 'bg-[#F4EFEA] border border-[#EC9BB6]/60' },
-                ].map(item => <Link key={item.href} href={item.href} className={`group flex min-h-28 flex-col justify-between rounded-[20px] p-5 transition hover:-translate-y-0.5 ${item.tone}`}><span className="flex items-center justify-between gap-3 text-sm font-semibold">{item.label}<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FAF7F3]/80 text-[#294A38] transition group-hover:bg-[#294A38] group-hover:text-white"><ArrowIcon diagonal /></span></span><span className="text-xs text-[#746a64]">{item.note}</span></Link>)}
+                ].map(item => <Link key={item.href} href={item.href} className={`flex min-h-20 items-center justify-between gap-3 rounded-[20px] px-5 py-4 transition hover:border-[#EC9BB6] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38] ${item.tone}`}><span><span className="block text-sm font-semibold">{item.label}</span><span className="mt-1 block text-xs text-[#746a64]">{item.note}</span></span><ArrowIcon diagonal /></Link>)}
               </section>
             </>
           )}
-          <UnreadNoticeLink variante="tarjeta" />
-          <LockedModules venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} logrosHabilitados={puedeVerLogros(perfil)} />
+          {!habilitada && <UnreadNoticeLink variante="tarjeta" />}
+          <LockedModules compacto={habilitada} erroresPermiso={[...(accesoResultados.error ? ['resultados' as const] : []), ...(accesoMetricas.error ? ['metricas' as const] : []), ...(accesoMiDia.error ? ['checklist' as const] : [])]} venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} logrosHabilitados={puedeVerLogros(perfil)} />
         </main>
       </div>
     </div>

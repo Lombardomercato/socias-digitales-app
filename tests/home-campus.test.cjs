@@ -6,7 +6,7 @@ const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
 function load(file, deps = {}) { const m = { exports: {} }; new Function('require', 'module', 'exports', ts.transpileModule(read(file), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText)(n => n in deps ? deps[n] : require(n), m, m.exports); return m.exports }
 const icon = { default: () => React.createElement('svg', { 'aria-hidden': true }) }
 const progress = load('src/lib/class-progress.ts')
-const { default: Campus, HomeCampusLoading } = load('src/components/HomeCampus.tsx', { 'next/link': { default: props => React.createElement('a', props) }, './ArrowIcon': icon, './NavigationIcon': icon, '@/lib/class-progress': progress })
+const { default: Campus, HomeCampusLoading } = load('src/components/HomeCampus.tsx', { 'next/link': { default: props => React.createElement('a', props) }, './ArrowIcon': icon, './NavigationIcon': icon, './UnreadNotices': { UnreadNoticeLink: ({ variante }) => React.createElement('a', { href: '/notificaciones', 'data-avisos': variante }, 'Avisos') }, '@/lib/class-progress': progress, '@/lib/my-day': load('src/lib/my-day.ts') })
 const programa = { nombre: 'Desafío Socias', total: 3, completadas: 1, enCurso: 1, bloqueadas: 0, sinVideo: 0, completo: false, proxima: { id: '00000000-0000-4000-8000-000000000001', titulo: 'Elegí tu producto', programa: 'Desafío Socias', seccion: 'Clases', motivo: 'continuar', posicionSeg: 29 } }
 const resumen = { estado: 'listo', programas: [programa], total: 3, completadas: 1, enCurso: 1, bloqueadas: 0, sinVideo: 0, programasCompletos: 0, proxima: programa.proxima }
 const html = data => renderToStaticMarkup(React.createElement(Campus, { resumen: data }))
@@ -44,7 +44,7 @@ test('vacío real y todas completadas tienen mensajes diferentes sin diplomas ni
   const vacio = html({ ...resumen, total: 0, completadas: 0, enCurso: 0, programas: [], proxima: null })
   assert.match(vacio, /Todavía no hay clases disponibles/); assert.ok(!vacio.includes('al día con las clases'))
   const completo = html({ ...resumen, completadas: 3, enCurso: 0, proxima: null, programas: [{ ...programa, completadas: 3, enCurso: 0, completo: true, proxima: null }] })
-  assert.match(completo, /Mirá todo lo que avanzaste/); assert.match(completo, /Estás al día con las clases disponibles/); assert.match(completo, /100%/)
+  assert.match(completo, /Tus clases están al día/); assert.match(completo, /Estás al día con las clases disponibles/); assert.match(completo, /100%/)
   assert.ok(!completo.includes('?clase='))
 })
 test('un recorte con clases bloqueadas o sin video no se celebra como programa terminado ni 100%', () => {
@@ -59,15 +59,33 @@ test('títulos se escapan, controles accesibles y tarjetas móviles con fondo s�
   assert.ok(!body.includes('<script>')); assert.match(body, /&lt;script&gt;/)
   assert.match(body, /border-\[#E7DDD5\]/); assert.match(body, /bg-\[#FFFDFA\]/)
   assert.match(body, /min-h-11/); assert.match(body, /break-words/)
-  // El tema global reconoce text-white en superficies verdes para sus títulos.
-  assert.match(body, /<article class="[^"]*bg-\[#294A38\][^"]*text-white/)
+  assert.ok(!body.includes('Cada paso cuenta')); assert.ok(!body.includes('Tu constancia'))
+  assert.match(body, /Tu resumen/); assert.match(body, /data-avisos="resumen"/)
+  assert.ok(!/<article class="[^"]*bg-\[#294A38\]/.test(body))
   const loading = renderToStaticMarkup(React.createElement(HomeCampusLoading))
   assert.match(loading, /role="status"/); assert.ok(!loading.includes('progressbar')); assert.ok(!loading.includes('%'))
 })
 test('wrapper servidor usa lector con identidad confiable y pasa únicamente el resumen a la vista', async () => {
   const db = { sesion: true }, perfil = { tipo_usuario: 'socia' }
   let calls = 0
-  const wrapper = load('src/app/inicio/CampusFormation.tsx', { '@/components/HomeCampus': { default: Campus }, '@/lib/learning-campus-server': { leerCampusAprendizaje: async (...args) => { calls++; assert.deepEqual(args, [db, 'propia', perfil]); return resumen } } }).default
-  const element = await wrapper({ supabase: db, usuariaId: 'propia', perfil })
-  assert.equal(calls, 1); assert.deepEqual(Object.keys(element.props), ['resumen']); assert.equal(element.props.resumen, resumen)
+  const permiso = { permitido: true }, miDia = { estado: 'listo', fecha: '2026-10-23', total: 0, completadas: 0, pendientes: 0, proximas: [] }
+  let diaCalls = 0
+  const wrapper = load('src/app/inicio/CampusFormation.tsx', { '@/components/HomeCampus': { default: Campus }, '@/lib/learning-campus-server': { leerCampusAprendizaje: async (...args) => { calls++; assert.deepEqual(args, [db, 'propia', perfil]); return resumen } }, '@/lib/home-operations-server': { leerResumenMiDiaInicio: async (...args) => { diaCalls++; assert.deepEqual(args, [db, 'propia', '2026-10-23', permiso]); return miDia } } }).default
+  const element = await wrapper({ supabase: db, usuariaId: 'propia', perfil, fecha: '2026-10-23', permisoMiDia: permiso })
+  assert.equal(calls, 1); assert.equal(diaCalls, 1); assert.deepEqual(Object.keys(element.props), ['resumen', 'miDia']); assert.equal(element.props.resumen, resumen); assert.equal(element.props.miDia, miDia)
+})
+test('Inicio resume Mi día sin modificar tareas y sin confundir error con día vacío', () => {
+  const renderDia = miDia => renderToStaticMarkup(React.createElement(Campus, { resumen, miDia }))
+  const dia = { estado: 'listo', fecha: '2026-10-23', total: 3, completadas: 1, pendientes: 2, proximas: [{ id: 'a', texto: 'Estudiar la clase' }, { id: 'b', texto: 'Preparar contenido' }] }
+  const body = renderDia(dia)
+  assert.match(body, /2 pendientes/); assert.match(body, /Estudiar la clase/); assert.match(body, /tareas completadas hoy/)
+  assert.match(body, /href="\/checklist"/); assert.match(body, /href="\/checklist#plan-de-estudio"/)
+  assert.ok(!body.includes('<button')); assert.ok(!body.includes('<input'))
+  const vacio = renderDia({ ...dia, total: 0, completadas: 0, pendientes: 0, proximas: [] })
+  assert.match(vacio, /Sin tareas para hoy/); assert.ok(!vacio.includes('Todo lo de hoy, completado'))
+  const completo = renderDia({ ...dia, total: 3, completadas: 3, pendientes: 0, proximas: [] })
+  assert.match(completo, /Todo lo de hoy, completado/)
+  const error = renderDia({ estado: 'error' })
+  assert.match(error, /No pudimos cargar tus tareas/); assert.ok(!error.includes('Sin tareas para hoy')); assert.ok(!error.includes('tareas completadas hoy'))
+  assert.ok(!renderDia({ estado: 'no-habilitado' }).includes('Organizar mi día'))
 })

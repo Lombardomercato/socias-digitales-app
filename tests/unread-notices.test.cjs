@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -63,6 +64,14 @@ test('sin mensajes no hay banner ni falsa urgencia; 99+ no desborda el menú', (
   assert.ok(vista(137, 'menu').includes('>99+</span>'))
   assert.ok(vista(137, 'menu').includes('137 comunicados sin leer'))
   assert.ok(vista(0, 'banner', true).includes('No pudimos comprobar'))
+})
+test('resumen operativo distingue nuevos, leído y error sin alerta persistente ni marcar la lectura', () => {
+  assert.match(vista(1, 'resumen'), /1 comunicado sin leer/)
+  assert.match(vista(1, 'resumen'), /Clase mañana/)
+  assert.match(vista(0, 'resumen'), /Tus avisos, al día/)
+  assert.ok(!vista(0, 'resumen').includes('tabular-nums'))
+  const error = vista(0, 'resumen', true)
+  assert.match(error, /sin comprobar/); assert.ok(!error.includes('Tus avisos, al día'))
 })
 test('Notificaciones conserva el tamaño y alineación del menú, con el contador fuera del flujo del texto', () => {
   for (const cantidad of [0, 1, 137]) {

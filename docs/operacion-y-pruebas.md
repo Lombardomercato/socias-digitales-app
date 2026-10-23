@@ -4,6 +4,18 @@ Fecha: 15/10/2026. Complementa el inventario de `estado-plataforma.md`. No inclu
 
 ## Operación de Flor
 
+### Resumen operativo de Inicio
+
+Inicio reúne disponibilidad y avance de clases, video para retomar, tareas del día en Argentina, comunicados y accesos a las herramientas. Se retiraron el bloque Cada paso cuenta y el título motivacional grande. La próxima clase de la agenda conserva su barra fina y el contador lateral. Los programas no llevan miniaturas y sus tarjetas de avance son compactas.
+
+Mi día aparece solo cuando su permiso está confirmado; no se habilita por tener clases. La portada muestra totales diarios exactos y hasta dos pendientes propias, sin archivadas ni acciones de completado. Organizar mi día abre la agenda y Plan de estudio abre su formulario existente. Si el lector limita la lista a 500 filas, el total procede del agregado existente y los títulos solo de las tareas realmente leídas; no se inventa una tarea para completar la lista. Error, falta de permiso y día vacío son estados distintos. Es una instantánea al cargar o regresar a Inicio, no sincronización continua entre dispositivos.
+
+Avisos usa el mismo contador del encabezado y menú. Abrir Inicio no marca mensajes como leídos; abrir el comunicado en la bandeja conserva el circuito actual. Sin nuevos mensajes, la tarjeta pierde el énfasis y muestra al día. Una lectura fallida no se presenta como cero. No se reinstala la alerta redundante sobre el evento ni se envían mensajes.
+
+Mis herramientas muestra primero los módulos habilitados; el resto queda en Otros espacios del plan Socias, plegado por defecto. Un permiso fallido se identifica como acceso sin comprobar, no bloqueado. Las rutas de destino conservan sus controles. Gratuitas mantienen sus muestras y presentación comercial, sin una compra simulada.
+
+Mi perfil reemplaza el porcentaje heredado por el mismo avance real de la biblioteca: completadas, en curso y disponibles, con enlace para continuar. No escribe ni borra el campo antiguo, ni modifica encuesta, contraseña o preferencias. Administradoras, accesos suspendidos y cuentas sin formación privada no consultan ni reciben este resumen.
+
 ### Campus personal en Inicio
 
 Las alumnas con formación habilitada ven su próximo paso, clases disponibles, completadas, en curso y avance por programa. **Retomar mi clase** abre el video concreto en `/classroom?clase=<uuid>`, sin reproducirlo automáticamente, con el minuto propio guardado. Sin una clase en curso, se propone la primera disponible no completada: Bienvenida primero, luego el orden del programa y su material de apoyo. Toda mi formación abre la biblioteca completa con sus filtros.

@@ -51,8 +51,10 @@ test('fechas inválidas conservan hoy Argentina y una fecha histórica válida n
 })
 test('Inicio expone Plan de estudio únicamente con permiso Mi día; no inicia otra lectura de formación', () => {
   const source = read('src/app/inicio/page.tsx')
-  assert.match(source, /\.\.\.\(accesoMiDia\.permitido \? \[\{ label: 'Plan de estudio', href: '\/checklist#plan-de-estudio'/)
-  assert.equal((source.match(/label: 'Plan de estudio'/g) ?? []).length, 1)
+  assert.match(source, /permisoMiDia=\{accesoMiDia\}/)
+  const campus = read('src/components/HomeCampus.tsx')
+  assert.match(campus, /miDia.estado !== 'no-habilitado' && <MiDia resumen=\{miDia\}/)
+  assert.equal((campus.match(/href="\/checklist#plan-de-estudio"/g) ?? []).length, 1)
   assert.ok(!source.includes('leerPlanEstudio')); assert.ok(!source.includes('StudyPlannerClient'))
   const checklist = read('src/app/checklist/ChecklistCliente.tsx')
   assert.match(checklist, /!admin && planEstudio && <StudyPlannerClient/)

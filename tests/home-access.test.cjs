@@ -20,7 +20,7 @@ const classes = load('src/lib/class-access.ts')
 const home = load('src/lib/home-access.ts', { './access': access, './class-access': classes })
 const link = { default: props => React.createElement('a', props) }
 const icon = { default: () => React.createElement('span', { 'aria-hidden': true }) }
-const LockedModules = load('src/components/LockedModules.tsx', { 'next/link': link, './NavigationIcon': icon, '@/lib/modules': load('src/lib/modules.ts') }).default
+const LockedModules = load('src/components/LockedModules.tsx', { 'next/link': link, './NavigationIcon': icon, './ArrowIcon': icon, '@/lib/modules': load('src/lib/modules.ts') }).default
 const socia = { id: 'propia', nombre: 'Socia', rol: 'alumna', tipo_usuario: 'socia', estado: 'activa', desafio_socias_habilitada: false, desafio_socias_estado: 'pendiente' }
 test('acceso de Inicio coincide con el permiso privado y distingue Socias de Desafío', () => {
   const casos = [
@@ -78,6 +78,7 @@ function pagina({ perfil = socia, errorPerfil = null, user = { id: 'propia' }, e
     '@/lib/agenda-store': { leerAgenda: async () => { calls.push('agenda'); return { hito: null } } },
     '@/lib/agenda-management': { hitoParaAlumna: () => [] },
     '@/lib/home-access': home,
+    '@/lib/metrics': { fechaArgentina: () => '2026-10-23' },
     // La frontera async y los lectores reales se prueban por separado. Este
     // sustituto síncrono verifica solo que Inicio habilita el bloque correcto
     // y le entrega la sesión/perfil protegidos, sin ejecutar el hijo async.

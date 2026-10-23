@@ -43,7 +43,7 @@ export function UnreadNoticesProvider({ inicial, children }: { inicial: ResumenA
   return <AvisosContext.Provider value={resumen}>{children}</AvisosContext.Provider>
 }
 
-export function UnreadNoticeLink({ variante }: { variante: 'header' | 'menu' | 'banner' | 'tarjeta' }) {
+export function UnreadNoticeLink({ variante }: { variante: 'header' | 'menu' | 'banner' | 'tarjeta' | 'resumen' }) {
   const resumen = useContext(AvisosContext)
   if (!resumen) return null
   const { cantidad, ultimoTitulo, errorCarga } = resumen
@@ -51,6 +51,10 @@ export function UnreadNoticeLink({ variante }: { variante: 'header' | 'menu' | '
   const texto = cantidad === 1 ? '1 comunicado sin leer' : `${cantidad} comunicados sin leer`
   const badge = pendientes ? <span aria-hidden="true" className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-[#294A38] px-1.5 text-xs font-bold tabular-nums text-white">{cantidad > 99 ? '99+' : cantidad}</span> : null
   const foco = 'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38]'
+
+  if (variante === 'resumen') return <Link href="/notificaciones" aria-label={`Notificaciones${errorCarga ? ': sin comprobar' : pendientes ? `: ${texto}` : ': al día'}`} className={`mt-4 flex min-h-20 items-center justify-between gap-3 rounded-[20px] border px-5 py-4 ${pendientes ? 'border-[#EC9BB6] bg-[#F4CAD8]' : 'border-[#E7DDD5] bg-[#FFFDFA]'} ${foco}`}>
+    <span className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F4EFEA] text-[#294A38]"><NavigationIcon name="notificaciones" /></span><span className="min-w-0"><span className="flex flex-wrap items-center gap-2 text-sm font-semibold">{errorCarga ? 'Revisá tus avisos' : pendientes ? texto : 'Tus avisos, al día'}{badge}</span><span className="mt-1 block break-words text-xs leading-5 text-[#746A64]">{errorCarga ? 'No pudimos comprobar si hay comunicados nuevos.' : pendientes ? ultimoTitulo : 'No tenés comunicados sin leer.'}</span></span></span><ArrowIcon />
+  </Link>
 
   if (variante === 'banner') {
     if (!pendientes && !errorCarga) return null

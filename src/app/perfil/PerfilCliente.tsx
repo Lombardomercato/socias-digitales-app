@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -14,7 +14,6 @@ interface Perfil {
   id: string
   nombre: string
   avatar_url: string | null
-  progreso: number
   rol: string
   whatsapp: string | null
   telefono?: string | null
@@ -30,9 +29,10 @@ interface Perfil {
 interface Props {
   user: User
   perfil: Perfil | null
+  formacion?: ReactNode
 }
 
-export default function PerfilCliente({ user, perfil }: Props) {
+export default function PerfilCliente({ user, perfil, formacion }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -63,7 +63,6 @@ export default function PerfilCliente({ user, perfil }: Props) {
     }
   }, [searchParams])
 
-  const progreso = perfil?.progreso ?? 0
   const esAdmin = perfil?.rol === 'admin'
 
   async function guardarPerfil(e: React.FormEvent) {
@@ -140,6 +139,7 @@ export default function PerfilCliente({ user, perfil }: Props) {
           <p className="mt-2 text-sm leading-6 text-[#655B56]">Tus datos y preferencias.</p>
         </header>
 
+        {!esAdmin && formacion}
         {esAdmin && <InvitationLinks />}
         <PushPreference />
 
@@ -282,17 +282,6 @@ export default function PerfilCliente({ user, perfil }: Props) {
             <div>
               <label htmlFor="perfil-provincia" className={labelClass}>Provincia / Estado</label>
               <input id="perfil-provincia" type="text" value={provincia} onChange={e => setProvincia(e.target.value)} placeholder="Ej: Buenos Aires" className={inputClass} />
-            </div>
-
-            {/* Progreso */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-medium text-gray-700">Progreso del curso</label>
-                <span className="text-sm font-bold text-[#294A38]">{progreso}%</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-3">
-                <div className="bg-[#294A38] h-3 rounded-full transition-all" style={{ width: `${progreso}%` }} />
-              </div>
             </div>
 
             {mensaje && (
