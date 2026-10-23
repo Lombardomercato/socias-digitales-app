@@ -83,10 +83,12 @@ test('loading de biblioteca comunica espera y no inventa clases, progreso ni enl
 })
 test('sin avance abre Bienvenida existente; Continuar real tiene prioridad, errores y admin no inventan un inicio', () => {
   const management = load('src/lib/class-management.ts'), progress = load('src/lib/class-progress.ts')
+  const filters = load('src/lib/class-library-filters.ts', { './class-management': management })
   const program = props => React.createElement('div', { 'data-programa': props.programa, 'data-abierto': props.abierto })
   const Classroom = load('src/app/classroom/ClassroomCliente.tsx', {
     './ClassPlayer': { default: () => null }, './ClassroomProgram': { default: program },
     '@/lib/class-management': management, '@/lib/class-progress': progress, '@/lib/class-access': load('src/lib/class-access.ts'),
+    '@/lib/class-library-filters': filters,
   }).default
   const bienvenida = { id: 'a', titulo: 'Bienvenida de Flor', descripcion: null, modulo: 'Introducción', orden: 0, activo: true, puede_ver: true, tiene_video_privado: true }
   const desafio = { ...bienvenida, id: 'b', titulo: 'Clase de Flor', modulo: 'Desafío Socias' }
@@ -105,5 +107,5 @@ test('sin avance abre Bienvenida existente; Continuar real tiene prioridad, erro
   }
   const html = renderToStaticMarkup(React.createElement(Classroom, { clases: [desafio], perfil, esAdmin: false }))
   assert.ok(!html.includes('data-programa="Bienvenida"'))
-  assert.match(read('src/app/classroom/ClassroomProgram.tsx'), /open=\{abierto \|\| Boolean\(buscar\)\}/)
+  assert.match(read('src/app/classroom/ClassroomProgram.tsx'), /open=\{abierto \|\| abrirCoincidencias\}/)
 })

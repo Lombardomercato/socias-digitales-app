@@ -19,9 +19,9 @@ function ui(nombre = 'default', props = { datos }, extra = {}) {
   function text(node) { if (typeof node === 'string' || typeof node === 'number') return String(node); if (!node || typeof node !== 'object') return ''; return [node.props?.children].flat(Infinity).map(text).join('') }
   return { render, html: () => renderToStaticMarkup(render()), button: title => all(render(), n => n.type === 'button').find(n => text(n) === title), canvas: () => all(render(), n => n.type === 'canvas')[0], props: next => { currentProps = next }, flush: async () => { while (pending.length) pending.shift()(); await Promise.resolve(); await Promise.resolve() } }
 }
-test('tarjeta muestra nivel, requisitos y transparencia actuales; errores/bloqueos no crean rangos o exportaciones', () => {
+test('tarjeta muestra nivel y requisitos en una superficie sólida; errores/bloqueos no crean rangos o exportaciones', () => {
   const html = ui().html()
-  assert.match(html, /Socia TOP/); assert.match(html, /¡Qué lindo/); assert.match(html, /sd-glass-panel/)
+  assert.match(html, /Socia TOP/); assert.match(html, /¡Qué lindo/); assert.match(html, /bg-\[#FAF7F3\]/); assert.ok(!html.includes('sd-glass'))
   assert.match(html, /sin puntos permanentes/); assert.match(html, /no un ranking|ni un ranking/)
   for (const estado of ['error', 'bloqueada']) {
     const view = ui('default', { datos: { ...datos, dia: { estado } } }), markup = view.html()

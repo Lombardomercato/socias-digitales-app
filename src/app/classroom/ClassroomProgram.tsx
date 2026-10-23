@@ -3,6 +3,7 @@ import type { Clase } from './ClassroomCliente'
 import { ordenarClases, SECCIONES_CLASE, ubicacionClase } from '@/lib/class-management'
 import { resumenPrograma, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
 import ClassVideoThumbnail from '@/components/ClassVideoThumbnail'
+import { coincideBusquedaClase } from '@/lib/class-library-filters'
 
 function CollapseIndicator({ seccion = false }: { seccion?: boolean }) {
   return <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#E7DDD5] bg-[#FFFDFA] text-[#294A38]">
@@ -10,12 +11,15 @@ function CollapseIndicator({ seccion = false }: { seccion?: boolean }) {
   </span>
 }
 
-export default function ClassroomProgram({ programa, clases, progreso, buscar, esAdmin, tieneAcceso, cargando, abierto, onAbrir }: {
+export default function ClassroomProgram({ programa, clases, progreso, buscar, esAdmin, tieneAcceso, cargando, abierto, onAbrir, idsVisibles, filtrandoAvance = false, errorProgreso = false }: {
   programa: string; clases: Clase[]; progreso: ProgresoClase[]; buscar: string; esAdmin: boolean; tieneAcceso: boolean; cargando: boolean; abierto: boolean; onAbrir: (clase: Clase) => void
+  idsVisibles?: string[]; filtrandoAvance?: boolean; errorProgreso?: boolean
 }) {
   const ordenadas = ordenarClases(clases)
-  const visibles = ordenadas.filter(c => c.titulo.toLocaleLowerCase('es').includes(buscar.toLocaleLowerCase('es')))
+  const ids = idsVisibles ? new Set(idsVisibles) : null
+  const visibles = ordenadas.filter(c => ids ? ids.has(c.id) : coincideBusquedaClase(c.titulo, buscar))
   if (!visibles.length) return null
+  const abrirCoincidencias = Boolean(buscar.trim()) || filtrandoAvance
   const resumen = resumenPrograma(clases.filter(c => (c.puede_ver ?? tieneAcceso) && (c.tiene_video_privado || c.vimeo_url)).map(c => c.id), progreso)
   function tarjetas(videos: Clase[]) {
     return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{videos.map(clase => {
@@ -33,21 +37,21 @@ export default function ClassroomProgram({ programa, clases, progreso, buscar, e
           <h3 className="mt-2 break-words font-impact text-sm font-semibold leading-snug">{clase.titulo}</h3>
           {clase.descripcion && <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#746A64]">{clase.descripcion}</p>}
           {!disponible && <p className="mt-3 text-xs text-[#746A64]">Acceso con Socias Digitales</p>}
-          {!esAdmin && disponible && <p className="mt-3 text-xs font-medium text-[#294A38]">{avance?.completada ? '✓ Completada' : avance && avance.posicion_seg > 0 ? `En curso · ${tiempoClase(avance.posicion_seg)}` : 'Pendiente'}</p>}
+          {!esAdmin && disponible && <p className="mt-3 text-xs font-medium text-[#294A38]">{errorProgreso ? 'Progreso no disponible' : avance?.completada ? '✓ Completada' : avance && avance.posicion_seg > 0 ? `En curso · ${tiempoClase(avance.posicion_seg)}` : 'Pendiente'}</p>}
         </div>
       </article>
     })}</div>
   }
-  return <details open={abierto || Boolean(buscar)} className="group/programa rounded-[24px] border border-[#E7DDD5] bg-[#FAF7F3] p-4 sm:p-6">
+  return <details open={abierto || abrirCoincidencias} className="group/programa rounded-[24px] border border-[#E7DDD5] bg-[#FAF7F3] p-4 sm:p-6">
     <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38] [&::-webkit-details-marker]:hidden">
-      <div className="min-w-0"><h2 className="break-words font-impact text-lg font-semibold sm:text-xl">{programa}</h2><p className="mt-1 text-xs text-[#746A64]">{clases.length} {clases.length === 1 ? 'clase' : 'clases'}{!esAdmin && resumen.total > 0 ? ` · ${resumen.completas} de ${resumen.total} completadas` : ''}</p></div>
+      <div className="min-w-0"><h2 className="break-words font-impact text-lg font-semibold sm:text-xl">{programa}</h2><p className="mt-1 text-xs text-[#746A64]">{clases.length} {clases.length === 1 ? 'clase' : 'clases'}{!esAdmin && resumen.total > 0 ? errorProgreso ? ' · Progreso no disponible' : ` · ${resumen.completas} de ${resumen.total} completadas` : ''}</p></div>
       <CollapseIndicator />
     </summary>
-    {!esAdmin && resumen.total > 0 && <div role="progressbar" aria-label={`Progreso en ${programa}`} aria-valuenow={resumen.porcentaje} aria-valuemin={0} aria-valuemax={100} className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E7DDD5]"><div className="h-full rounded-full bg-[#294A38]" style={{ width: `${resumen.porcentaje}%` }} /></div>}
+    {!esAdmin && !errorProgreso && resumen.total > 0 && <div role="progressbar" aria-label={`Progreso en ${programa}`} aria-valuenow={resumen.porcentaje} aria-valuemin={0} aria-valuemax={100} className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#E7DDD5]"><div className="h-full rounded-full bg-[#294A38]" style={{ width: `${resumen.porcentaje}%` }} /></div>}
     <div className="mt-5 space-y-4">{programa === 'Bienvenida' ? tarjetas(visibles) : SECCIONES_CLASE.map(seccion => {
       const videos = visibles.filter(c => ubicacionClase(c.modulo).seccion === seccion)
-      if (buscar && !videos.length) return null
-      return <details key={seccion} open={seccion === 'Clases' || Boolean(buscar)} className="group/seccion rounded-2xl border border-[#E7DDD5] bg-[#F4EFEA]/35 p-3 sm:p-4">
+      if (abrirCoincidencias && !videos.length) return null
+      return <details key={seccion} open={seccion === 'Clases' || abrirCoincidencias} className="group/seccion rounded-2xl border border-[#E7DDD5] bg-[#F4EFEA] p-3 sm:p-4">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded-xl text-sm font-semibold text-[#294A38] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38] [&::-webkit-details-marker]:hidden"><span className="min-w-0">{seccion}<span className="ml-2 font-normal text-[#746A64]">· {videos.length}</span></span><CollapseIndicator seccion /></summary>
         <div className="mt-3">{videos.length ? tarjetas(videos) : <p className="py-3 text-sm text-[#746A64]">Todavía no hay contenido publicado en esta sección.</p>}</div>
       </details>

@@ -69,7 +69,7 @@ export default function ResultadosCliente({ misResultados, productos, periodoIni
   }
   return <div className="min-h-screen bg-[#F4EFEA] text-[#211c19]">
     <SuccessCelebration celebration={celebration} />
-    <header className="sd-glass-header flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
+    <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
       <Link href="/inicio"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto" /></Link>
       <Link href="/inicio" className="inline-flex items-center gap-2 text-sm text-[#294A38]">Mi espacio <ArrowIcon /></Link>
     </header>

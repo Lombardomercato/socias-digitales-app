@@ -42,16 +42,22 @@ export default function ClassPlayer({clase,url,progreso,esAdmin,siguiente,onSigu
       const data=await response.json()
       if(!response.ok)throw new Error(data.error??'No pudimos guardar tu progreso.')
       if (!data.progreso || data.progreso.clase_id !== clase.id || typeof data.progreso.completada !== 'boolean') throw new Error('No pudimos confirmar tu progreso. Reintentá guardar.')
+      if (cambio.action === 'completada' && data.progreso.completada !== cambio.completada) throw new Error('No pudimos confirmar el estado de la clase. Reintentá guardar.')
       onProgreso(data.progreso)
-      fallido.current=null
-      onError('')
-      setEstado('Progreso guardado')
-      setError('')
+      // El minuto y la marca de completada son acciones distintas: guardar el
+      // minuto no confirma ni descarta una marca manual que todavía falló.
+      if (!(cambio.action === 'posicion' && fallido.current?.action === 'completada')) {
+        fallido.current=null
+        onError('')
+        setEstado('Progreso guardado')
+        setError('')
+      }
       if (cambio.action === 'completada' && cambio.completada && data.progreso.completada) celebrate({ key: `clase:${clase.id}`, title: '¡Un paso más, Socia!', message: 'Tu clase quedó marcada como completada.' })
     }).catch(causa=>{
+      if (cambio.action === 'posicion' && fallido.current?.action === 'completada') return
       const mensaje=causa instanceof TypeError?'No pudimos guardar tu progreso. Revisá tu conexión y reintentá.':causa instanceof Error?causa.message:'No pudimos guardar tu progreso.'
       fallido.current=cambio
-      setError(mensaje);onError(mensaje)
+      setEstado('');setError(mensaje);onError(mensaje)
     })
     cadena.current=trabajo
     return trabajo

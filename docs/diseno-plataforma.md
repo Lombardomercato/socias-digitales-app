@@ -44,7 +44,7 @@ En verde oscuro: títulos, números y textos claros. En fondos crema/rosa: texto
 
 No glow, brillos, neón, degradados decorativos, sombras ornamentales fuertes o estética “IA”. No llenar el panel de explicaciones obvias como “un solo panel para todo”. Priorizar títulos, datos, fotos reales y acciones concretas.
 
-**Ampliación aprobada el 23/10/2026:** se permiten transparencias suaves tipo vidrio esmerilado en superficies puntuales (`sd-glass-panel`, `sd-glass-header` y navegación), sin convertir toda la app en glassmorphism. Conservar opacidad completa del texto, borde rosa discreto y fondo opaco de respaldo; respetar contraste y reducción de transparencias. No aplicar filtros a video, iframe o contenido del diálogo nativo. Las celebraciones reutilizan `SuccessCelebration`: mensaje confirmado, papelitos breves y deterministas, sin sonidos, vibración ni robo de foco. Con movimiento reducido queda solo el mensaje estático. Las historias para redes reutilizan colores y tipografías de marca, sin nombres, comprobantes ni cifras privadas incorporadas automáticamente.
+**Decisión vigente del 23/10/2026:** retirar el efecto vidrio y las transparencias de superficies/navegación. Usar fondos sólidos de marca y bordes finos; no reintroducir blur ni glassmorphism. Se conserva el oscurecimiento de fondo habitual de los diálogos, sin desenfoque. Las celebraciones reutilizan `SuccessCelebration`: mensaje confirmado, papelitos breves y deterministas, sin sonidos, vibración ni robo de foco. Con movimiento reducido queda solo el mensaje estático. Las historias para redes reutilizan colores y tipografías de marca, sin nombres, comprobantes ni cifras privadas incorporadas automáticamente.
 
 ## Jerarquía y estados
 

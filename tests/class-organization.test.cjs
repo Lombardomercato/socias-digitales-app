@@ -36,6 +36,7 @@ test('secciones conservan IDs/progreso y tienen orden estable independiente', ()
 test('programa plegable sin portada, con clases y apoyo dentro; búsqueda mantiene las secciones', () => {
   const Component = load('src/app/classroom/ClassroomProgram.tsx', {
     '@/lib/class-management': management, '@/lib/class-progress': progress,
+    '@/lib/class-library-filters': load('src/lib/class-library-filters.ts', { './class-management': management }),
     '@/components/ClassVideoThumbnail': { default: props => React.createElement('span', { 'data-poster-id': props.id }) },
   }).default
   const base = { descripcion: null, vimeo_url: null, tiene_video_privado: true, activo: true, puede_ver: true, plan: '27', acceso_gratuito: false }

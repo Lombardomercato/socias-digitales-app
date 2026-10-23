@@ -194,7 +194,7 @@ export default function UsuarioPreview({
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#171413]/8 bg-[#FAF7F3]/95 px-3 pb-[max(.6rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur lg:hidden" aria-label="Navegación principal">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#171413]/8 bg-[#FAF7F3] px-3 pb-[max(.6rem,env(safe-area-inset-bottom))] pt-2 lg:hidden" aria-label="Navegación principal">
         <div className="mx-auto flex max-w-md justify-around">{navegacionVisible.slice(0, 4).map(item => { const bloqueado = acceso === 'gratuita' && item.id === 'lanzamiento'; const destino = item.id === 'academy' && acceso === 'gratuita' ? '/perfil' : rutas[item.id]; return <button key={item.id} type="button" onClick={() => { if (bloqueado) return; if (!modoDemo) window.location.href = destino; else setSeccion(item.id) }} className={`flex min-w-[68px] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[9px] font-semibold ${seccion === item.id ? 'text-[#294A38]' : bloqueado ? 'text-[#171413]/20' : 'text-[#171413]/42'}`}><Icon name={bloqueado ? 'lock' : item.icon} className="h-5 w-5"/><span>{item.label === 'Mi lanzamiento' ? 'Lanzamiento' : item.label}</span></button> })}</div>
       </nav>
     </div>

@@ -62,7 +62,7 @@ export default async function InicioPage() {
     <UnreadNoticesProvider inicial={resumenAvisos}>
     <AgendaProvider inicial={hitos} errorInicial={errorAgenda}>
     <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
-      <header className="sd-glass-header flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
+      <header className="flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8">
         <Link href="/inicio" aria-label="Socias Digitales, inicio">
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto object-contain" />
         </Link>
