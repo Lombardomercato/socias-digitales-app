@@ -75,6 +75,8 @@ Las capturas actuales están en `docs/referencias-visuales/`. Sirven como compar
 3. Capturar después con el mismo viewport/estado. Comparar contraste, títulos, alturas, bordes y acciones; comprobar también una vista vecina.
 4. Ejecutar pruebas y build, y detallar las vistas verificadas. No sustituir una prueba de permisos por una captura bonita.
 
+Las vistas aisladas de QA de componentes de la plataforma deben incluir `.platform-design` y su variante de alumna o administración. Un preview sin ese envoltorio no reproduce los títulos, fuentes y colores globales. Las tarjetas verdes reutilizan `bg-[#294A38]` junto con `text-white` para conservar los títulos claros bajo el tema real; comprobar también el color calculado después de publicar.
+
 Precedente importante: el diálogo nativo del reproductor es claro; sus títulos son oscuros. Una regla anterior del overlay oscuro aplicaba títulos claros globalmente y hubo que acotarla a `.sd-video-dialog:not(dialog)`. No deshacer esa separación al “uniformar” colores.
 
 Estas reglas reducen regresiones, pero no garantizan que una IA no rompa nada: hacen falta ramas, previews, revisión, pruebas y rollback.
