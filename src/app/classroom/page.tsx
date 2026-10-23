@@ -5,8 +5,11 @@ import { leerCatalogoClases } from '@/lib/class-catalog'
 import { leerProgresoClases } from '@/lib/class-progress-server'
 import type { ProgresoClase } from '@/lib/class-progress'
 import ClassroomRecovery from './ClassroomRecovery'
+import { esUuid } from '@/lib/class-management'
 
-export default async function ClassroomPage() {
+export default async function ClassroomPage({ searchParams }: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
+} = {}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -31,6 +34,16 @@ export default async function ClassroomPage() {
     catch { errorProgreso = true }
   }
 
+  const consulta = await searchParams
+  const solicitada = consulta?.clase
+  const idSolicitado = typeof solicitada === 'string' && esUuid(solicitada) ? solicitada.toLowerCase() : null
+  // El parámetro selecciona del catálogo autorizado: nunca consulta otra clase
+  // ni incorpora un permiso, una URL privada o contenido oculto.
+  const claseInicial = idSolicitado ? clasesParaVista.find(clase => clase.id.toLowerCase() === idSolicitado && clase.activo && clase.puede_ver === true && (clase.tiene_video_privado || clase.vimeo_url)) : null
+  const avisoClaseInicial = solicitada !== undefined && !claseInicial
+    ? 'Este enlace de clase no está disponible para tu cuenta. Podés seguir explorando las clases de tu biblioteca.'
+    : null
+
   return (
     <ClassroomCliente
       clases={clasesParaVista}
@@ -38,6 +51,8 @@ export default async function ClassroomPage() {
       perfil={perfil}
       progresoInicial={progreso}
       errorProgreso={errorProgreso}
+      claseInicialId={claseInicial?.id ?? null}
+      avisoClaseInicial={avisoClaseInicial}
     />
   )
 }

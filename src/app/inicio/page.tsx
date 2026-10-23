@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ProximaClase from './ProximaClase'
@@ -18,6 +19,8 @@ import { leerAgenda } from '@/lib/agenda-store'
 import { hitoParaAlumna } from '@/lib/agenda-management'
 import type { HitoAgenda } from '@/lib/agenda'
 import { accesoInicio } from '@/lib/home-access'
+import CampusFormation from './CampusFormation'
+import { HomeCampusLoading } from '@/components/HomeCampus'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -112,24 +115,10 @@ export default async function InicioPage() {
             </section>
           ) : (
             <>
-              <section className="mt-7 grid gap-4 xl:grid-cols-[1.55fr_0.85fr]">
-                <article className="flex min-h-[250px] flex-col items-start justify-between rounded-[26px] bg-[#F4CAD8] p-6 sm:p-8">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#211c19]/55">Tu próximo paso</p>
-                    <h2 className="mt-4 max-w-2xl font-serif text-3xl font-semibold leading-tight tracking-[-0.025em] sm:text-4xl">{acceso.sociaActiva ? 'Qué bueno tenerte acá, Socia.' : 'Avanzá con tu estrategia.'}</h2>
-                    <p className="mt-3 max-w-xl text-sm leading-6 text-[#211c19]/65">{acceso.sociaActiva ? 'Empezá por Bienvenida y seguí tus clases en orden. Vas a encontrar los materiales debajo de cada video y podés retomar donde quedaste.' : estrategiaHabilitada ? 'Tu estrategia está habilitada.' : 'Flor habilitará este espacio para vos.'}</p>
-                  </div>
-                  {acceso.sociaActiva ? <Link href="/clases" className="mt-7 inline-flex min-h-11 items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Empezar o continuar mis clases <ArrowIcon /></Link> : estrategiaHabilitada ? <Link href="/lanzamiento" className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#294A38] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#203a2c]">Ver mi estrategia <ArrowIcon /></Link> : <button type="button" disabled className="mt-7 inline-flex items-center gap-3 rounded-full border border-[#294A38]/30 bg-[#FAF7F3]/70 px-5 py-3 text-sm font-semibold text-[#294A38]"><NavigationIcon name="lanzamiento" />Pendiente de habilitación</button>}
-                </article>
-                <Link href="/clases" className="flex min-h-[250px] items-start flex-col justify-between rounded-[26px] bg-[#294A38] p-6 text-white transition hover:bg-[#203a2c] sm:p-8">
-                  <div><p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#FAF7F3]/80">Programa</p><h2 className="mt-4 font-serif text-3xl font-semibold text-[#FAF7F3]">Tus clases</h2><p className="mt-3 text-sm leading-6 text-[#FAF7F3]/90">{acceso.sociaActiva ? 'Tu formación, tus grabaciones y los materiales de cada clase.' : 'Volvé a ver las grabaciones del Desafío Socias.'}</p></div>
-                  <span className="mt-7 inline-flex items-center gap-3 rounded-full bg-[#FAF7F3] px-5 py-3 text-sm font-semibold text-[#294A38]">Ir a clases <ArrowIcon /></span>
-                </Link>
-              </section>
-              <section className="mt-4 grid gap-3 sm:grid-cols-3">
+              <Suspense fallback={<HomeCampusLoading />}><CampusFormation supabase={supabase} usuariaId={user.id} perfil={perfil} /></Suspense>
+              <section aria-label="Otros espacios" className="mt-4 grid gap-3 sm:grid-cols-2">
                 {[
-                  { label: 'Estrategia', href: '/lanzamiento', note: estrategiaHabilitada ? 'Etapas y tareas' : 'Pendiente de habilitación', tone: 'bg-white' },
-                  { label: 'Clases grabadas', href: '/clases', note: 'Programa Socias', tone: 'bg-[#EC9BB6]/70' },
+                  { label: 'Estrategia', href: '/lanzamiento', note: estrategiaHabilitada ? 'Etapas y tareas' : 'Pendiente de habilitación', tone: 'bg-white border border-[#E7DDD5]' },
                   { label: 'Mi perfil', href: '/perfil', note: 'Tus datos y cuenta', tone: 'bg-[#F4EFEA] border border-[#EC9BB6]/60' },
                 ].map(item => <Link key={item.href} href={item.href} className={`group flex min-h-28 flex-col justify-between rounded-[20px] p-5 transition hover:-translate-y-0.5 ${item.tone}`}><span className="flex items-center justify-between gap-3 text-sm font-semibold">{item.label}<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#FAF7F3]/80 text-[#294A38] transition group-hover:bg-[#294A38] group-hover:text-white"><ArrowIcon diagonal /></span></span><span className="text-xs text-[#746a64]">{item.note}</span></Link>)}
               </section>

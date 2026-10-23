@@ -44,6 +44,7 @@ test('error de catálogo es recuperación explícita; una biblioteca realmente v
       './ClassroomRecovery': { default: recovery },
       '@/lib/class-catalog': { leerCatalogoClases: async () => { if (fallo) throw new Error('fixture'); return [] } },
       '@/lib/class-progress-server': { leerProgresoClases: async () => { progresoConsultado++; return [] } },
+      '@/lib/class-management': load('src/lib/class-management.ts'),
     }).default
     const result = await page()
     assert.equal(result.type, fallo ? recovery : catalogo)

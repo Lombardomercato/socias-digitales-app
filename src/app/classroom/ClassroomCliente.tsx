@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import ClassPlayer from './ClassPlayer'
 import ClassroomProgram from './ClassroomProgram'
-import { ubicacionClase, ordenarClases } from '@/lib/class-management'
+import { ubicacionClase, ordenarClases, esUuid } from '@/lib/class-management'
 import { claseParaContinuar, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
 import { puedeVerClasesPrivadas } from '@/lib/class-access'
 import { FILTROS_AVANCE_CLASES, filtrarBibliotecaClases, type FiltroAvanceClase } from '@/lib/class-library-filters'
@@ -39,6 +39,8 @@ interface Props {
   perfil: Perfil | null
   progresoInicial?: ProgresoClase[]
   errorProgreso?: boolean
+  claseInicialId?: string | null
+  avisoClaseInicial?: string | null
 }
 
 function Icon({ name, className = 'h-5 w-5' }: { name: 'play' | 'arrow' | 'book' | 'lock'; className?: string }) {
@@ -49,7 +51,7 @@ function Icon({ name, className = 'h-5 w-5' }: { name: 'play' | 'arrow' | 'book'
   return <svg {...props}><path d="M5 4.5h10.5A3.5 3.5 0 0 1 19 8v12H8.5A3.5 3.5 0 0 0 5 23V4.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M5 4.5v15A3.5 3.5 0 0 1 8.5 16H19" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>
 }
 
-export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInicial = [], errorProgreso = false }: Props) {
+export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInicial = [], errorProgreso = false, claseInicialId = null, avisoClaseInicial = null }: Props) {
   const [claseAbierta, setClaseAbierta] = useState<Clase | null>(null)
   const [videoSeguroUrl, setVideoSeguroUrl] = useState<string | null>(null)
   const [cargandoVideo, setCargandoVideo] = useState<string | null>(null)
@@ -58,6 +60,9 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
   const [filtro,setFiltro]=useState('Todos')
   const [buscar,setBuscar]=useState('')
   const [avance,setAvance]=useState<FiltroAvanceClase>('todas')
+  const aperturaEnCurso = useRef(false)
+  const enlaceProcesado = useRef<string | null>(null)
+  const montado = useRef(true)
   const onProgreso=useCallback((p:ProgresoClase)=>{setProgreso(prev=>[...prev.filter(v=>v.clase_id!==p.clase_id),p])},[])
   const onError=useCallback((mensaje:string)=>setErrorVideo(mensaje),[])
 
@@ -72,6 +77,10 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
   const avanceAplicado = esAdmin || errorProgreso ? 'todas' : avance
   const biblioteca = filtrarBibliotecaClases(clases, progreso, { programa: filtro, buscar, avance: avanceAplicado, tieneAcceso, errorProgreso })
   const idsVisibles = new Set(biblioteca.idsVisibles)
+  const claseDelEnlace = claseInicialId && esUuid(claseInicialId)
+    ? clases.find(clase => clase.id.toLowerCase() === claseInicialId.toLowerCase() && clase.activo && clase.puede_ver === true && (clase.tiene_video_privado || clase.vimeo_url))
+    : undefined
+  const avisoEnlace = avisoClaseInicial ?? (claseInicialId !== null && !claseDelEnlace ? 'Este enlace de clase no está disponible para tu cuenta. Podés seguir explorando las clases de tu biblioteca.' : null)
 
   function limpiarFiltros() {
     setFiltro('Todos')
@@ -79,27 +88,45 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
     setAvance('todas')
   }
 
-  async function abrirClase(clase: Clase) {
-    if (!(clase.puede_ver ?? tieneAcceso) || cargandoVideo) return
+  const abrirClase = useCallback(async (clase: Clase) => {
+    if (!clase.activo || !(clase.puede_ver ?? tieneAcceso) || !(clase.tiene_video_privado || clase.vimeo_url) || aperturaEnCurso.current) return
     setErrorVideo('')
     setVideoSeguroUrl(null)
     if (clase.tiene_video_privado) {
+      aperturaEnCurso.current = true
       setCargandoVideo(clase.id)
       try {
         const response = await fetch(`/api/classroom/${clase.id}/video`, { cache: 'no-store' })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error ?? 'No se pudo abrir la clase.')
-        setVideoSeguroUrl(data.url)
-        setClaseAbierta(clase)
+        if (montado.current) {
+          setVideoSeguroUrl(data.url)
+          setClaseAbierta(clase)
+        }
       } catch (error) {
-        setErrorVideo(error instanceof Error ? error.message : 'No se pudo abrir la clase.')
+        if (montado.current) setErrorVideo(error instanceof Error ? error.message : 'No se pudo abrir la clase.')
       } finally {
-        setCargandoVideo(null)
+        aperturaEnCurso.current = false
+        if (montado.current) setCargandoVideo(null)
       }
       return
     }
     if (clase.vimeo_url) setClaseAbierta(clase)
-  }
+  }, [tieneAcceso])
+
+  useEffect(() => {
+    montado.current = true
+    return () => { montado.current = false }
+  }, [])
+
+  useEffect(() => {
+    if (claseInicialId === null) { enlaceProcesado.current = null; return }
+    if (!claseDelEnlace || enlaceProcesado.current === claseInicialId || aperturaEnCurso.current) return
+    // Registrar antes de abrir evita otra petición durante el replay de efectos
+    // de StrictMode, cambios de filtros o actualizaciones del progreso.
+    enlaceProcesado.current = claseInicialId
+    void abrirClase(claseDelEnlace)
+  }, [claseInicialId, claseDelEnlace, abrirClase, cargandoVideo])
 
   function cerrarClase() {
     setClaseAbierta(null)
@@ -133,6 +160,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
           </div>
         </section>
 
+        {avisoEnlace && <p role="status" className="mt-5 rounded-2xl border border-[#E7DDD5] bg-[#FAF7F3] p-4 text-sm leading-6 text-[#746A64]">{avisoEnlace}</p>}
         {errorProgreso && <p role="alert" className="mt-5 rounded-2xl border border-[#EC9BB6] bg-[#FAF7F3] p-4 text-sm">No pudimos cargar tu progreso. Recargá para retomarlo; las clases siguen disponibles.</p>}
         {continuar && <section className="mt-6 flex flex-col gap-4 rounded-[22px] border border-[#EC9BB6] bg-[#F4CAD8] p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.17em] text-[#294A38]">Continuar viendo</p><h2 className="mt-2 text-lg font-semibold">{continuar.clase.titulo}</h2><p className="mt-1 text-xs text-[#746A64]">{ubicacionClase(continuar.clase.modulo).programa} · Desde {tiempoClase(continuar.progreso.posicion_seg)}</p></div>

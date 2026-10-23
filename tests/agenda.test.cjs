@@ -27,12 +27,13 @@ test('fecha completa y hora usan Argentina, independientemente de la zona del di
   assert.deepEqual(cuentaRegresiva(actual.fecha, Date.parse('2026-10-12T20:05:00-03:00')), { minutos:1440,dias:1,horas:0,mins:0 })
   assert.equal(cuentaRegresiva(actual.fecha, Date.parse('2026-10-14T12:00:00-03:00')).minutos,0)
 })
-test('contador en la barra izquierda y banner fino antes de estrategia; móvil mantiene el contador', () => {
+test('contador en la barra izquierda y banner fino antes del campus; móvil mantiene el contador', () => {
   const inicio = fs.readFileSync(path.resolve(__dirname,'../src/app/inicio/page.tsx'),'utf8')
   assert.equal((inicio.match(/<ProximaClase /g) || []).length, 2)
   assert.ok(inicio.indexOf('variante="contador"') < inicio.indexOf('<main className="min-w-0'))
   assert.ok(inicio.indexOf('variante="banner"') > inicio.indexOf('<main '))
-  assert.ok(inicio.indexOf('variante="banner"') < inicio.indexOf('Avanzá con tu estrategia'))
+  assert.ok(inicio.indexOf('<CampusFormation ') > 0)
+  assert.ok(inicio.indexOf('variante="banner"') < inicio.indexOf('<CampusFormation '))
   const componente = fs.readFileSync(path.resolve(__dirname,'../src/app/inicio/ProximaClase.tsx'),'utf8')
   assert.ok(componente.includes('w-[88px] shrink-0 lg:hidden'))
   assert.ok(componente.includes('Agendá tu clase'))

@@ -78,16 +78,22 @@ function pagina({ perfil = socia, errorPerfil = null, user = { id: 'propia' }, e
     '@/lib/agenda-store': { leerAgenda: async () => { calls.push('agenda'); return { hito: null } } },
     '@/lib/agenda-management': { hitoParaAlumna: () => [] },
     '@/lib/home-access': home,
+    // La frontera async y los lectores reales se prueban por separado. Este
+    // sustituto síncrono verifica solo que Inicio habilita el bloque correcto
+    // y le entrega la sesión/perfil protegidos, sin ejecutar el hijo async.
+    './CampusFormation': { default: ({ supabase, usuariaId, perfil: protegido }) => {
+      assert.equal(supabase, db); assert.equal(usuariaId, 'propia'); assert.equal(protegido, perfil)
+      calls.push('campus')
+      return React.createElement('section', { 'data-campus': true, 'data-acceso': protegido.tipo_usuario }, React.createElement('h2', null, 'Mi formación'), React.createElement('a', { href: '/classroom' }, 'Abrir mi biblioteca'))
+    } },
+    '@/components/HomeCampus': { HomeCampusLoading: () => React.createElement('p', { 'data-campus-cargando': true, role: 'status' }, 'Reuniendo tu formación…') },
   }).default
   return { page, calls, seleccion }
 }
-test('SSR Inicio: Socia activa sin flag Desafío recibe formación, orientación y CTA a clases sin habilitar módulos pendientes', async () => {
+test('SSR Inicio: Socia activa sin flag Desafío recibe campus sin habilitar otros módulos pendientes', async () => {
   const p = pagina(), html = renderToStaticMarkup(await p.page())
-  assert.match(html, /Qué bueno tenerte acá, Socia/)
-  assert.match(html, /Empezá por Bienvenida/)
-  assert.match(html, /Empezar o continuar mis clases/)
-  assert.match(html, /href="\/clases"/)
-  assert.match(html, /tu formación|Tu formación/)
+  assert.match(html, /data-campus="true" data-acceso="socia"/)
+  assert.match(html, /Mi formación/); assert.match(html, /href="\/classroom"/)
   assert.ok(!html.includes('Acceso gratuito')); assert.ok(!html.includes('Tu cuenta está lista.'))
   for (const nombre of ['Productos', 'Mis objetivos', 'Comunidad', 'Ranking']) assert.ok(html.includes(`aria-label="${nombre}: bloqueado"`))
   assert.ok(html.includes('aria-label="Mis resultados: bloqueado"'))
@@ -95,17 +101,27 @@ test('SSR Inicio: Socia activa sin flag Desafío recibe formación, orientación
   assert.ok(html.includes('aria-label="Mi día: bloqueado"'))
   assert.ok(html.includes('Pendiente de habilitación'))
   assert.ok(p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
+  assert.equal(p.calls.filter(call => call === 'campus').length, 1)
   assert.match(p.seleccion.find(s => s.table === 'perfiles').columns, /\bestado\b/)
 })
+test('SSR Inicio: Desafío habilitado recibe el mismo campus con su propio acceso, sin pasar por el alta gratuita', async () => {
+  const perfil = { ...socia, tipo_usuario: 'desafio', desafio_socias_habilitada: true, desafio_socias_estado: 'habilitada' }
+  const p = pagina({ perfil }), html = renderToStaticMarkup(await p.page())
+  assert.match(html, /Desafío Socias/); assert.match(html, /data-campus="true" data-acceso="desafio"/)
+  assert.match(html, /href="\/classroom"/)
+  assert.ok(!html.includes('data-inicio-gratuito')); assert.ok(!html.includes('Tu acceso está en revisión'))
+  assert.equal(p.calls.filter(call => call === 'campus').length, 1)
+  assert.ok(p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
+})
 test('SSR Inicio: pausar/cancelar conserva perfil y avisos, sin CTA formativo ni consulta de agenda privada', async () => {
-  for (const estado of ['pausada', 'cancelada']) {
-    const p = pagina({ perfil: { ...socia, estado, desafio_socias_habilitada: true }, estrategia: true })
+  for (const tipo_usuario of ['socia', 'desafio']) for (const estado of ['pausada', 'cancelada']) {
+    const p = pagina({ perfil: { ...socia, tipo_usuario, estado, desafio_socias_habilitada: true }, estrategia: true })
     const html = renderToStaticMarkup(await p.page())
     assert.match(html, /Tu acceso al contenido pago está pausado/)
     assert.match(html, /href="\/perfil"/); assert.match(html, /href="\/notificaciones"/)
-    assert.ok(!html.includes('Empezar o continuar mis clases')); assert.ok(!html.includes('Ir a clases'))
+    assert.ok(!html.includes('data-campus')); assert.ok(!html.includes('Abrir mi biblioteca'))
     assert.ok(!html.includes('Ver mi estrategia')); assert.ok(!html.includes('data-proximo-hito'))
-    assert.ok(!p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
+    assert.ok(!p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo')); assert.ok(!p.calls.includes('campus'))
   }
 })
 test('SSR Inicio: gratuita sigue con muestras y no se vuelve Socia por metadata editable', async () => {
@@ -114,7 +130,7 @@ test('SSR Inicio: gratuita sigue con muestras y no se vuelve Socia por metadata 
     const html = renderToStaticMarkup(await p.page())
     assert.match(html, /Acceso gratuito/); assert.match(html, /data-inicio-gratuito="true"/)
     assert.ok(p.calls.includes('catalogo')); assert.ok(!p.calls.includes('agenda'))
-    assert.ok(!html.includes('Empezar o continuar mis clases')); assert.ok(!html.includes('Qué bueno tenerte acá'))
+    assert.ok(!html.includes('data-campus')); assert.ok(!p.calls.includes('campus'))
     assert.ok(html.includes('Quiero ser Socia')); assert.ok(html.includes('disabled=""'))
   }
 })
@@ -123,8 +139,24 @@ test('SSR Inicio: Desafío pendiente no hereda formación por un rol antiguo de 
     const p = pagina({ perfil: { ...socia, rol, tipo_usuario: 'desafio', desafio_socias_habilitada: false } })
     const html = renderToStaticMarkup(await p.page())
     assert.match(html, /Tu acceso está en revisión/)
-    assert.ok(!html.includes('Empezar o continuar mis clases')); assert.ok(!html.includes('data-inicio-gratuito'))
-    assert.ok(!p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
+    assert.ok(!html.includes('data-campus')); assert.ok(!html.includes('data-inicio-gratuito'))
+    assert.ok(!p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo')); assert.ok(!p.calls.includes('campus'))
+  }
+})
+test('SSR Inicio: Desafío rechazado o bloqueado y Socia sin estado comprobado no reciben campus', async () => {
+  for (const estado of ['rechazada', 'bloqueada']) {
+    const p = pagina({ perfil: { ...socia, tipo_usuario: 'desafio', desafio_socias_habilitada: false, desafio_socias_estado: estado } })
+    const html = renderToStaticMarkup(await p.page())
+    assert.match(html, /Tu acceso no está habilitado/); assert.ok(!html.includes('data-campus'))
+    assert.ok(!p.calls.includes('campus')); assert.ok(!p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
+  }
+  const p = pagina({ perfil: { ...socia, estado: undefined } }), html = renderToStaticMarkup(await p.page())
+  assert.ok(!html.includes('data-campus')); assert.ok(!p.calls.includes('campus')); assert.ok(!p.calls.includes('agenda'))
+})
+test('SSR Inicio: rol antiguo sin tipo de acceso no habilita el campus privado por su etiqueta histórica', async () => {
+  for (const rol of ['afiliada', 'afiliada_lanzamiento']) {
+    const p = pagina({ perfil: { ...socia, rol, tipo_usuario: null } }), html = renderToStaticMarkup(await p.page())
+    assert.ok(!html.includes('data-campus')); assert.ok(!p.calls.includes('campus')); assert.ok(!p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
   }
 })
 test('SSR Inicio: perfil ausente o fallido muestra recuperación, no un alta gratuita ni módulos falsamente disponibles', async () => {
@@ -133,7 +165,7 @@ test('SSR Inicio: perfil ausente o fallido muestra recuperación, no un alta gra
     assert.match(html, /No pudimos comprobar tu acceso/); assert.match(html, /role="alert"/)
     assert.match(html, /Reintentar/); assert.match(html, /href="\/inicio"/)
     assert.deepEqual(p.calls, ['tabla:perfiles'])
-    assert.ok(!html.includes('data-inicio-gratuito')); assert.ok(!html.includes('Empezar o continuar mis clases'))
+    assert.ok(!html.includes('data-inicio-gratuito')); assert.ok(!html.includes('data-campus'))
   }
 })
 test('SSR Inicio: sesión ausente pide login y admin regresa a su panel sin leer contenido de alumna', async () => {

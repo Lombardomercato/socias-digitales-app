@@ -72,7 +72,7 @@ function ui(props = {}) {
   const cells = []; let cursor = 0
   const Player = () => null
   const Classroom = load('src/app/classroom/ClassroomCliente.tsx', {
-    react: { ...React, useCallback: callback => callback, useState: initial => { const index = cursor++; if (!(index in cells)) cells[index] = typeof initial === 'function' ? initial() : initial; return [cells[index], value => { cells[index] = typeof value === 'function' ? value(cells[index]) : value }] } },
+    react: { ...React, useCallback: callback => callback, useEffect() {}, useRef: initial => { const index = cursor++; if (!(index in cells)) cells[index] = { current: initial }; return cells[index] }, useState: initial => { const index = cursor++; if (!(index in cells)) cells[index] = typeof initial === 'function' ? initial() : initial; return [cells[index], value => { cells[index] = typeof value === 'function' ? value(cells[index]) : value }] } },
     './ClassPlayer': { default: Player }, './ClassroomProgram': { default: Program },
     '@/lib/class-management': management, '@/lib/class-progress': progress, '@/lib/class-access': access, '@/lib/class-library-filters': filters,
   }).default

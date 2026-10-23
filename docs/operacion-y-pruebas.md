@@ -4,6 +4,14 @@ Fecha: 15/10/2026. Complementa el inventario de `estado-plataforma.md`. No inclu
 
 ## Operación de Flor
 
+### Campus personal en Inicio
+
+Las alumnas con formación habilitada ven su próximo paso, clases disponibles, completadas, en curso y avance por programa. **Retomar mi clase** abre el video concreto en `/classroom?clase=<uuid>`, sin reproducirlo automáticamente, con el minuto propio guardado. Sin una clase en curso, se propone la primera disponible no completada: Bienvenida primero, luego el orden del programa y su material de apoyo. Toda mi formación abre la biblioteca completa con sus filtros.
+
+El campus reutiliza el catálogo publicado y el progreso de esa sesión; no depende de permisos de Mi día, Métricas o Resultados ni los habilita. Gratuitas comunes conservan las muestras; solicitudes pendientes, accesos suspendidos y administradoras conservan sus recorridos. Un enlace inválido, retirado o sin acceso muestra un aviso y no solicita el video privado.
+
+El avance cuenta solo clases publicadas, autorizadas y reproducibles de la revisión actual. Es la marca manual de la alumna, no una certificación. Un programa con contenido bloqueado o sin video no se declara completo. Ante un fallo del progreso se conserva el catálogo pero no se inventan ceros, porcentajes ni una próxima clase; si falla el catálogo, su disponibilidad queda desconocida. Reintentar vuelve a consultar sin modificar datos. No hay diplomas, puntos, nuevos permisos, envíos ni cambios de esquema.
+
 ### Celebraciones y nivel personal
 
 Desde el 23/10, Mis logros incluye un nivel personal calculado desde las fuentes propias ya autorizadas. Inicio pasa a En marcha con una clase o una tarea; En foco requiere tres clases y actividad en tres días distintos; En acción suma diez tareas; Socia TOP suma un programa completo, incluido su material de apoyo. Tareas y días usan la fecha asignada a cada tarea dentro de los últimos treinta días, no la hora del clic. Clases y programas usan el progreso actual. No hay XP permanente ni clasificación pública: desmarcar, archivar, reprogramar o cambiar contenido puede modificar el nivel. Un error o módulo sin habilitar no se cuenta como cero y no produce una imagen de rango.
