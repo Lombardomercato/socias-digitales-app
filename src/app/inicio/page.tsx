@@ -117,11 +117,12 @@ export default async function InicioPage() {
           ) : (
             <>
               <Suspense fallback={<HomeCampusLoading />}><CampusFormation supabase={supabase} usuariaId={user.id} perfil={perfil} permisoMiDia={accesoMiDia} fecha={fechaArgentina(new Date(ahoraInicial))} /></Suspense>
-              <section aria-label="Otros espacios" className="mt-3 grid gap-3 sm:grid-cols-2">
+              <section aria-label="Otros espacios" className="mt-3 grid gap-3 sm:grid-cols-3">
                 {[
+                  { label: 'Materiales', href: '/clases/materiales', note: 'Documentos y enlaces de tus clases', tone: 'bg-[#FFFDFA] border border-[#E7DDD5]' },
                   { label: 'Estrategia', href: '/lanzamiento', note: errorEstrategia ? 'Acceso sin comprobar' : estrategiaHabilitada ? 'Etapas y tareas' : 'Pendiente de habilitación', tone: 'bg-[#FFFDFA] border border-[#E7DDD5]' },
                   { label: 'Mi perfil', href: '/perfil', note: 'Tus datos y cuenta', tone: 'bg-[#F4EFEA] border border-[#EC9BB6]/60' },
-                ].map(item => <Link key={item.href} href={item.href} className={`flex min-h-20 items-center justify-between gap-3 rounded-[20px] px-5 py-4 transition hover:border-[#EC9BB6] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38] ${item.tone}`}><span><span className="block text-sm font-semibold">{item.label}</span><span className="mt-1 block text-xs text-[#746a64]">{item.note}</span></span><ArrowIcon diagonal /></Link>)}
+                ].map(item => <Link key={item.href} href={item.href} prefetch={item.href === '/clases/materiales' ? false : undefined} className={`flex min-h-20 items-center justify-between gap-3 rounded-[20px] px-5 py-4 transition hover:border-[#EC9BB6] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38] ${item.tone}`}><span><span className="block text-sm font-semibold">{item.label}</span><span className="mt-1 block text-xs text-[#746a64]">{item.note}</span></span><ArrowIcon diagonal /></Link>)}
               </section>
             </>
           )}

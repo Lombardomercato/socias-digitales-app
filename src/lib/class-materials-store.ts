@@ -15,8 +15,9 @@ export function revisionMateriales(value: unknown): string | null {
   if (typeof value === 'string' && /^"[\x21\x23-\x7e]{1,200}"$/.test(value)) return value
   throw new ConflictoMateriales('Recargá los materiales antes de guardar.')
 }
-export async function leerMateriales(clase: string): Promise<MaterialesGuardados> {
-  const response = await pedirR2('GET', clave(clase), {}, '', undefined, undefined, { sinCompresion: true })
+export async function leerMateriales(clase: string, { timeoutMs = 25_000 }: { timeoutMs?: number } = {}): Promise<MaterialesGuardados> {
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 25_000) throw new Error('Tiempo de lectura no válido.')
+  const response = await pedirR2('GET', clave(clase), {}, '', undefined, undefined, { sinCompresion: true, timeoutMs })
   if (response.status === 404) return { materiales: [], revision: null }
   if (!response.ok || Number(response.headers.get('content-length')) > LIMITE) throw new Error('No pudimos cargar los materiales.')
   const raw = await response.text()
@@ -25,7 +26,7 @@ export async function leerMateriales(clase: string): Promise<MaterialesGuardados
   if (data.version !== 1) throw new Error('Los materiales requieren revisión.')
   let etag = response.headers.get('etag')
   if (etag?.startsWith('W/')) {
-    const head = await pedirR2('HEAD', clave(clase), {}, '', undefined, undefined, { sinCompresion: true })
+    const head = await pedirR2('HEAD', clave(clase), {}, '', undefined, undefined, { sinCompresion: true, timeoutMs })
     const fuerte = head.ok ? head.headers.get('etag') : null
     if (!fuerte || fuerte.startsWith('W/') || fuerte !== etag.slice(2)) throw new Error('Recargá los materiales para verificar su versión.')
     etag = fuerte

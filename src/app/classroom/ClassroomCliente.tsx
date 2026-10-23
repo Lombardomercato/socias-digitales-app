@@ -7,6 +7,7 @@ import { ubicacionClase, ordenarClases, esUuid } from '@/lib/class-management'
 import { claseParaContinuar, tiempoClase, type ProgresoClase } from '@/lib/class-progress'
 import { puedeVerClasesPrivadas } from '@/lib/class-access'
 import { FILTROS_AVANCE_CLASES, filtrarBibliotecaClases, type FiltroAvanceClase } from '@/lib/class-library-filters'
+import Link from 'next/link'
 
 export interface Clase {
   id: string
@@ -160,6 +161,10 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
           </div>
         </section>
 
+        {!esAdmin && <nav aria-label="Contenido del programa" className="mt-6 flex flex-wrap gap-2">
+          <Link href="/classroom" aria-current="page" className="inline-flex min-h-11 items-center rounded-full border border-[#294A38] bg-[#294A38] px-5 py-3 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38]">Clases</Link>
+          <Link href="/clases/materiales" prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E7DDD5] bg-[#FFFDFA] px-5 py-3 text-sm font-medium text-[#294A38] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38]">Materiales <Icon name="arrow" className="h-4 w-4" /></Link>
+        </nav>}
         {avisoEnlace && <p role="status" className="mt-5 rounded-2xl border border-[#E7DDD5] bg-[#FAF7F3] p-4 text-sm leading-6 text-[#746A64]">{avisoEnlace}</p>}
         {errorProgreso && <p role="alert" className="mt-5 rounded-2xl border border-[#EC9BB6] bg-[#FAF7F3] p-4 text-sm">No pudimos cargar tu progreso. Recargá para retomarlo; las clases siguen disponibles.</p>}
         {continuar && <section className="mt-6 flex flex-col gap-4 rounded-[22px] border border-[#EC9BB6] bg-[#F4CAD8] p-5 sm:flex-row sm:items-center sm:justify-between">
