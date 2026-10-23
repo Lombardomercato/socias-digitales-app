@@ -14,7 +14,7 @@ El avance cuenta solo clases publicadas, autorizadas y reproducibles de la revis
 
 ### Plan de estudio y resumen semanal
 
-Desde Inicio, **Plan de estudio** lleva al bloque integrado en Mi día. Solo permite planificar con formación y Mi día habilitados; no abre ese módulo a Desafío ni cambia la decisión de Flor. El plan propone la próxima clase disponible de cada programa, priorizando la que tiene minuto guardado. Elegir programa y fecha de hoy en adelante, revisar el nombre editable y presionar **Confirmar en mi agenda**. No se guarda nada al abrir, elegir o cancelar.
+Desde Inicio, **Plan de estudio** lleva al bloque integrado en Mi día. Solo permite planificar con formación y Mi día habilitados; no abre ese módulo a Desafío ni cambia la decisión de Flor. El plan propone la próxima clase disponible de cada programa, priorizando la que tiene minuto guardado. Elegir programa y fecha de hoy en adelante, revisar el nombre editable y la fecha escrita, y presionar **Confirmar en mi agenda**. Se puede elegir Hoy/Mañana o una fecha manual. La primera confirmación toma los valores visibles del formulario, también ante autocompletado nativo; un reintento conserva la intención enviada. No se guarda nada al abrir, elegir o cancelar.
 
 La confirmación crea una tarea pendiente normal de **Negocio digital**, con una nota legible sobre la clase y su programa. No crea una relación permanente clase–tarea: editar o renombrar la clase no actualiza la nota, y completar la tarea no marca el video como visto. Después puede editarse, reprogramarse, completarse o archivarse desde Mi día. No agrega asistencia, certificados, avisos, emails ni recordatorios automáticos.
 

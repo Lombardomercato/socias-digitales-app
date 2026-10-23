@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import ArrowIcon from './ArrowIcon'
 import NavigationIcon from './NavigationIcon'
-import { fechaDiaValida, nombreDia, validarTarea, type DatosTarea, type TareaDia } from '@/lib/my-day'
+import { fechaDiaValida, moverDia, nombreDia, validarTarea, type DatosTarea, type TareaDia } from '@/lib/my-day'
 import { tiempoClase } from '@/lib/class-progress'
 import { confirmarTareaEstudioCreada, textoTareaEstudio, type PlanEstudio } from '@/lib/study-planner'
 
@@ -57,9 +57,16 @@ export default function StudyPlannerClient({ plan, fechaInicial, hoy, alumnaId, 
     if (bloqueo.current || bloqueada || requiereRevision || (!intento.current && (!opcion || plan.estado !== 'listo'))) return
     if (!intento.current) {
       try {
-        if (!fechaDiaValida(fecha) || fecha < hoy) throw new Error('Elegí hoy o una fecha futura para tu clase.')
+        // Los controles nativos y el autocompletado pueden actualizar el valor
+        // visible sin emitir el mismo cambio de React que un teclado normal.
+        const formulario = evento.currentTarget as HTMLFormElement | undefined
+        const campoFecha = formulario?.elements.namedItem('fecha-estudio') as HTMLInputElement | null | undefined
+        const campoTexto = formulario?.elements.namedItem('texto-estudio') as HTMLInputElement | null | undefined
+        const fechaVisible = campoFecha?.value ?? fecha
+        const textoVisible = campoTexto?.value ?? texto
+        if (!fechaDiaValida(fechaVisible) || fechaVisible < hoy) throw new Error('Elegí hoy o una fecha futura para tu clase.')
         const id = crypto.randomUUID()
-        const entrada = validarTarea({ id, version: null, texto, fecha, categoria: 'negocio_digital', completada: false, archivada: false }, 'crear')
+        const entrada = validarTarea({ id, version: null, texto: textoVisible, fecha: fechaVisible, categoria: 'negocio_digital', completada: false, archivada: false }, 'crear')
         intento.current = { id, datos: entrada.datos }
         setFechaEnviada(entrada.datos.fecha)
       } catch (causa) { setError(causa instanceof Error ? causa.message : 'Revisá tu plan.'); return }
@@ -98,9 +105,11 @@ export default function StudyPlannerClient({ plan, fechaInicial, hoy, alumnaId, 
       <fieldset disabled={!puedeEditar} className="space-y-4">
         <label className="block text-sm font-medium">Programa<select value={seleccion} onChange={e => { const siguiente = plan.opciones.find(o => o.id === e.target.value); setSeleccion(e.target.value); setTexto(siguiente ? textoTareaEstudio(siguiente) : ''); setError('') }} className={campo}>{plan.opciones.map(o => <option key={o.id} value={o.id}>{o.programa}</option>)}</select></label>
         {opcion && <div className="rounded-2xl border border-[#EC9BB6] bg-[#FFFDFA] p-4"><p className="text-[10px] font-semibold uppercase tracking-[.15em] text-[#746A64]">{opcion.motivo === 'continuar' ? 'Para retomar' : 'Tu siguiente clase'} · {opcion.seccion}</p><h3 className="mt-2 break-words text-base font-semibold">{opcion.titulo}</h3>{opcion.motivo === 'continuar' && <p className="mt-2 text-xs text-[#746A64]">Te espera desde {tiempoClase(opcion.posicionSeg ?? 0)}.</p>}</div>}
-        <label className="block text-sm font-medium">¿Qué día vas a estudiar?<input type="date" required min={hoy} max="2099-12-31" value={fecha} onChange={e => { setFecha(e.target.value); setError('') }} className={campo} /></label>
-        <label className="block text-sm font-medium">Nombre de tu tarea<input required maxLength={300} value={texto} onChange={e => { setTexto(e.target.value); setError('') }} className={campo} /></label>
+        <label className="block text-sm font-medium">¿Qué día vas a estudiar?<input name="fecha-estudio" type="date" required min={hoy} max="2099-12-31" value={fecha} onInput={e => { setFecha(e.currentTarget.value); setError('') }} onChange={e => { setFecha(e.target.value); setError('') }} className={campo} /></label>
+        <div className="flex flex-wrap gap-2"><button type="button" aria-pressed={fecha === hoy} onClick={() => { setFecha(hoy); setError('') }} className="min-h-11 rounded-full border border-[#294A38]/25 bg-[#FFFDFA] px-4 py-2 text-sm text-[#294A38]">Hoy</button><button type="button" disabled={!fechaDiaValida(moverDia(hoy, 1))} aria-pressed={fecha === moverDia(hoy, 1)} onClick={() => { setFecha(moverDia(hoy, 1)); setError('') }} className="min-h-11 rounded-full border border-[#294A38]/25 bg-[#FFFDFA] px-4 py-2 text-sm text-[#294A38] disabled:opacity-50">Mañana</button></div>
+        <label className="block text-sm font-medium">Nombre de tu tarea<input name="texto-estudio" required maxLength={300} value={texto} onChange={e => { setTexto(e.target.value); setError('') }} className={campo} /></label>
       </fieldset>
+      {fechaDiaValida(fecha) && <p className="mt-3 text-sm leading-6 text-[#294A38]">Va a quedar pendiente para <strong>{nombreDia(fecha)}</strong>.</p>}
       <p className="mt-4 text-xs leading-5 text-[#574D47]">Se guarda como tarea de Negocio digital. Completarla no marca el video como visto.</p>
       {error && <p role="alert" className="mt-4 rounded-xl border border-[#B01B30]/30 bg-[#FFFDFA] p-4 text-sm leading-6 text-[#B01B30]">{error}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-3"><button type="submit" disabled={ocupada || bloqueada || requiereRevision || (!incierto && (!texto.trim() || !fechaDiaValida(fecha) || fecha < hoy))} className={boton}>{ocupada ? 'Confirmando…' : incierto ? 'Reintentar confirmación' : 'Confirmar en mi agenda'} <ArrowIcon /></button><button type="button" disabled={ocupada} onClick={cerrar} className="min-h-11 px-2 text-sm font-medium text-[#574D47] underline underline-offset-4 disabled:opacity-50">{incierto ? 'Cerrar sin volver a enviar' : 'Cancelar plan'}</button></div>

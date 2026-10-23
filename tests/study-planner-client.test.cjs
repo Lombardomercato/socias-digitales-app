@@ -30,7 +30,7 @@ function view(extra = {}) {
   const find = predicate => all(render(), predicate)[0]
   const button = label => find(node => node.type === 'button' && text(node).trim() === label)
   const flush = () => { render(); for (const i of pending) { cleanups.get(i)?.(); cleanups.set(i, cells[i].effect()) } pending.clear() }
-  return { cells, timers, borradores, guardadas, render, find, button, flush, html: () => renderToStaticMarkup(render()), setProps: value => { props = { ...props, ...value } }, unmount: () => { for (const cleanup of cleanups.values()) cleanup?.() }, open: () => button('Planificar una clase').props.onClick(), date: () => find(node => node.type === 'input' && node.props.type === 'date'), name: () => find(node => node.type === 'input' && node.props.maxLength === 300), select: () => find(node => node.type === 'select'), fieldset: () => find(node => node.type === 'fieldset'), submit: () => find(node => node.type === 'form').props.onSubmit({ preventDefault() {} }) }
+  return { cells, timers, borradores, guardadas, render, find, button, flush, html: () => renderToStaticMarkup(render()), setProps: value => { props = { ...props, ...value } }, unmount: () => { for (const cleanup of cleanups.values()) cleanup?.() }, open: () => button('Planificar una clase').props.onClick(), date: () => find(node => node.type === 'input' && node.props.type === 'date'), name: () => find(node => node.type === 'input' && node.props.maxLength === 300), select: () => find(node => node.type === 'select'), fieldset: () => find(node => node.type === 'fieldset'), submit: currentTarget => find(node => node.type === 'form').props.onSubmit({ preventDefault() {}, ...(currentTarget ? { currentTarget } : {}) }) }
 }
 const ack = (body, changes = {}) => ({ ok: true, tarea: { ...body, alumna_id: USER, version: 1, creado_en: '2026-10-23T16:00:00Z', actualizada_en: '2026-10-23T16:00:00Z', ...changes } })
 const response = (body, ok = true, status = 200) => ({ ok, status, json: async () => body })
@@ -38,6 +38,9 @@ function network(impl) {
   const original = global.fetch, requests = []
   global.fetch = async (url, options) => { const request = { url, options, body: JSON.parse(options.body) }; requests.push(request); return impl(request, requests.length) }
   return { requests, restore: () => { global.fetch = original } }
+}
+function nativeForm(fecha, texto) {
+  return { elements: { namedItem(name) { return name === 'fecha-estudio' ? { value: fecha } : name === 'texto-estudio' ? { value: texto } : null } } }
 }
 test('abrir, elegir programa/fecha y cancelar no guarda ni modifica clases; campos móviles legibles', () => {
   const n = network(() => { throw new Error('No debe consultar') })
@@ -74,6 +77,42 @@ test('confirmación crea solo tarea normal pendiente: callback y enlace llegan �
     assert.equal(ui.guardadas.length, 1); assert.equal(ui.guardadas[0].alumna_id, USER); assert.deepEqual(ui.borradores, [true, false])
     assert.match(ui.html(), /La tarea quedó pendiente/); assert.match(ui.html(), /href="\/checklist\?fecha=2026-10-26"/)
     assert.equal(ui.find(node => node.type === 'form'), undefined); assert.equal(ui.timers.size, 0)
+  } finally { n.restore() }
+})
+test('primer envío usa la fecha y el texto visibles del formulario aunque no haya llegado onChange', async () => {
+  const n = network(({ body }) => response(ack(body)))
+  try {
+    const ui = view(); ui.open()
+    assert.equal(ui.date().props.value, TODAY); assert.equal(ui.name().props.value, planner.textoTareaEstudio(first))
+    assert.equal(ui.date().props.name, 'fecha-estudio'); assert.equal(ui.name().props.name, 'texto-estudio')
+    assert.equal(typeof ui.date().props.onInput, 'function')
+    assert.match(ui.html(), /name="fecha-estudio"/); assert.match(ui.html(), /name="texto-estudio"/)
+    // El selector nativo cambió al24 y el campo visible cambió su nombre, sin
+    // llamar los handlers React: el estado previo todavía contiene el23.
+    await ui.submit(nativeForm('2026-10-24', '  Mi clase   visible de mañana  '))
+    assert.equal(n.requests.length, 1); assert.equal(n.requests[0].body.fecha, '2026-10-24'); assert.equal(n.requests[0].body.texto, 'Mi clase visible de mañana')
+    assert.equal(ui.guardadas[0].fecha, '2026-10-24'); assert.equal(ui.guardadas[0].texto, 'Mi clase visible de mañana')
+    assert.match(ui.html(), /href="\/checklist\?fecha=2026-10-24"/)
+  } finally { n.restore() }
+})
+test('valores nativos inválidos o vacíos se validan, sin recuperar silenciosamente el estado anterior', async () => {
+  const n = network(() => { throw new Error('No debe enviar datos inválidos') })
+  try {
+    for (const [fecha, texto] of [['', 'Clase visible'], ['2026-10-22', 'Clase visible'], ['2026-02-30', 'Clase visible'], ['2026-10-24', ' ']]) {
+      const ui = view(); ui.open(); await ui.submit(nativeForm(fecha, texto))
+      assert.equal(n.requests.length, 0); assert.equal(ui.guardadas.length, 0); assert.ok(ui.find(node => node.props?.role === 'alert'))
+    }
+  } finally { n.restore() }
+})
+test('reintentar conserva el snapshot nativo original aunque otro formulario visible indique otra fecha o texto', async () => {
+  const n = network(({ body }, count) => count === 1 ? response({ error: 'Confirmación no disponible.' }, false, 503) : response(ack(body)))
+  try {
+    const ui = view(); ui.open(); await ui.submit(nativeForm('2026-10-24', 'Mi clase del sábado'))
+    assert.equal(ui.fieldset().props.disabled, true); assert.equal(ui.guardadas.length, 0)
+    await ui.submit(nativeForm('2026-10-25', 'No debe reemplazar el intento anterior'))
+    assert.equal(n.requests.length, 2); assert.deepEqual(n.requests[1].body, n.requests[0].body)
+    assert.equal(n.requests[1].body.fecha, '2026-10-24'); assert.equal(n.requests[1].body.texto, 'Mi clase del sábado')
+    assert.equal(ui.guardadas.length, 1); assert.match(ui.html(), /href="\/checklist\?fecha=2026-10-24"/)
   } finally { n.restore() }
 })
 test('doble clic queda bloqueado de inmediato; envío congela campos y cancelación hasta confirmar', async () => {
