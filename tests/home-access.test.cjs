@@ -17,6 +17,7 @@ function load(file, deps = {}) {
 }
 const access = load('src/lib/access.ts')
 const classes = load('src/lib/class-access.ts')
+const community = load('src/lib/community.ts')
 const home = load('src/lib/home-access.ts', { './access': access, './class-access': classes })
 const link = { default: props => React.createElement('a', props) }
 const icon = { default: () => React.createElement('span', { 'aria-hidden': true }) }
@@ -78,6 +79,7 @@ function pagina({ perfil = socia, errorPerfil = null, user = { id: 'propia' }, e
     '@/lib/agenda-store': { leerAgenda: async () => { calls.push('agenda'); return { hito: null } } },
     '@/lib/agenda-management': { hitoParaAlumna: () => [] },
     '@/lib/home-access': home,
+    '@/lib/community': community,
     '@/lib/metrics': { fechaArgentina: () => '2026-10-23' },
     // La frontera async y los lectores reales se prueban por separado. Este
     // sustituto síncrono verifica solo que Inicio habilita el bloque correcto
@@ -96,7 +98,9 @@ test('SSR Inicio: Socia activa sin flag Desafío recibe campus sin habilitar otr
   assert.match(html, /data-campus="true" data-acceso="socia"/)
   assert.match(html, /Mi formación/); assert.match(html, /href="\/classroom"/)
   assert.ok(!html.includes('Acceso gratuito')); assert.ok(!html.includes('Tu cuenta está lista.'))
-  for (const nombre of ['Productos', 'Mis objetivos', 'Comunidad', 'Ranking']) assert.ok(html.includes(`aria-label="${nombre}: bloqueado"`))
+  for (const nombre of ['Productos', 'Mis objetivos', 'Ranking']) assert.ok(html.includes(`aria-label="${nombre}: bloqueado"`))
+  assert.ok(html.includes('aria-label="Comunidad: habilitado"'))
+  assert.ok(html.includes('Entrar a la comunidad'))
   assert.ok(html.includes('aria-label="Mis resultados: bloqueado"'))
   assert.ok(html.includes('aria-label="Mis métricas: bloqueado"'))
   assert.ok(html.includes('aria-label="Mi día: bloqueado"'))
@@ -111,6 +115,7 @@ test('SSR Inicio: Desafío habilitado recibe el mismo campus con su propio acces
   assert.match(html, /Desafío Socias/); assert.match(html, /data-campus="true" data-acceso="desafio"/)
   assert.match(html, /href="\/classroom"/)
   assert.ok(!html.includes('data-inicio-gratuito')); assert.ok(!html.includes('Tu acceso está en revisión'))
+  assert.ok(html.includes('aria-label="Comunidad: bloqueado"'))
   assert.equal(p.calls.filter(call => call === 'campus').length, 1)
   assert.ok(p.calls.includes('agenda')); assert.ok(!p.calls.includes('catalogo'))
 })

@@ -12,11 +12,12 @@ type Props = {
   metricasHabilitadas?: boolean
   miDiaHabilitado?: boolean
   logrosHabilitados?: boolean
+  comunidadHabilitada?: boolean
   erroresPermiso?: PermisoComprobable[]
 }
 
 function TarjetaModulo({ modulo, abierto, error, compacta=false }: { modulo: Modulo; abierto: boolean; error: boolean; compacta?: boolean }) {
-  const accion = error ? 'No pudimos comprobar tu acceso' : abierto ? modulo.id === 'checklist' ? 'Abrir mi día' : modulo.id === 'metricas' ? 'Abrir mis métricas' : modulo.id === 'logros' ? 'Ver mis logros' : 'Abrir mis resultados' : 'Acceso con Socias Digitales'
+  const accion = error ? 'No pudimos comprobar tu acceso' : abierto ? modulo.id === 'comunidad' ? 'Entrar a la comunidad' : modulo.id === 'checklist' ? 'Abrir mi día' : modulo.id === 'metricas' ? 'Abrir mis métricas' : modulo.id === 'logros' ? 'Ver mis logros' : 'Abrir mis resultados' : 'Acceso con Socias Digitales'
   const etiqueta = error ? 'acceso sin comprobar' : abierto ? 'habilitado' : 'bloqueado'
   if (compacta) return <Link href={modulo.href} aria-label={`${modulo.nombre}: ${etiqueta}`} className="flex min-h-28 min-w-0 items-center gap-3 rounded-[20px] border border-[#E7DDD5] bg-[#FFFDFA] p-4 transition hover:border-[#EC9BB6] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38]">
     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F4CAD8] text-[#294A38]"><NavigationIcon name={modulo.icon} /></span>
@@ -34,9 +35,9 @@ function TarjetaModulo({ modulo, abierto, error, compacta=false }: { modulo: Mod
   </Link>
 }
 
-export default function LockedModules({venta=false, compacto=false, resultadosHabilitados=false, metricasHabilitadas=false, miDiaHabilitado=false, logrosHabilitados=false, erroresPermiso=[]}: Props) {
+export default function LockedModules({venta=false, compacto=false, resultadosHabilitados=false, metricasHabilitadas=false, miDiaHabilitado=false, logrosHabilitados=false, comunidadHabilitada=false, erroresPermiso=[]}: Props) {
   const errorPermiso=(id:string)=>erroresPermiso.some(modulo => modulo === id)
-  const abierto=(id:string)=>!errorPermiso(id) && ((id === 'resultados' && resultadosHabilitados)||(id === 'metricas' && metricasHabilitadas)||(id==='checklist' && miDiaHabilitado)||(id==='logros' && logrosHabilitados))
+  const abierto=(id:string)=>!errorPermiso(id) && ((id === 'resultados' && resultadosHabilitados)||(id === 'metricas' && metricasHabilitadas)||(id==='checklist' && miDiaHabilitado)||(id==='logros' && logrosHabilitados)||(id==='comunidad' && comunidadHabilitada))
   // El recorrido gratuito conserva su presentación comercial, incluso si un
   // consumidor solicita por error la variante compacta.
   const modoCompacto=compacto && !venta

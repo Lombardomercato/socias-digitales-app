@@ -172,11 +172,14 @@ test('permiso real lee rol y plan del perfil, nunca metadata del navegador',asyn
     assert.equal((await permisoResultados(db,USER)).permitido,expected)
   }
 })
-test('las vistas no usan URLs públicas; solo Resultados se desbloquea individualmente',()=>{
+test('Resultados conserva sus capturas privadas; Comunidad no las consume',()=>{
   const leer=f=>fs.readFileSync(path.join(ROOT,f),'utf8')
-  assert.ok(leer('src/app/comunidad/ComunidadCliente.tsx').includes('/api/resultados/'))
-  assert.ok(!leer('src/app/comunidad/ComunidadCliente.tsx').includes('src={r.archivo_url}'))
-  for(const f of ['src/app/resultados/page.tsx','src/app/admin/resultados/page.tsx','src/app/comunidad/page.tsx']) assert.ok(leer(f).includes("archivo_url: r.archivo_url ? 'privada' : null"))
+  for(const f of ['src/app/comunidad/ComunidadCliente.tsx','src/app/comunidad/page.tsx','src/lib/community-server.ts']) {
+    assert.ok(!leer(f).includes('/api/resultados/'))
+    assert.ok(!leer(f).includes('archivo_url'))
+    assert.ok(!leer(f).includes("from('resultados')"))
+  }
+  for(const f of ['src/app/resultados/page.tsx','src/app/admin/resultados/page.tsx']) assert.ok(leer(f).includes("archivo_url: r.archivo_url ? 'privada' : null"))
   assert.ok(leer('src/components/LockedModules.tsx').includes("id === 'resultados' && resultadosHabilitados"))
   assert.ok(leer('src/app/resultados/page.tsx').includes("supabase\n      .from('resultados')"))
 })

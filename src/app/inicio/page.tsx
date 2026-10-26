@@ -22,6 +22,7 @@ import { accesoInicio } from '@/lib/home-access'
 import CampusFormation from './CampusFormation'
 import { HomeCampusLoading } from '@/components/HomeCampus'
 import { fechaArgentina } from '@/lib/metrics'
+import { puedeUsarComunidad } from '@/lib/community'
 
 async function leerHoraServidor() {
   return Date.now()
@@ -87,6 +88,7 @@ export default async function InicioPage() {
               <Link href="/clases" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="clases" />Programa</Link>
             </> : null}
             <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="perfil" />Mi perfil</Link>
+            {puedeUsarComunidad(perfil) && <Link href="/comunidad" className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="comunidad" />Comunidad</Link>}
             <UnreadNoticeLink variante="menu" />
           </nav>
           <ProximaClase ahoraInicial={ahoraInicial} variante="contador" />
@@ -129,7 +131,7 @@ export default async function InicioPage() {
             </>
           )}
           {!habilitada && <UnreadNoticeLink variante="tarjeta" />}
-          <LockedModules compacto={habilitada} erroresPermiso={[...(accesoResultados.error ? ['resultados' as const] : []), ...(accesoMetricas.error ? ['metricas' as const] : []), ...(accesoMiDia.error ? ['checklist' as const] : [])]} venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} logrosHabilitados={puedeVerLogros(perfil)} />
+          <LockedModules compacto={habilitada} erroresPermiso={[...(accesoResultados.error ? ['resultados' as const] : []), ...(accesoMetricas.error ? ['metricas' as const] : []), ...(accesoMiDia.error ? ['checklist' as const] : [])]} venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} logrosHabilitados={puedeVerLogros(perfil)} comunidadHabilitada={puedeUsarComunidad(perfil)} />
         </main>
       </div>
     </div>

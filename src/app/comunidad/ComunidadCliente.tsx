@@ -1,291 +1,111 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import ArrowIcon from '@/components/ArrowIcon'
+import NavigationIcon from '@/components/NavigationIcon'
+import SuccessCelebration, { useSuccessCelebration } from '@/components/SuccessCelebration'
+import CommunityComposer from '@/components/community/CommunityComposer'
+import CommunityPostCard from '@/components/community/CommunityPostCard'
+import { controlComunidad, ErrorComunidad, errorComunidad, ordenarPublicaciones, solicitarComunidad, tiposComunidad } from '@/components/community/community-client'
+import { esPaginaComunidad, type PaginaComunidad, type PublicacionComunidad, type TipoPublicacionComunidad } from '@/lib/community'
 
-interface Resultado {
-  id: string
-  descripcion: string | null
-  archivo_url: string | null
-  monto: number | null
-  mes: string | null
-  created_at: string
-  perfiles: { nombre: string; avatar_url: string | null } | null
-  productos: { nombre: string } | null
-}
+interface Props { inicial: PaginaComunidad; miPerfil: { nombre: string | null; avatar_url: null } }
+type Vista = 'todas' | 'mias'
 
-interface Reaccion {
-  resultado_id: string
-  alumna_id: string
-}
+export default function ComunidadCliente({ inicial, miPerfil }: Props) {
+  const [pagina, setPagina] = useState(inicial)
+  const [vista, setVista] = useState<Vista>('todas')
+  const [tipo, setTipo] = useState<'todos' | TipoPublicacionComunidad>('todos')
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState('')
+  const [sinAcceso, setSinAcceso] = useState(false)
+  const [borradores, setBorradores] = useState<Record<string, boolean>>({})
+  const [aviso, setAviso] = useState('')
+  const [lecturaId, setLecturaId] = useState(0)
+  const [destinoFallido, setDestinoFallido] = useState<{ vista: Vista; cursor: string | null; ampliar: boolean } | null>(null)
+  const ocupada = useRef(false), viva = useRef(false)
+  const abortador = useRef<AbortController | null>(null)
+  const borradoresActuales = useRef<Record<string, boolean>>({})
+  const { celebration, celebrate } = useSuccessCelebration()
+  const hayBorrador = Object.values(borradores).some(Boolean)
+  const cambiarBorrador = useCallback((clave: string, activo: boolean) => {
+    borradoresActuales.current = { ...borradoresActuales.current, [clave]: activo }
+    setBorradores(borradoresActuales.current)
+  }, [])
+  const bloquearAcceso = useCallback(() => { setSinAcceso(true); setError(''); setAviso('') }, [])
 
-interface Comentario {
-  id: string
-  resultado_id: string
-  contenido: string
-  created_at: string
-  alumna_id: string
-  perfiles: { nombre: string; avatar_url: string | null } | null
-}
+  useEffect(() => { viva.current = true; return () => { viva.current = false; abortador.current?.abort() } }, [])
+  useEffect(() => {
+    if (!hayBorrador) return
+    const advertir = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', advertir)
+    return () => window.removeEventListener('beforeunload', advertir)
+  }, [hayBorrador])
 
-interface MiPerfil {
-  nombre: string
-  avatar_url: string | null
-}
-
-interface Props {
-  resultados: Resultado[]
-  reacciones: Reaccion[]
-  comentarios: Comentario[]
-  userId: string
-  miPerfil: MiPerfil | null
-}
-
-function Avatar({ url, nombre }: { url?: string | null; nombre?: string | null }) {
-  if (url) return <img src={url} className="rounded-full object-cover flex-shrink-0" style={{ width: 40, height: 40 }} alt="" />
-  return (
-    <div className="rounded-full flex-shrink-0 flex items-center justify-center text-lg"
-      style={{ width: 40, height: 40, background: '#fce7f3' }}>🌸</div>
-  )
-}
-
-function AvatarSm({ url }: { url?: string | null }) {
-  if (url) return <img src={url} className="rounded-full object-cover flex-shrink-0" style={{ width: 28, height: 28 }} alt="" />
-  return (
-    <div className="rounded-full flex-shrink-0 flex items-center justify-center text-sm"
-      style={{ width: 28, height: 28, background: '#fce7f3' }}>🌸</div>
-  )
-}
-
-export default function ComunidadCliente({ resultados, reacciones, comentarios, userId, miPerfil }: Props) {
-  const router = useRouter()
-  const supabase = createClient()
-
-  const [reaccionesLocales, setReaccionesLocales] = useState<Reaccion[]>(reacciones)
-  const [comentariosLocales, setComentariosLocales] = useState<Comentario[]>(comentarios)
-  const [textos, setTextos] = useState<Record<string, string>>({})
-  const [enviando, setEnviando] = useState<string | null>(null)
-  const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
-
-  function misReacciones(resultadoId: string) {
-    return reaccionesLocales.some(r => r.resultado_id === resultadoId && r.alumna_id === userId)
-  }
-
-  function contarReacciones(resultadoId: string) {
-    return reaccionesLocales.filter(r => r.resultado_id === resultadoId).length
-  }
-
-  async function toggleReaccion(resultadoId: string) {
-    const yoReaccioné = misReacciones(resultadoId)
-    if (yoReaccioné) {
-      setReaccionesLocales(prev => prev.filter(r => !(r.resultado_id === resultadoId && r.alumna_id === userId)))
-      await supabase.from('reacciones').delete().eq('resultado_id', resultadoId).eq('alumna_id', userId)
-    } else {
-      setReaccionesLocales(prev => [...prev, { resultado_id: resultadoId, alumna_id: userId }])
-      await supabase.from('reacciones').insert({ resultado_id: resultadoId, alumna_id: userId })
+  async function cargar(destino: Vista, cursor: string | null = null, ampliar = false) {
+    if (ocupada.current || sinAcceso || Object.values(borradoresActuales.current).some(Boolean)) return
+    ocupada.current = true; setCargando(true); setError(''); setAviso('')
+    const controller = new AbortController(); abortador.current = controller
+    try {
+      const query = new URLSearchParams({ vista: destino })
+      if (cursor) query.set('cursor', cursor)
+      const response = await solicitarComunidad(`/api/comunidad?${query}`, { signal: controller.signal })
+      if (!esPaginaComunidad(response) || response.estado !== 'lista' || (cursor !== null && response.siguiente === cursor) || (destino === 'mias' && response.publicaciones.some(publicacion => !publicacion.propia)) || (destino === 'todas' && response.publicaciones.some(publicacion => publicacion.retirada || publicacion.oculta))) throw new ErrorComunidad(null, false)
+      if (!viva.current) return
+      setPagina(prev => ({ estado: 'lista', publicaciones: ordenarPublicaciones(ampliar && prev.estado === 'lista' ? prev.publicaciones : [], response.publicaciones), siguiente: response.siguiente }))
+      setVista(destino); setDestinoFallido(null)
+      if (!ampliar) { setLecturaId(prev => prev + 1); setAviso('Conversaciones actualizadas.') }
+    } catch (cause) {
+      if (!viva.current) return
+      const fallo = errorComunidad(cause)
+      if (fallo.status === 401 || fallo.status === 403) bloquearAcceso()
+      else { setError('No pudimos actualizar las conversaciones. Conservamos la última lectura y tus textos.'); setDestinoFallido({ vista: destino, cursor, ampliar }) }
+    } finally {
+      ocupada.current = false
+      if (viva.current) setCargando(false)
+      if (abortador.current === controller) abortador.current = null
     }
   }
 
-  async function enviarComentario(resultadoId: string) {
-    const texto = textos[resultadoId]?.trim()
-    if (!texto) return
-    setEnviando(resultadoId)
-
-    const nuevoComentario: Comentario = {
-      id: crypto.randomUUID(),
-      resultado_id: resultadoId,
-      contenido: texto,
-      created_at: new Date().toISOString(),
-      alumna_id: userId,
-      perfiles: miPerfil ? { nombre: miPerfil.nombre, avatar_url: miPerfil.avatar_url } : null,
-    }
-
-    setComentariosLocales(prev => [...prev, nuevoComentario])
-    setTextos(prev => ({ ...prev, [resultadoId]: '' }))
-
-    await supabase.from('comentarios_resultados').insert({
-      resultado_id: resultadoId,
-      alumna_id: userId,
-      contenido: texto,
-    })
-
-    setEnviando(null)
-  }
-
-  function toggleExpandido(id: string) {
-    setExpandidos(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
+  function actualizarPublicacion(publicacion: PublicacionComunidad) {
+    setPagina(prev => {
+      if (prev.estado !== 'lista') return prev
+      const filtradas = prev.publicaciones.filter(item => item.id !== publicacion.id)
+      const mostrar = vista === 'mias' ? publicacion.propia : !publicacion.retirada && !publicacion.oculta
+      return { ...prev, publicaciones: ordenarPublicaciones(filtradas, mostrar ? [publicacion] : []) }
     })
   }
+  function creada(publicacion: PublicacionComunidad) {
+    setPagina(prev => ({ estado: 'lista', publicaciones: ordenarPublicaciones(prev.estado === 'lista' ? prev.publicaciones : [], [publicacion]), siguiente: prev.estado === 'lista' ? prev.siguiente : null }))
+    setTipo('todos')
+    celebrate({ key: `comunidad:${publicacion.id}`, title: '¡Gracias por compartir!', message: 'Tu experiencia también puede impulsar a otra Socia.', variant: 'gentle' })
+  }
+  const publicaciones = pagina.estado === 'lista' ? pagina.publicaciones : []
+  const visibles = publicaciones.filter(publicacion => tipo === 'todos' || publicacion.tipo === tipo)
 
-  return (
-    <div className="min-h-screen" style={{ background: '#f5f0eb' }}>
-      <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-        <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
-        <div className="flex items-center gap-4">
-          <a href="/perfil" className="text-sm text-gray-500 hover:text-gray-800">← Mi perfil</a>
+  return <div className="min-h-screen bg-[#F4EFEA] text-[#211C19]">
+    <header className="flex min-h-[76px] flex-wrap items-center justify-between gap-3 border-b border-[#E7DDD5] px-5 py-3 sm:px-8"><Link href="/inicio" aria-label="Socias Digitales, mi espacio"><img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto max-w-[180px] object-contain" /></Link><Link href="/inicio" prefetch={false} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[#294A38]">Mi espacio <ArrowIcon /></Link></header>
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-8 sm:py-10">
+      <div className="flex flex-wrap items-end justify-between gap-4"><div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[.22em] text-[#294A38]">Entre Socias</p><h1 className="mt-2 font-serif text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Comunidad</h1><p className="mt-3 max-w-xl text-sm leading-6 text-[#746A64]">Tus avances, tus preguntas y esas ideas que crecen cuando las compartís.</p></div>{!sinAcceso && <button type="button" onClick={() => void cargar(vista)} disabled={cargando || hayBorrador} aria-busy={cargando} className={`${controlComunidad} bg-[#FAF7F3]`}>{cargando ? 'Actualizando…' : 'Actualizar comunidad'}</button>}</div>
+      {sinAcceso ? <section role="alert" className="mt-7 rounded-[24px] border border-[#EC9BB6] bg-[#FFFDFA] p-6"><h2 className="text-lg font-semibold">Volvamos a comprobar tu acceso</h2><p className="mt-3 text-sm leading-6 text-[#746A64]">No pudimos validar tu sesión o tu permiso de comunidad. No se confirma ningún envío desde esta pantalla.</p><Link href="/login?next=%2Fcomunidad" prefetch={false} className={`${controlComunidad} mt-4 bg-[#F4CAD8]`}>Volver a ingresar <ArrowIcon /></Link></section> : <div className="mt-7 grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="min-w-0 space-y-5"><CommunityComposer lecturaPendiente={cargando} nombre={miPerfil.nombre} onGuardada={creada} onBorrador={activo => cambiarBorrador('crear', activo)} onAcceso={bloquearAcceso} />
+          <section aria-label="Conversaciones de la comunidad" className="min-w-0">
+            <div role="group" aria-label="Ver publicaciones" className="flex flex-wrap gap-2">{([{ id: 'todas', nombre: 'Todas las conversaciones' }, { id: 'mias', nombre: 'Mis publicaciones' }] as const).map(opcion => <button key={opcion.id} type="button" onClick={() => { if (vista !== opcion.id || pagina.estado === 'error') void cargar(opcion.id) }} aria-pressed={vista === opcion.id} disabled={cargando || hayBorrador} className={`${controlComunidad} ${vista === opcion.id ? 'border-[#294A38] bg-[#294A38] text-white' : 'bg-[#FFFDFA]'}`}>{opcion.nombre}</button>)}</div>
+            <div className="mt-3 flex flex-wrap items-center gap-2"><label htmlFor="tipo-comunidad" className="text-xs text-[#746A64]">Quiero ver</label><select id="tipo-comunidad" disabled={hayBorrador || cargando} value={tipo} onChange={event => setTipo(event.target.value as typeof tipo)} className="min-h-11 min-w-0 max-w-full rounded-[14px] border border-[#E7DDD5] bg-[#FAF7F3] px-3 text-base text-[#294A38]"><option value="todos">Todos los temas</option>{tiposComunidad.map(opcion => <option key={opcion.id} value={opcion.id}>{opcion.etiqueta === 'Pregunta' ? 'Preguntas' : opcion.etiqueta === 'Idea' ? 'Ideas' : 'Avances'}</option>)}</select><span className="text-[11px] leading-5 text-[#746A64]">Más recientes primero</span></div>
+            <p className="mt-3 text-xs leading-5 text-[#746A64]">{hayBorrador ? 'Terminá o cancelá tu borrador para actualizar o cambiar de vista.' : pagina.estado === 'lista' ? `${publicaciones.length} ${publicaciones.length === 1 ? 'publicación cargada' : 'publicaciones cargadas'}. El filtro de temas se aplica a esta lista.` : 'Las conversaciones todavía no se pudieron comprobar.'}</p>
+            {error && <div role="alert" className="mt-4 rounded-[18px] border border-[#EC9BB6] bg-[#F4CAD8] p-4"><p className="text-sm leading-6">{error}</p><button type="button" onClick={() => void cargar(destinoFallido?.vista ?? vista, destinoFallido?.cursor ?? null, destinoFallido?.ampliar ?? false)} disabled={cargando || hayBorrador} className={`${controlComunidad} mt-3 bg-[#FFFDFA]`}>Reintentar actualización</button></div>}
+            {aviso && <p role="status" className="mt-4 text-xs leading-5 text-[#294A38]">{aviso}</p>}
+            {cargando && <p role="status" className="mt-4 rounded-[18px] border border-[#E7DDD5] bg-[#FAF7F3] p-4 text-sm text-[#746A64]">Cargando conversaciones…</p>}
+            {pagina.estado === 'error' && !error && <div role="alert" className="mt-4 rounded-[24px] border border-[#E7DDD5] bg-[#FFFDFA] p-6"><h2 className="text-lg font-semibold">No pudimos cargar la comunidad</h2><p className="mt-3 text-sm leading-6 text-[#746A64]">No significa que no haya publicaciones. Podés reintentar; tu texto no se pierde.</p><button type="button" onClick={() => void cargar(vista)} disabled={cargando || hayBorrador} className={`${controlComunidad} mt-4`}>Reintentar conversaciones</button></div>}
+            {pagina.estado === 'lista' && !visibles.length && <div className="mt-4 rounded-[24px] border border-[#E7DDD5] bg-[#FFFDFA] p-6 sm:p-8"><span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#EC9BB6] bg-[#F4CAD8] text-[#294A38]"><NavigationIcon name="comunidad" /></span><h2 className="mt-4 text-lg font-semibold">{publicaciones.length ? 'Todavía no hay temas así en esta lista' : vista === 'mias' ? 'Tu próxima historia empieza acá' : 'Hagamos lugar a la primera conversación'}</h2><p className="mt-3 text-sm leading-6 text-[#746A64]">{publicaciones.length ? 'Probá otro tema o cargá más conversaciones. No estamos filtrando publicaciones que todavía no se cargaron.' : vista === 'mias' ? 'Cuando compartas un avance, una pregunta o una idea, vas a encontrarlo acá. También podés revisar lo que hayas retirado.' : 'No hace falta un gran logro: una pregunta, una decisión o un pequeño paso pueden inspirar a alguien más.'}</p>{tipo !== 'todos' && <button type="button" onClick={() => setTipo('todos')} className={`${controlComunidad} mt-4`}>Ver todos los temas</button>}</div>}
+            <div className="mt-4 space-y-4">{visibles.map(publicacion => <CommunityPostCard lecturaPendiente={cargando} key={`${publicacion.id}:${lecturaId}`} publicacion={publicacion} nombre={miPerfil.nombre} onActualizada={actualizarPublicacion} onBorrador={cambiarBorrador} onAcceso={bloquearAcceso} />)}</div>
+            {pagina.estado === 'lista' && pagina.siguiente && <div className="mt-5 text-center"><button type="button" onClick={() => void cargar(vista, pagina.siguiente, true)} disabled={cargando || hayBorrador} className={`${controlComunidad} bg-[#FFFDFA]`}>Cargar más conversaciones</button></div>}
+          </section>
         </div>
-      </nav>
-
-      {/* Portada */}
-      <div className="relative w-full overflow-hidden" style={{ height: 315 }}>
-        <img src="/banner-comunidad.png" alt="Muro de resultados" className="w-full h-full object-cover" style={{ display: 'block' }} />
-        <div className="absolute inset-0 flex flex-col justify-end px-8 pb-8"
-          style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 60%)' }}>
-          <h1 className="text-4xl font-black text-white">Muro de resultados</h1>
-          <p className="text-base text-white/80 mt-1">Los logros de toda la comunidad Socias Digitales 🏆</p>
-        </div>
-      </div>
-
-      <div className="max-w-xl mx-auto px-4 py-10 space-y-4">
-
-        {resultados.length === 0 ? (
-          <div className="bg-white rounded-3xl p-10 text-center shadow-sm">
-            <p className="text-4xl mb-3">✨</p>
-            <p className="font-bold text-gray-700">¡Todavía no hay resultados publicados!</p>
-            <p className="text-sm text-gray-400 mt-2">Sé la primera en compartir tu logro.</p>
-            <a href="/resultados"
-              className="inline-block mt-5 text-white text-sm font-bold px-6 py-3 rounded-xl"
-              style={{ background: '#E27396' }}>
-              Cargar mi resultado
-            </a>
-          </div>
-        ) : (
-          resultados.map(r => {
-            const miReaccion = misReacciones(r.id)
-            const totalReacciones = contarReacciones(r.id)
-            const comsDeEste = comentariosLocales.filter(c => c.resultado_id === r.id)
-            const expandido = expandidos.has(r.id)
-
-            return (
-              <div key={r.id} className="bg-white rounded-3xl shadow-sm overflow-hidden">
-
-                {/* Card horizontal */}
-                <div className="flex gap-0">
-                  {/* Foto izquierda */}
-                  {r.archivo_url && (
-                    <div className="flex-shrink-0" style={{ width: 160 }}>
-                      <img src={`/api/resultados/${r.id}/archivo`} className="h-full w-full object-cover" style={{ minHeight: 160, maxHeight: 220 }} alt="Captura del resultado" />
-                    </div>
-                  )}
-
-                  {/* Contenido derecha */}
-                  <div className="flex-1 flex flex-col justify-between p-4 min-w-0">
-                    {/* Nombre y fecha */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Avatar url={r.perfiles?.avatar_url} nombre={r.perfiles?.nombre} />
-                        <div className="min-w-0">
-                          <p className="font-bold text-gray-900 text-sm truncate">{r.perfiles?.nombre ?? 'Socia'}</p>
-                          <p className="text-xs text-gray-400">
-                            {r.mes ?? new Date(r.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                          </p>
-                        </div>
-                      </div>
-                      {r.monto && (
-                        <div className="text-right px-3 py-2 rounded-2xl flex-shrink-0" style={{ background: '#edf7f2' }}>
-                          <p className="text-xs font-medium" style={{ color: '#337357' }}>Comisión</p>
-                          <p className="font-black text-xl leading-tight" style={{ color: '#337357' }}>
-                            +${r.monto.toLocaleString('es-AR')}
-                          </p>
-                          <p className="text-xs font-bold" style={{ color: '#337357' }}>USD</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Descripción */}
-                    {r.descripcion && (
-                      <p className="text-sm text-gray-700 leading-relaxed mt-3 line-clamp-3">{r.descripcion}</p>
-                    )}
-
-                    {/* Producto */}
-                    {r.productos && (
-                      <div className="mt-2">
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full font-medium">
-                          🛍️ {r.productos.nombre}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Acciones */}
-                <div className="px-5 py-3 border-t border-gray-100 flex items-center gap-4">
-                  <button onClick={() => toggleReaccion(r.id)}
-                    className="flex items-center gap-1.5 text-sm font-medium transition-all"
-                    style={{ color: miReaccion ? '#E27396' : '#9ca3af' }}>
-                    <span className="text-lg">{miReaccion ? '🎉' : '🎊'}</span>
-                    <span>{miReaccion ? 'Felicitaste' : 'Felicitar'}</span>
-                    {totalReacciones > 0 && (
-                      <span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
-                        style={{ background: miReaccion ? '#fce7f3' : '#f3f4f6', color: miReaccion ? '#E27396' : '#6b7280' }}>
-                        {totalReacciones}
-                      </span>
-                    )}
-                  </button>
-                  <button onClick={() => toggleExpandido(r.id)}
-                    className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
-                    <span className="text-lg">💬</span>
-                    <span>{comsDeEste.length > 0 ? `${comsDeEste.length} comentario${comsDeEste.length > 1 ? 's' : ''}` : 'Comentar'}</span>
-                  </button>
-                </div>
-
-                {/* Comentarios */}
-                {(expandido || comsDeEste.length > 0) && (
-                  <div className="px-5 pb-4 space-y-3" style={{ borderTop: '1px solid #f3f4f6' }}>
-
-                    {comsDeEste.length > 0 && (
-                      <div className="space-y-3 pt-3">
-                        {comsDeEste.map(c => (
-                          <div key={c.id} className="flex gap-2.5">
-                            <AvatarSm url={c.perfiles?.avatar_url} />
-                            <div className="flex-1">
-                              <div className="rounded-2xl px-3 py-2" style={{ background: '#f5f0eb' }}>
-                                <p className="text-xs font-bold text-gray-800">{c.perfiles?.nombre ?? 'Socia'}</p>
-                                <p className="text-sm text-gray-700 mt-0.5">{c.contenido}</p>
-                              </div>
-                              <p className="text-xs text-gray-400 mt-1 ml-2">
-                                {new Date(c.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Input comentario */}
-                    <div className="flex gap-2 pt-1">
-                      <AvatarSm url={miPerfil?.avatar_url} />
-                      <div className="flex-1 flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Escribí un mensaje..."
-                          value={textos[r.id] ?? ''}
-                          onChange={e => setTextos(prev => ({ ...prev, [r.id]: e.target.value }))}
-                          onKeyDown={e => e.key === 'Enter' && enviarComentario(r.id)}
-                          className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                          style={{ background: '#f9fafb' }}
-                        />
-                        <button
-                          onClick={() => enviarComentario(r.id)}
-                          disabled={!textos[r.id]?.trim() || enviando === r.id}
-                          className="px-3 py-2 rounded-xl text-white text-sm font-bold disabled:opacity-40 transition-colors"
-                          style={{ background: '#E27396' }}>
-                          →
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            )
-          })
-        )}
-      </div>
-    </div>
-  )
+        <aside aria-label="Nuestro espacio compartido" className="min-w-0 space-y-4"><section className="rounded-[24px] border border-[#EC9BB6] bg-[#F4CAD8] p-5"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#294A38] text-white"><NavigationIcon name="comunidad" /></span><h2 className="mt-4 text-base font-semibold">Acá avanzamos juntas.</h2><p className="mt-3 text-sm leading-6">Celebrá un paso, acompañá una pregunta y compartí lo que te está sirviendo.</p></section><section className="rounded-[24px] border border-[#E7DDD5] bg-[#FAF7F3] p-5"><h2 className="text-sm font-semibold">Cuidemos este espacio</h2><ul className="mt-3 space-y-3 text-xs leading-6 text-[#746A64]"><li>Compartí con respeto y desde tu experiencia.</li><li>Los datos de clientas y los comprobantes se quedan fuera del muro.</li><li>Tu perfil, tus tareas y tus ventas no se publican automáticamente.</li></ul><p className="mt-4 border-t border-[#E7DDD5] pt-3 text-xs leading-6 text-[#746A64]">El equipo puede ocultar contenido para cuidar la comunidad. Estos intercambios no envían email ni push.</p></section></aside>
+      </div>}
+    </main>
+    <SuccessCelebration celebration={celebration} />
+  </div>
 }

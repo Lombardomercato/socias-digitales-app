@@ -15,7 +15,6 @@ test('listas y consultas globales excluyen pruebas antes de limitar, contar o se
     'src/app/admin/classroom/page.tsx':['id'],
     'src/app/admin/comunidad/page.tsx':['alumna_id','autor_id'],
     'src/app/ranking/page.tsx':['id','afiliada_id'],
-    'src/app/comunidad/page.tsx':['alumna_id'],
     'src/app/api/exportar-alumnas/route.ts':['id'],
   }
   for(const [file,fields] of Object.entries(contratos)){
@@ -28,6 +27,12 @@ test('listas y consultas globales excluyen pruebas antes de limitar, contar o se
   assert.ok(metrics.indexOf(".not('alumna_id'")<metrics.indexOf('.limit(1000)'))
   const inicio=read('src/app/admin/page.tsx')
   assert.ok(inicio.includes('alumna_id.is.null,alumna_id.not.in.'))
+  const comunidad=read('supabase/migrations/20261026173046_comunidad_voluntaria_y_moderacion_segura.sql')
+  assert.ok(comunidad.includes(read('src/lib/test-accounts.ts').match(/[0-9a-f]{8}-[0-9a-f-]{27}/)[0]))
+  assert.ok(comunidad.includes('private.comunidad_prueba_visible(alumna_id)'))
+  assert.ok(comunidad.includes('private.comunidad_prueba_visible(autor_id)'))
+  assert.ok(read('src/app/comunidad/page.tsx').includes('autorizarComunidad'))
+  assert.ok(read('src/app/comunidad/page.tsx').includes('leerComunidad'))
 })
 test('datos propios de la prueba siguen editables; no se borran respuestas, accesos ni se cambia el rol',()=>{
   for(const file of ['src/app/metricas/page.tsx','src/app/resultados/page.tsx','src/app/checklist/page.tsx','src/app/perfil/page.tsx','src/app/lanzamiento/page.tsx']){
