@@ -115,6 +115,34 @@ do $$ begin
 end $$;
 update public.publicaciones set retirada_en=null where id='20000000-0000-4000-8000-000000000001' and version=5;
 
+-- La misma protección también debe funcionar con la forma de fila comentario.
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000002"}';
+update public.comentarios set contenido='Respuesta editada por su autora.' where id='30000000-0000-4000-8000-000000000001' and version=1;
+do $$ begin
+  if (select version from public.comentarios where id='30000000-0000-4000-8000-000000000001') is distinct from 2 then raise exception 'QA: edición de comentario no confirmada'; end if;
+end $$;
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000005"}';
+update public.comentarios set oculta_en=now(),moderada_por=auth.uid(),motivo_moderacion='Moderación de comentario QA' where id='30000000-0000-4000-8000-000000000001' and version=2;
+do $$ begin
+  if (select version from public.comentarios where id='30000000-0000-4000-8000-000000000001') is distinct from 3 then raise exception 'QA: moderación de comentario no confirmada'; end if;
+end $$;
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000001"}';
+do $$ begin
+  if exists(select 1 from public.comentarios where id='30000000-0000-4000-8000-000000000001') then raise exception 'QA: comentario oculto visible a otra socia'; end if;
+end $$;
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000005"}';
+update public.comentarios set oculta_en=null,moderada_por=auth.uid(),motivo_moderacion=null where id='30000000-0000-4000-8000-000000000001' and version=3;
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000002"}';
+update public.comentarios set retirada_en=now() where id='30000000-0000-4000-8000-000000000001' and version=4;
+do $$ declare resumen record; begin
+  select * into resumen from public.obtener_resumen_comunidad(array['20000000-0000-4000-8000-000000000001'::uuid]);
+  if not found or resumen.total_comentarios is distinct from 0 then raise exception 'QA: comentario retirado contado como activo'; end if;
+end $$;
+update public.comentarios set retirada_en=null where id='30000000-0000-4000-8000-000000000001' and version=5;
+do $$ begin
+  if (select version from public.comentarios where id='30000000-0000-4000-8000-000000000001') is distinct from 6 then raise exception 'QA: restauración de comentario no confirmada'; end if;
+end $$;
+
 -- La alumna real de prueba puede ensayar sin aparecer a otras socias.
 set local request.jwt.claims='{"role":"authenticated","sub":"06bb7999-997b-49c8-ba80-b8d05bca4a84"}';
 insert into public.publicaciones(id,alumna_id,contenido,tipo) values
