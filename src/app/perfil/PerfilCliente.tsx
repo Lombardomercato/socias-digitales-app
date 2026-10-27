@@ -121,7 +121,7 @@ export default function PerfilCliente({ user, perfil, formacion }: Props) {
 
   return (
     <div className="min-h-screen bg-[#F4EFEA] text-[#171413]" data-platform-role={esAdmin ? 'admin' : 'member'}>
-      <nav className="flex items-center justify-between bg-[#FAF7F3] px-5 py-4 sm:px-8">
+      <nav data-student-section-header="true" className="flex items-center justify-between bg-[#FAF7F3] px-5 py-4 sm:px-8">
         <Link href={esAdmin ? '/admin' : '/inicio'} aria-label={esAdmin ? 'Volver al panel de Flor' : 'Volver a mi espacio'}>
           <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         </Link>
@@ -130,6 +130,9 @@ export default function PerfilCliente({ user, perfil, formacion }: Props) {
           <button onClick={cerrarSesion} className="text-sm text-[#655B56] hover:text-[#171413]">Cerrar sesión</button>
         </div>
       </nav>
+      <div className="sd-student-section-actions mx-auto max-w-2xl justify-end px-4 pt-5">
+        <button type="button" onClick={cerrarSesion} className="inline-flex min-h-11 items-center rounded-full border border-[#E7DDD5] bg-[#FAF7F3] px-4 py-2 text-sm font-medium text-[#655B56] hover:text-[#171413] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38]">Cerrar sesión</button>
+      </div>
 
       <div className="mx-auto max-w-2xl space-y-6 px-4 py-8 sm:py-10">
 

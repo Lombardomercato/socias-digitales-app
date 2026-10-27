@@ -199,7 +199,7 @@ export default function LanzamientoCliente({ nombre, userId, metricasGuardadas, 
 
   return (
     <div className="min-h-screen bg-[#FAF7F3] text-[#171413]">
-      <header className="bg-[#FAF7F3]">
+      <header data-student-section-header="true" className="bg-[#FAF7F3]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
           <Image src="/academy-horizontal-color.png" alt="Socias Digitales Academy" width={220} height={77} className="h-12 w-auto object-contain sm:h-14" priority />
           <a href="/inicio" className="rounded-full bg-[#F4EFEA] px-4 py-2 text-xs font-medium text-[#171413] transition hover:bg-[#F4CAD8]">Volver a mi espacio</a>

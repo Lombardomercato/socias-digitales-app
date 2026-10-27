@@ -16,7 +16,7 @@ export default async function NotificacionesPage() {
   ])
   const leidos = new Set((lecturas ?? []).map(item => item.aviso_id))
   return <main className="mx-auto max-w-3xl px-5 py-8 sm:py-12">
-    <Link href="/inicio" className="text-sm font-medium text-[#294A38]">← Mi espacio</Link>
+    <Link href="/inicio" data-student-section-header="true" className="text-sm font-medium text-[#294A38]">← Mi espacio</Link>
     <div className="mt-7 flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F4CAD8] text-[#294A38]"><NavigationIcon name="notificaciones" /></span><h1 className="text-4xl">Tus notificaciones</h1></div>
     <BandejaAvisos userId={user.id} iniciales={(avisos ?? []).map(aviso => ({ ...aviso, leido: leidos.has(aviso.id) }))} errorCarga={Boolean(error || errorLecturas)} />
   </main>

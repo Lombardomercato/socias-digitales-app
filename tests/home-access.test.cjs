@@ -19,7 +19,7 @@ const access = load('src/lib/access.ts')
 const classes = load('src/lib/class-access.ts')
 const community = load('src/lib/community.ts')
 const home = load('src/lib/home-access.ts', { './access': access, './class-access': classes })
-const link = { default: props => React.createElement('a', props) }
+const link = { default: ({ prefetch, ...props }) => { void prefetch; return React.createElement('a', props) } }
 const icon = { default: () => React.createElement('span', { 'aria-hidden': true }) }
 const LockedModules = load('src/components/LockedModules.tsx', { 'next/link': link, './NavigationIcon': icon, './ArrowIcon': icon, '@/lib/modules': load('src/lib/modules.ts') }).default
 const socia = { id: 'propia', nombre: 'Socia', rol: 'alumna', tipo_usuario: 'socia', estado: 'activa', desafio_socias_habilitada: false, desafio_socias_estado: 'pendiente' }
@@ -59,6 +59,19 @@ function pagina({ perfil = socia, errorPerfil = null, user = { id: 'propia' }, e
     } }
   } }
   const wrapper = ({ children }) => React.createElement(React.Fragment, null, children)
+  const notices = { UnreadNoticesProvider: wrapper, UnreadNoticeLink: ({ variante, activo }) => React.createElement('a', { href: '/notificaciones', 'data-variante': variante, 'aria-current': activo ? 'page' : undefined }, variante === 'menu' ? 'Notificaciones' : 'Avisos') }
+  const navigation = load('src/lib/student-navigation.ts')
+  const Sidebar = load('src/components/StudentSidebar.tsx', {
+    'next/link': link, 'next/navigation': { usePathname: () => '/inicio' },
+    './NavigationIcon': icon, './UnreadNotices': notices,
+    '@/app/inicio/ProximaClase': { default: ({ variante }) => React.createElement('div', { 'data-proximo-hito': variante }) },
+    '@/lib/student-navigation': navigation,
+  }).default
+  const Frame = load('src/components/StudentShellFrame.tsx', {
+    'next/link': link, 'next/navigation': { usePathname: () => '/inicio' },
+    '@/app/inicio/AgendaProvider': { AgendaProvider: wrapper },
+    './UnreadNotices': notices, './StudentSidebar': { default: Sidebar },
+  }).default
   const permiso = nombre => async (_db, id) => { assert.equal(id, 'propia'); calls.push(nombre); return { permitido: false } }
   const page = load('src/app/inicio/page.tsx', {
     'next/link': link,
@@ -66,11 +79,12 @@ function pagina({ perfil = socia, errorPerfil = null, user = { id: 'propia' }, e
     '@/lib/supabase/server': { createClient: async () => db },
     './ProximaClase': { default: ({ variante }) => React.createElement('div', { 'data-proximo-hito': variante }) },
     '@/components/ArrowIcon': icon, '@/components/NavigationIcon': icon,
+    '@/components/StudentShellFrame': { default: Frame },
     '@/components/LockedModules': { default: LockedModules },
     '@/components/FreeStart': { default: ({ clases }) => React.createElement('section', { 'data-inicio-gratuito': true, 'data-clases': clases.length }, 'Clases gratuitas') },
     '@/lib/class-catalog': { leerCatalogoClases: async p => { calls.push('catalogo'); assert.equal(p, perfil); return [{ id: 'muestra', acceso_gratuito: true, puede_ver: true }] } },
     '@/lib/unread-notices': { leerAvisosSinLeer: async () => { calls.push('avisos'); return { cantidad: 0 } } },
-    '@/components/UnreadNotices': { UnreadNoticesProvider: wrapper, UnreadNoticeLink: ({ variante }) => React.createElement('a', { href: '/notificaciones', 'data-variante': variante }, 'Avisos') },
+    '@/components/UnreadNotices': notices,
     '@/lib/results-server': { permisoResultados: permiso('permiso-resultados') },
     '@/lib/metrics-server': { permisoMetricas: permiso('permiso-metricas') },
     '@/lib/my-day-server': { permisoMiDia: permiso('permiso-dia') },
@@ -129,7 +143,10 @@ test('SSR Inicio: lateral de formación fijo en escritorio, desplazable y accesi
     const html = renderToStaticMarkup(await pagina({ perfil }).page())
     const header = html.match(/<header[^>]*>/)?.[0]
     const aside = html.match(/<aside[^>]*>([\s\S]*?)<\/aside>/)?.[1]
-    assert.ok(header?.includes('lg:sticky lg:top-0 lg:z-40 lg:bg-[#FAF7F3]'))
+    assert.ok(header?.includes('lg:sticky lg:top-0 lg:z-40'))
+    assert.ok(header?.includes('lg:bg-[#FAF7F3]'))
+    const headerClasses = header?.match(/class="([^"]*)"/)?.[1].split(/\s+/) ?? []
+    for (const value of ['sticky', 'top-0', 'z-40']) assert.ok(headerClasses.includes(value))
     assert.match(aside, /role="region" aria-label="Menú y próximo encuentro" tabindex="0"/)
     for (const value of ['lg:sticky', 'lg:top-[104px]', 'lg:max-h-[calc(100dvh-132px)]', 'lg:overflow-y-auto', 'focus-visible:outline-2']) assert.ok(aside.includes(value))
     assert.ok(aside.includes('Navegación principal'))

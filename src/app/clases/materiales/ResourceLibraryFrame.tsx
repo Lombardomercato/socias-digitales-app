@@ -7,7 +7,7 @@ const focus = 'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visi
 
 export default function ResourceLibraryFrame({ children }: { children: ReactNode }) {
   return <main className="min-h-dvh bg-[#F4EFEA] text-[#211C19]">
-    <header className="border-b border-[#E7DDD5] bg-[#FAF7F3]"><div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
+    <header data-student-section-header="true" className="border-b border-[#E7DDD5] bg-[#FAF7F3]"><div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
       <Link href="/inicio" aria-label="Socias Digitales, volver a Inicio" className={`inline-flex min-h-11 items-center ${focus}`}><Image src="/academy-horizontal-color.png" alt="Socias Digitales Academy" width={3922} height={1366} sizes="130px" className="h-9 w-auto object-contain sm:h-11" /></Link>
       <Link href="/inicio" className={`inline-flex min-h-11 items-center gap-2 text-xs font-medium text-[#294A38] sm:text-sm ${focus}`}>Mi espacio <ArrowIcon /></Link>
     </div></header>

@@ -11,7 +11,7 @@ function load(file) {
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText
   new Function('require', 'module', 'exports', code)(name => {
     if (name === 'server-only') return {}
-    if (name === 'next/link') return { default: props => React.createElement('a', props) }
+    if (name === 'next/link') return { default: ({ prefetch, ...props }) => { void prefetch; return React.createElement('a', props) } }
     if (name.startsWith('.')) return load(path.resolve(path.dirname(file), name + '.tsx'))
     return require(name)
   }, mod, mod.exports)
@@ -41,8 +41,8 @@ test('cero pendientes y falla de consulta se distinguen', async () => {
   assert.deepEqual(await leerAvisosSinLeer(cliente({ count: null, data: null, error: { message: 'red' } }), 'mi-id'), { cantidad: 0, ultimoTitulo: null, errorCarga: true })
 })
 const { UnreadNoticesProvider, UnreadNoticeLink } = load(path.resolve(__dirname, '../src/components/UnreadNotices.tsx'))
-function vista(cantidad, variante, errorCarga = false) {
-  return renderToStaticMarkup(React.createElement(UnreadNoticesProvider, { inicial: { cantidad, ultimoTitulo: 'Clase mañana', errorCarga } }, React.createElement(UnreadNoticeLink, { variante })))
+function vista(cantidad, variante, errorCarga = false, activo = false) {
+  return renderToStaticMarkup(React.createElement(UnreadNoticesProvider, { inicial: { cantidad, ultimoTitulo: 'Clase mañana', errorCarga } }, React.createElement(UnreadNoticeLink, { variante, activo })))
 }
 test('campana y menú tienen número visible y nombre accesible; banner invita a leer', () => {
   for (const variante of ['header', 'menu', 'tarjeta']) {
@@ -80,6 +80,16 @@ test('Notificaciones conserva el tamaño y alineación del menú, con el contado
     if (cantidad > 0) assert.ok(html.includes('absolute -right-1 -top-1'))
   }
 })
+test('Notificaciones indica página activa sin inventar avisos o perder la cantidad real de no leídos', () => {
+  for (const cantidad of [0, 1, 137]) {
+    const html = vista(cantidad, 'menu', false, true)
+    assert.match(html, /aria-current="page"/)
+    assert.ok(html.includes('bg-[#F4CAD8] font-semibold'))
+    assert.ok(html.includes(cantidad ? `Notificaciones: ${cantidad} comunicado` : 'aria-label="Notificaciones"'))
+    if (cantidad === 0) assert.ok(!html.includes('tabular-nums'))
+    assert.ok(!vista(cantidad, 'menu', false, false).includes('aria-current'))
+  }
+})
 test('actualización única con pestaña visible; no marca mensajes automáticamente ni pierde el último dato ante errores', () => {
   const ui = fs.readFileSync(path.resolve(__dirname, '../src/components/UnreadNotices.tsx'), 'utf8')
   assert.equal((ui.match(/setInterval/g) || []).length, 1)
@@ -94,6 +104,11 @@ test('actualización única con pestaña visible; no marca mensajes automáticam
   assert.ok(!api.includes('createAdminClient'))
   const inicio = fs.readFileSync(path.resolve(__dirname, '../src/app/inicio/page.tsx'), 'utf8')
   assert.ok(!inicio.includes('<UnreadNoticeLink variante="banner"'))
-  assert.ok(inicio.includes('<UnreadNoticeLink variante="header"'))
-  assert.ok(inicio.includes('<UnreadNoticeLink variante="menu"'))
+  assert.ok(inicio.includes('<StudentShellFrame datos='))
+  const frame = fs.readFileSync(path.resolve(__dirname, '../src/components/StudentShellFrame.tsx'), 'utf8')
+  const sidebar = fs.readFileSync(path.resolve(__dirname, '../src/components/StudentSidebar.tsx'), 'utf8')
+  assert.equal((frame.match(/<UnreadNoticesProvider /g) || []).length, 1)
+  assert.equal((frame.match(/<UnreadNoticeLink variante="header"/g) || []).length, 1)
+  assert.ok(sidebar.includes('<UnreadNoticeLink variante="menu"'))
+  for (const source of [frame, sidebar]) assert.ok(!source.includes('<UnreadNoticeLink variante="banner"'))
 })

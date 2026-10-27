@@ -136,7 +136,7 @@ export default function ClassroomCliente({ clases, esAdmin, perfil, progresoInic
 
   return (
     <main className="min-h-screen bg-[#F4EFEA] text-[#211C19]" data-platform-role={esAdmin ? 'admin' : 'member'}>
-      <header className="border-b border-[#E7DDD5] bg-[#FAF7F3]">
+      <header data-student-section-header="true" className="border-b border-[#E7DDD5] bg-[#FAF7F3]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <a href={esAdmin ? '/admin' : '/inicio'} aria-label={esAdmin ? 'Volver al panel de Flor' : 'Volver a mi espacio'} className="flex items-center gap-3">
             <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-9 w-auto object-contain sm:h-11" />

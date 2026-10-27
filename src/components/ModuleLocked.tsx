@@ -7,7 +7,7 @@ export default function ModuleLocked({ id }: { id: ModuloSociaId }) {
   const disponible = id === 'resultados' || id === 'metricas' || id === 'checklist'
   const nombre = id === 'checklist' ? 'Mi día' : id === 'metricas' ? 'Métricas' : 'Resultados'
   return <main className="mx-auto max-w-3xl px-5 py-8 sm:py-12">
-    <Link href="/inicio" className="text-sm font-medium text-[#294A38]">← Mi espacio</Link>
+    <Link href="/inicio" data-student-section-header="true" className="text-sm font-medium text-[#294A38]">← Mi espacio</Link>
     <section className="mt-7 rounded-[26px] border border-[#e7ddd5] bg-[#FAF7F3] p-7 sm:p-10">
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F4CAD8] text-[#294A38]"><NavigationIcon name={modulo.icon} /></span>
       <h1 className="mt-5 text-4xl">{modulo.nombre}</h1>

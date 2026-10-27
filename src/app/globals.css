@@ -239,6 +239,15 @@ body {
 .platform-design, .sd-access-design { min-width: 0; }
 .platform-design { padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px); }
 .sd-mobile-navigation { display: none; }
+.sd-student-section-actions { display: none; }
+/* Solo encabezados redundantes marcados explícitamente; nunca títulos,
+   filtros, controles del reproductor ni barras administrativas. */
+.sd-student-shell [data-student-section-header] { display: none; }
+.sd-student-shell .sd-student-section-actions { display: flex; }
+.sd-student-shell__content { min-width: 0; }
+.sd-student-shell__content > :first-child { min-height: calc(100dvh - 76px); }
+.sd-student-shell .scroll-mt-5,
+.sd-student-shell #reprogramar-titulo { scroll-margin-top: 96px; }
 .platform-design .sd-video-dialog:not(dialog) h2 { color: #faf7f3; }
 
 @media (max-width: 1023px) {
@@ -287,6 +296,7 @@ body {
 }
 
 @media (max-width: 639px) {
+  .platform-design .sd-student-shell__header [data-student-mobile-avatar="hidden"] { display: none; }
   .platform-design, .sd-access-design { min-height: 100dvh; }
   .platform-design :is(main, section, article, form, fieldset),
   .sd-access-design :is(main, section, article, form, fieldset) { min-width: 0; }
@@ -305,6 +315,7 @@ body {
     gap: 12px;
     flex-wrap: wrap;
   }
+  .platform-design .sd-student-shell header.sd-student-shell__header { flex-wrap: nowrap; }
   .platform-design :is(header, nav) a:has(img) { min-width: 0; flex-shrink: 1; }
   .platform-design :is(header, nav) img[alt="Socias Digitales Academy"] { max-width: 138px; object-fit: contain; }
   .platform-design :is(header, nav) > div { min-width: 0; }

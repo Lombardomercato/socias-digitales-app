@@ -43,7 +43,7 @@ export function UnreadNoticesProvider({ inicial, children }: { inicial: ResumenA
   return <AvisosContext.Provider value={resumen}>{children}</AvisosContext.Provider>
 }
 
-export function UnreadNoticeLink({ variante }: { variante: 'header' | 'menu' | 'banner' | 'tarjeta' | 'resumen' }) {
+export function UnreadNoticeLink({ variante, activo = false }: { variante: 'header' | 'menu' | 'banner' | 'tarjeta' | 'resumen'; activo?: boolean }) {
   const resumen = useContext(AvisosContext)
   if (!resumen) return null
   const { cantidad, ultimoTitulo, errorCarga } = resumen
@@ -72,6 +72,6 @@ export function UnreadNoticeLink({ variante }: { variante: 'header' | 'menu' | '
   }
   const label = `Notificaciones${pendientes ? `: ${texto}` : ''}`
   if (variante === 'header') return <Link href="/notificaciones" aria-label={label} className={`flex min-h-11 items-center gap-2 rounded-full border px-3 py-2 text-sm ${pendientes ? 'border-[#EC9BB6] bg-[#EC9BB6] font-semibold text-[#211c19]' : 'border-transparent text-[#294A38]'} ${foco}`}><NavigationIcon name="notificaciones" /><span className="hidden sm:inline">Avisos</span>{badge}</Link>
-  if (variante === 'menu') return <Link href="/notificaciones" aria-label={label} className={`relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm ${pendientes ? 'border border-[#EC9BB6] bg-[#F4CAD8] font-semibold text-[#211c19]' : 'text-[#746a64] hover:bg-[#F4EFEA]'} ${foco}`}><NavigationIcon name="notificaciones" /><span className="flex-1">Notificaciones</span>{badge && <span className="absolute -right-1 -top-1">{badge}</span>}</Link>
+  if (variante === 'menu') return <Link href="/notificaciones" prefetch={false} aria-label={label} aria-current={activo ? 'page' : undefined} className={`relative flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm ${pendientes ? 'border border-[#EC9BB6] bg-[#F4CAD8] font-semibold text-[#211c19]' : activo ? 'bg-[#F4CAD8] font-semibold text-[#211c19]' : 'text-[#746a64] hover:bg-[#F4EFEA]'} ${foco}`}><NavigationIcon name="notificaciones" /><span className="flex-1">Notificaciones</span>{badge && <span className="absolute -right-1 -top-1">{badge}</span>}</Link>
   return <Link href="/notificaciones" aria-label={label} className={`mt-5 flex items-center justify-between gap-4 rounded-[20px] border p-5 ${pendientes ? 'border-[#EC9BB6] bg-[#F4CAD8]/50' : 'border-[#e7ddd5] bg-[#FAF7F3]'} ${foco}`}><span className="flex items-center gap-3 text-sm font-semibold"><NavigationIcon name="notificaciones" />Mis notificaciones{badge}</span><ArrowIcon /></Link>
 }

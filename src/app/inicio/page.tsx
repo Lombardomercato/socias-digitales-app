@@ -4,17 +4,16 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ProximaClase from './ProximaClase'
 import ArrowIcon from '@/components/ArrowIcon'
-import NavigationIcon from '@/components/NavigationIcon'
+import StudentShellFrame from '@/components/StudentShellFrame'
 import LockedModules from '@/components/LockedModules'
 import FreeStart from '@/components/FreeStart'
 import { leerCatalogoClases } from '@/lib/class-catalog'
 import { leerAvisosSinLeer } from '@/lib/unread-notices'
-import { UnreadNoticesProvider, UnreadNoticeLink } from '@/components/UnreadNotices'
+import { UnreadNoticeLink } from '@/components/UnreadNotices'
 import { permisoResultados } from '@/lib/results-server'
 import { permisoMetricas } from '@/lib/metrics-server'
 import { permisoMiDia } from '@/lib/my-day-server'
 import { puedeVerLogros } from '@/lib/achievements'
-import { AgendaProvider } from './AgendaProvider'
 import { leerAgenda } from '@/lib/agenda-store'
 import { hitoParaAlumna } from '@/lib/agenda-management'
 import type { HitoAgenda } from '@/lib/agenda'
@@ -67,36 +66,9 @@ export default async function InicioPage({ searchParams }: { searchParams?: Prom
     catch { errorAgenda = true; console.error('agenda_read_failed') }
   }
   return (
-    <UnreadNoticesProvider inicial={resumenAvisos}>
-    <AgendaProvider inicial={hitos} errorInicial={errorAgenda}>
-    <div className="min-h-screen bg-[#FAF7F3] text-[#211c19]">
-      <header className={`flex h-[76px] items-center justify-between border-b border-[#e7ddd5] px-5 sm:px-8 ${mostrarClase ? 'lg:sticky lg:top-0 lg:z-40 lg:bg-[#FAF7F3]' : ''}`}>
-        <Link href="/inicio" aria-label="Socias Digitales, inicio">
-          <img src="/academy-horizontal-color.png" alt="Socias Digitales Academy" className="h-11 w-auto object-contain" />
-        </Link>
-        <div className="flex items-center gap-4"><UnreadNoticeLink variante="header" />
-        <Link href="/perfil" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4CAD8] text-sm font-semibold text-[#211c19]" aria-label="Mi perfil">
-          {nombre.slice(0, 1).toUpperCase()}
-        </Link></div>
-      </header>
-
-      <div className={`mx-auto grid max-w-[1400px] ${mostrarClase ? 'lg:grid-cols-[220px_minmax(0,1fr)]' : ''}`}>
-        {mostrarClase && <aside className="hidden min-h-[calc(100vh-76px)] border-r border-[#e7ddd5] px-5 py-7 lg:block">
-          <div role="region" aria-label="Menú y próximo encuentro" tabIndex={0} className="lg:sticky lg:top-[104px] lg:max-h-[calc(100dvh-132px)] lg:overflow-y-auto focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#294A38]">
-          <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746a64]">Mi espacio</p>
-          <nav className="mt-5 space-y-1.5" aria-label="Navegación principal">
-            <Link href="/inicio" aria-current="page" className="flex items-center gap-3 rounded-xl bg-[#F4CAD8] px-3 py-3 text-sm font-semibold"><NavigationIcon name="inicio" />Inicio</Link>
-            {habilitada ? <>
-              <Link href="/lanzamiento" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="lanzamiento" />Estrategia</Link>
-              <Link href="/clases" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="clases" />Programa</Link>
-            </> : null}
-            <Link href="/perfil" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="perfil" />Mi perfil</Link>
-            {puedeUsarComunidad(perfil) && <Link href="/comunidad" className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#746a64] transition hover:bg-[#F4EFEA] hover:text-[#211c19]"><NavigationIcon name="comunidad" />Comunidad</Link>}
-            <UnreadNoticeLink variante="menu" />
-          </nav>
-          <ProximaClase ahoraInicial={ahoraInicial} variante="contador" />
-          </div>
-        </aside>}
+    <StudentShellFrame datos={{ nombre, formacion: mostrarClase, comunidad: puedeUsarComunidad(perfil),
+      herramientas: { resultados: accesoResultados.permitido && !accesoResultados.error, metricas: accesoMetricas.permitido && !accesoMetricas.error, miDia: accesoMiDia.permitido && !accesoMiDia.error, logros: puedeVerLogros(perfil) },
+      ahoraInicial, hitos, errorAgenda, avisos: resumenAvisos }}>
 
         <main className="min-w-0 px-5 py-7 sm:px-8 sm:py-9 lg:px-10">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -137,9 +109,6 @@ export default async function InicioPage({ searchParams }: { searchParams?: Prom
           {!habilitada && <UnreadNoticeLink variante="tarjeta" />}
           <LockedModules compacto={habilitada} erroresPermiso={[...(accesoResultados.error ? ['resultados' as const] : []), ...(accesoMetricas.error ? ['metricas' as const] : []), ...(accesoMiDia.error ? ['checklist' as const] : [])]} venta={esGratuito} resultadosHabilitados={accesoResultados.permitido} metricasHabilitadas={accesoMetricas.permitido} miDiaHabilitado={accesoMiDia.permitido} logrosHabilitados={puedeVerLogros(perfil)} comunidadHabilitada={puedeUsarComunidad(perfil)} />
         </main>
-      </div>
-    </div>
-    </AgendaProvider>
-    </UnreadNoticesProvider>
+    </StudentShellFrame>
   )
 }
