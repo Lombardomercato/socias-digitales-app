@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
@@ -12,7 +13,7 @@ function cargar(file, deps = {}) {
   new Function('require', 'module', 'exports', code)(name => name in deps ? deps[name] : require(name), m, m.exports)
   return m.exports
 }
-const link = { default: ({ prefetch: _prefetch, ...props }) => React.createElement('a', props) }
+const link = { default: ({ prefetch, ...props }) => { void prefetch; return React.createElement('a', props) } }
 const icon = { default: () => null }
 test('navegación móvil: cinco destinos reales, ruta activa correcta y sin precargar avisos o alterar permisos', () => {
   for (const [ruta, destino] of [['/inicio','/inicio'],['/classroom/parte-1','/clases'],['/checklist','/checklist'],['/notificaciones','/notificaciones'],['/cuenta/contrasena','/perfil']]) {
@@ -32,7 +33,8 @@ test('Flor dispone de todas las secciones en móvil, sin perder Mi día, Métric
   const html = renderToStaticMarkup(React.createElement(menu.default))
   assert.ok(html.includes('Sección del panel de Flor')); assert.ok(html.includes('value="/admin/checklist" selected=""'))
   for (const s of sections.ADMIN_SECTIONS) { assert.ok(html.includes(`value="${s.href}"`)); assert.ok(html.includes(`href="${s.href}"`)) }
-  assert.equal(sections.ADMIN_SECTIONS.length, 15)
+  assert.equal(sections.ADMIN_SECTIONS.length, 16)
+  assert.ok(html.includes('value="/admin/recursos"'))
   assert.ok(html.includes('value="/admin/equipo"'))
   assert.ok(html.includes('value="/admin/encuesta"'))
 })

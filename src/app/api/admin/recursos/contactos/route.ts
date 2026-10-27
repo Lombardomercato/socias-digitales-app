@@ -1,0 +1,4 @@
+import { filtrosContactosCrm, validarContactoCrm } from '@/lib/resource-crm'
+import { crearContactoCrm, ejecutarCrm, ErrorRecursosCrm, leerContactosCrm, leerJsonCrm, responderCrm, validarEntradaCrm } from '@/lib/resource-crm-server'
+export async function GET(request: Request) { return ejecutarCrm(request, false, async auth => { const filtros = validarEntradaCrm(() => filtrosContactosCrm(new URL(request.url).searchParams)), data = await leerContactosCrm(auth, filtros); return responderCrm(data, data.estado === 'error' ? 503 : 200) }) }
+export async function POST(request: Request) { return ejecutarCrm(request, true, async auth => { if (new URL(request.url).search) throw new ErrorRecursosCrm(400, 'Parámetros no permitidos.'); const raw = await leerJsonCrm(request), entrada = validarEntradaCrm(() => validarContactoCrm(raw)); return responderCrm({ ok: true, contacto: await crearContactoCrm(auth, entrada) }) }) }

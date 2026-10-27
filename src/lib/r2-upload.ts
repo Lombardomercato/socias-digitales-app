@@ -87,7 +87,7 @@ export async function pedirR2(
   body: string | Uint8Array<ArrayBuffer> = '',
   contentType?: string,
   condicion?: { 'If-Match': string } | { 'If-None-Match': '*' },
-  opciones?: { sinCompresion?: boolean; timeoutMs?: number },
+  opciones?: { sinCompresion?: boolean; timeoutMs?: number; metadatos?: Record<string, string> },
 ) {
   const c = config(key),
     qs = queryString(query),
@@ -95,7 +95,12 @@ export async function pedirR2(
   const condicionales = condicion
     ? Object.fromEntries(Object.entries(condicion).map(([k, v]) => [k.toLowerCase(), v]))
     : {}
-  const paraFirmar: Record<string, string> = { ...condicionales, host: c.host, 'x-amz-content-sha256': payload, 'x-amz-date': c.date }
+  const metadatos: Record<string, string> = {}
+  for (const [nombre, valor] of Object.entries(opciones?.metadatos ?? {})) {
+    if (!/^[a-z0-9-]{1,40}$/.test(nombre) || !/^[\x20-\x7e]{1,256}$/.test(valor)) throw new Error('Metadatos de archivo no válidos.')
+    metadatos[`x-amz-meta-${nombre}`] = valor
+  }
+  const paraFirmar: Record<string, string> = { ...condicionales, ...metadatos, host: c.host, 'x-amz-content-sha256': payload, 'x-amz-date': c.date }
   const nombres = Object.keys(paraFirmar).sort()
   const signedHeaders = nombres.join(';')
   const headers = nombres.map(k => `${k}:${paraFirmar[k]}\n`).join('')
@@ -109,6 +114,7 @@ export async function pedirR2(
     method,
     headers: {
       ...condicionales,
+      ...metadatos,
       ...(opciones?.sinCompresion ? { 'Accept-Encoding': 'identity' } : {}),
       'x-amz-date': c.date,
       'x-amz-content-sha256': payload,

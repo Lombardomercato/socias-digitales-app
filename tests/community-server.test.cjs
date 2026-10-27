@@ -8,6 +8,9 @@ const id = '00000000-0000-4000-8000-000000000001', commentId = '00000000-0000-40
 const perfil = { id: userId, nombre: 'Socia ficticia', rol: 'alumna', tipo_usuario: 'socia', estado: 'activa' }
 const post = changes => ({ id, alumna_id: userId, contenido: 'Un avance ficticio', tipo: 'avance', created_at: date, actualizado_at: date, version: 1, retirada_en: null, oculta_en: null, motivo_moderacion: null, ...changes })
 const comment = changes => ({ id: commentId, publicacion_id: id, autor_id: userId, contenido: 'Un comentario ficticio', created_at: date, actualizado_at: date, version: 1, retirada_en: null, oculta_en: null, motivo_moderacion: null, ...changes })
+const foto = { id: '00000000-0000-4000-8000-000000000020', ancho: 1080, alto: 1920 }
+const otraFoto = { id: '00000000-0000-4000-8000-000000000021', ancho: 1080, alto: 1080 }
+class ErrorFotosComunidad extends Error { constructor(status, message) { super(message); this.status = status } }
 function fixture(options = {}) {
   const calls = [], tables = { publicaciones: (options.posts ?? [post()]).map(p => ({ ...p })), comentarios: (options.comments ?? []).map(c => ({ ...c })), reacciones: (options.reactions ?? []).map(r => ({ ...r })) }
   let profile = options.profile === undefined ? perfil : options.profile
@@ -61,9 +64,15 @@ function fixture(options = {}) {
       return { data: options.missingSummary ? [] : args.p_ids.map(publicacion_id => ({ publicacion_id, total_comentarios: options.invalidCount ?? String(tables.comentarios.filter(c => c.publicacion_id === publicacion_id && !c.oculta_en && !c.retirada_en).length), total_felicitaciones: tables.reacciones.filter(r => r.publicacion_id === publicacion_id).length, felicitada: tables.reacciones.some(r => r.publicacion_id === publicacion_id && r.alumna_id === userId) })), error: null }
     },
   }
-  const server = load('src/lib/community-server.ts', { 'next/navigation': { unstable_rethrow() {} }, './supabase/server': { createClient: async () => db }, './community': domain })
+  const server = load('src/lib/community-server.ts', {
+    'next/navigation': { unstable_rethrow() {} }, './supabase/server': { createClient: async () => db }, './community': domain,
+    './community-photos-server': { ErrorFotosComunidad, verificarFotosComunidad: async (auth, postId, fotos) => {
+      calls.push({ verificarFotos: true, usuaria: auth.userId, postId, fotos: structuredClone(fotos) })
+      if (options.photoError) throw options.photoError
+    } },
+  })
   const auth = { supabase: db, userId, admin: options.admin ?? false, perfil: { ...perfil, avatar_url: null } }
-  return { server, db, auth, calls, tables, setProfile(p) { profile = p } }
+  return { server, db, auth, calls, tables, setProfile(p) { profile = p }, setPhotoError(error) { options.photoError = error } }
 }
 test('autorizar usa getUser y un perfil propio protegido, no metadata manipulable', async () => {
   const f = fixture(), auth = await f.server.autorizarComunidad()
@@ -106,7 +115,7 @@ test('crear publicación fija autora de sesión y recupera misma intención desp
     const created = await f.server.crearPublicacionComunidad(f.auth, input), retried = await f.server.crearPublicacionComunidad(f.auth, input)
     assert.equal(created.id, id); assert.deepEqual(retried, created); assert.equal(f.tables.publicaciones.length, 1)
     const write = f.calls.find(c => c.action === 'insert')
-    assert.deepEqual(write.data, { id, alumna_id: userId, tipo: input.tipo, contenido: input.contenido })
+    assert.deepEqual(write.data, { id, alumna_id: userId, tipo: input.tipo, contenido: input.contenido, fotos: [] })
     await assert.rejects(f.server.crearPublicacionComunidad(f.auth, { ...input, contenido: 'Cambió' }), e => e.status === 409)
   }
 })
@@ -166,4 +175,73 @@ test('servidor no usa resultados, pruebas privadas, metadata ni credenciales pri
   const source = read('src/lib/community-server.ts')
   for (const forbidden of ["from('resultados')", 'archivo_url', 'SERVICE_ROLE', 'createAdminClient', 'user_metadata', 'getSession(', 'imagen_url', '.select(\'*\'']) assert.ok(!source.includes(forbidden), forbidden)
   assert.ok(source.startsWith("import 'server-only'"))
+})
+test('fotos: crear vincula metadata verificada al post y devuelve únicamente id y dimensiones', async () => {
+  const f = fixture({ posts: [] }), entrada = domain.validarNuevaPublicacion({ id, tipo: 'avance', contenido: '', fotos: [foto, otraFoto] })
+  const guardada = await f.server.crearPublicacionComunidad(f.auth, entrada)
+  assert.equal(guardada.contenido, ''); assert.deepEqual(guardada.fotos, [foto, otraFoto]); assert.equal(domain.esPublicacionComunidad(guardada), true)
+  const verificacion = f.calls.find(c => c.verificarFotos)
+  assert.deepEqual(verificacion, { verificarFotos: true, usuaria: userId, postId: id, fotos: [foto, otraFoto] })
+  const indiceVerify = f.calls.findIndex(c => c.verificarFotos), indiceInsert = f.calls.findIndex(c => c.action === 'insert')
+  assert.ok(indiceVerify > 0 && indiceVerify < indiceInsert)
+  assert.deepEqual(f.calls[indiceInsert].data.fotos, [foto, otraFoto])
+  for (const privado of ['r2.', 'http', 'key', 'ruta', 'alumna_id']) assert.ok(!JSON.stringify(guardada.fotos).includes(privado))
+})
+test('crear fotos confirma reintento antes de verificar archivos y no acepta distinta lista u orden con el mismo UUID', async () => {
+  for (const options of [{}, { insertCommitted: true }]) {
+    const f = fixture({ posts: [], ...options }), input = { id, tipo: 'idea', contenido: 'Idea con fotos', fotos: [foto, otraFoto] }
+    const first = await f.server.crearPublicacionComunidad(f.auth, input)
+    f.setPhotoError(new ErrorFotosComunidad(503, 'Almacenamiento momentáneamente no disponible.'))
+    assert.deepEqual(await f.server.crearPublicacionComunidad(f.auth, input), first)
+    assert.equal(f.calls.filter(c => c.verificarFotos).length, 1); assert.equal(f.tables.publicaciones.length, 1)
+    await assert.rejects(f.server.crearPublicacionComunidad(f.auth, { ...input, fotos: [otraFoto, foto] }), error => error.status === 409)
+    await assert.rejects(f.server.crearPublicacionComunidad(f.auth, { ...input, fotos: [{ ...foto, ancho: 100 }, otraFoto] }), error => error.status === 409)
+    assert.equal(f.calls.filter(c => c.verificarFotos).length, 1)
+  }
+})
+test('fotos pendientes o ajenas no guardan la publicación y conservan el error seguro de la verificación', async () => {
+  for (const status of [400, 403, 404, 503]) {
+    const f = fixture({ posts: [], photoError: new ErrorFotosComunidad(status, 'No pudimos confirmar esta foto.') })
+    await assert.rejects(f.server.crearPublicacionComunidad(f.auth, { id, tipo: 'avance', contenido: '', fotos: [foto] }), error => error.status === status && error.message === 'No pudimos confirmar esta foto.')
+    assert.equal(f.tables.publicaciones.length, 0); assert.equal(f.calls.filter(c => c.action === 'insert').length, 0)
+  }
+})
+test('PATCH sin fotos conserva adjuntos guardados y admite texto vacío solamente si quedan fotos', async () => {
+  const f = fixture({ posts: [post({ fotos: [foto] })] })
+  const guardada = await f.server.cambiarPublicacionComunidad(f.auth, id, { version: 1, accion: 'editar', tipo: 'idea', contenido: '' })
+  assert.deepEqual(guardada.fotos, [foto]); assert.equal(guardada.contenido, '')
+  assert.ok(!Object.hasOwn(f.calls.find(c => c.action === 'update').data, 'fotos'))
+  assert.deepEqual(f.calls.find(c => c.verificarFotos).fotos, [foto])
+  const vacia = fixture()
+  await assert.rejects(vacia.server.cambiarPublicacionComunidad(vacia.auth, id, { version: 1, accion: 'editar', tipo: 'idea', contenido: '' }), error => error.status === 400)
+  assert.equal(vacia.calls.filter(c => c.action === 'update').length, 0)
+})
+test('editar fotos compara orden/dimensiones y confirma respuesta perdida sin volver a consultar almacenamiento', async () => {
+  for (const options of [{}, { updateCommitted: true }]) {
+    const f = fixture({ posts: [post({ fotos: [foto] })], ...options }), cambio = { version: 1, accion: 'editar', tipo: 'avance', contenido: 'Dos fotos', fotos: [foto, otraFoto] }
+    const first = await f.server.cambiarPublicacionComunidad(f.auth, id, cambio)
+    assert.deepEqual(first.fotos, [foto, otraFoto]); assert.equal(first.version, 2)
+    f.setPhotoError(new ErrorFotosComunidad(503, 'Almacenamiento temporalmente no disponible.'))
+    assert.deepEqual(await f.server.cambiarPublicacionComunidad(f.auth, id, cambio), first)
+    assert.equal(f.calls.filter(c => c.verificarFotos).length, 1); assert.equal(f.calls.filter(c => c.action === 'update').length, 1)
+    await assert.rejects(f.server.cambiarPublicacionComunidad(f.auth, id, { ...cambio, fotos: [otraFoto, foto] }), error => error.status === 409)
+    assert.equal(f.calls.filter(c => c.verificarFotos).length, 1)
+  }
+})
+test('retirar fotos es explícito, no borra objetos y moderar no verifica ni modifica adjuntos', async () => {
+  const f = fixture({ posts: [post({ fotos: [foto] })] })
+  const changed = await f.server.cambiarPublicacionComunidad(f.auth, id, { version: 1, accion: 'editar', tipo: 'avance', contenido: 'Solo texto', fotos: [] })
+  assert.deepEqual(changed.fotos, []); assert.equal(f.calls.filter(c => c.verificarFotos).length, 0)
+  const admin = fixture({ admin: true, posts: [post({ alumna_id: otherId, fotos: [foto] })], photoError: new ErrorFotosComunidad(503, 'No disponible') })
+  const hidden = await admin.server.cambiarPublicacionComunidad(admin.auth, id, { version: 1, accion: 'ocultar', motivo: 'Revisar esta publicación.' })
+  assert.equal(hidden.oculta, true); assert.deepEqual(hidden.fotos, [foto]); assert.equal(admin.calls.filter(c => c.verificarFotos).length, 0)
+  assert.ok(!Object.hasOwn(admin.calls.find(c => c.action === 'update').data, 'fotos'))
+})
+test('leer fotos requiere metadatos DTO válidos; un error no se convierte en publicación de texto sin adjuntos', async () => {
+  for (const fotos of [null, [{ ...foto, url: 'https://example.invalid/privado' }], [foto, foto], [{ ...foto, ancho: 2049 }]]) {
+    const f = fixture({ posts: [post({ fotos })] }), pagina = await f.server.leerComunidad(f.auth)
+    assert.equal(pagina.estado, 'error'); assert.ok(!Object.hasOwn(pagina, 'publicaciones'))
+  }
+  const legacy = fixture(), pagina = await legacy.server.leerComunidad(legacy.auth)
+  assert.deepEqual(pagina.publicaciones[0].fotos, [])
 })

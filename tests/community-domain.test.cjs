@@ -7,6 +7,8 @@ const id = '00000000-0000-4000-8000-000000000001', fecha = '2026-10-26T17:31:29.
 const autor = { nombre: 'Socia de prueba local', avatar_url: null, es_admin: false }
 const post = { id, tipo: 'avance', contenido: 'Mi avance ficticio.', created_at: fecha, actualizado_at: fecha, version: 1, retirada: false, oculta: false, propia: true, autor, total_comentarios: 0, total_felicitaciones: 0, felicitada: false }
 const comment = { id, publicacion_id: id, contenido: 'Una respuesta ficticia.', created_at: fecha, actualizado_at: fecha, version: 1, retirada: false, oculta: false, propia: true, autor }
+const foto = { id: '00000000-0000-4000-8000-000000000020', ancho: 1080, alto: 1920 }
+const otraFoto = { id: '00000000-0000-4000-8000-000000000021', ancho: 2048, alto: 1 }
 
 test('Comunidad exige Socias activo y respeta la asignación explícita de Flor por sobre roles heredados', () => {
   for (const perfil of [null, {}, { tipo_usuario: 'socia' }, { rol: 'alumna', tipo_usuario: 'socia', estado: 'pausada' }, { rol: 'afiliada', tipo_usuario: 'gratuito', estado: 'activa' }, { rol: 'afiliada_lanzamiento', tipo_usuario: 'desafio', estado: 'activa' }]) assert.equal(c.puedeUsarComunidad(perfil), false)
@@ -58,4 +60,41 @@ test('DTO estricto no acepta perfiles completos, pruebas/ingresos, recuentos inv
   assert.equal(c.esPaginaComunidad({ estado: 'lista', publicaciones: [post], siguiente: 'inventado' }), false)
   assert.equal(c.esPaginaComunidad({ estado: 'lista', publicaciones: Array.from({ length: 21 }, () => post), siguiente: null }), false)
   assert.equal(c.esPaginaComentarios({ estado: 'lista', comentarios: [comment], siguiente: null, perfil: {} }), false)
+})
+test('fotos: UUID y dimensiones acotados, hasta cuatro, únicas y sin URLs o rutas arbitrarias', () => {
+  assert.equal(c.esFotoComunidad(foto), true)
+  assert.deepEqual(c.validarFotosComunidad([foto, otraFoto]), [foto, otraFoto])
+  assert.deepEqual(c.validarFotosComunidad([{ ...foto, id: foto.id.toUpperCase() }]), [foto])
+  assert.deepEqual(c.validarFotosComunidad([]), [])
+  for (const valor of [null, {}, 'https://example.test/foto', [foto, foto], [foto, { ...foto, id: foto.id.toUpperCase() }], [foto, otraFoto, { ...foto, id: id }, { ...foto, id: '00000000-0000-4000-8000-000000000022' }, { ...foto, id: '00000000-0000-4000-8000-000000000023' }]]) assert.throws(() => c.validarFotosComunidad(valor))
+  for (const cambio of [{ id: 'no-es-uuid' }, { ancho: 0 }, { ancho: 2049 }, { ancho: 1.5 }, { ancho: '1080' }, { alto: Infinity }, { alto: -1 }, { alto: null }, { url: 'https://example.test/foto' }, { ruta: '/comprobante/privado' }, { autora_id: id }]) {
+    assert.equal(c.esFotoComunidad({ ...foto, ...cambio }), false)
+    assert.throws(() => c.validarFotosComunidad([{ ...foto, ...cambio }]))
+  }
+})
+test('publicación con fotos admite texto opcional; comentarios y publicaciones sin fotos mantienen texto obligatorio', () => {
+  assert.deepEqual(c.validarNuevaPublicacion({ id, tipo: 'avance', contenido: '', fotos: [foto] }), { id, tipo: 'avance', contenido: '', fotos: [foto] })
+  assert.deepEqual(c.validarNuevaPublicacion({ id, tipo: 'idea', fotos: [foto] }), { id, tipo: 'idea', contenido: '', fotos: [foto] })
+  assert.equal(c.esPublicacionComunidad({ ...post, contenido: '', fotos: [foto] }), true)
+  assert.equal(c.esPublicacionComunidad({ ...post, fotos: [] }), true)
+  assert.equal(c.esPublicacionComunidad({ ...post, contenido: '', fotos: [] }), false)
+  assert.equal(c.esPublicacionComunidad({ ...post, fotos: null }), false)
+  assert.equal(c.esPublicacionComunidad({ ...post, fotos: [{ ...foto, url: 'https://example.test/foto' }] }), false)
+  for (const valor of [{ id, tipo: 'avance', contenido: '', fotos: [] }, { id, tipo: 'avance', contenido: '' }, { id, tipo: 'avance', contenido: 'Texto', fotos: null }]) assert.throws(() => c.validarNuevaPublicacion(valor))
+  assert.throws(() => c.validarNuevoComentario({ id, contenido: '', fotos: [foto] }))
+  assert.equal(c.esComentarioComunidad({ ...comment, contenido: '' }), false)
+  assert.equal(c.esComentarioComunidad({ ...comment, fotos: [foto] }), false)
+})
+test('editar fotos distingue omisión compatible de retiro explícito y valida solo la acción editar', () => {
+  assert.deepEqual(c.validarCambioComunidad({ version: 1, accion: 'editar', tipo: 'idea', contenido: '', fotos: [foto] }), { version: 1, accion: 'editar', tipo: 'idea', contenido: '', fotos: [foto] })
+  assert.deepEqual(c.validarCambioComunidad({ version: 1, accion: 'editar', tipo: 'idea', contenido: 'Sin foto', fotos: [] }), { version: 1, accion: 'editar', tipo: 'idea', contenido: 'Sin foto', fotos: [] })
+  const compatible = c.validarCambioComunidad({ version: 1, accion: 'editar', tipo: 'idea', contenido: '' })
+  assert.equal(Object.hasOwn(compatible, 'fotos'), false)
+  assert.equal(compatible.contenido, '') // El servidor confirma las fotos que conserva antes de guardar.
+  for (const valor of [{ version: 1, accion: 'editar', tipo: 'idea', contenido: '', fotos: [] }, { version: 1, accion: 'retirar', fotos: [] }, { version: 1, accion: 'ocultar', motivo: 'Fuera de tema', fotos: [foto] }]) assert.throws(() => c.validarCambioComunidad(valor))
+  assert.throws(() => c.validarCambioComunidad({ version: 1, accion: 'editar', contenido: 'Respuesta', fotos: [foto] }, true))
+  assert.equal(c.compararFotosComunidad(undefined, []), true)
+  assert.equal(c.compararFotosComunidad([foto, otraFoto], [{ ...foto }, { ...otraFoto }]), true)
+  assert.equal(c.compararFotosComunidad([foto, otraFoto], [otraFoto, foto]), false)
+  assert.equal(c.compararFotosComunidad([foto], [{ ...foto, ancho: 100 }]), false)
 })

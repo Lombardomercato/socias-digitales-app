@@ -80,6 +80,11 @@ function pagina({ perfil = socia, errorPerfil = null, user = { id: 'propia' }, e
     '@/lib/agenda-management': { hitoParaAlumna: () => [] },
     '@/lib/home-access': home,
     '@/lib/community': community,
+    './PersonalCalendar': { default: ({ supabase, usuariaId, perfil: protegido }) => {
+      assert.equal(supabase, db); assert.equal(usuariaId, 'propia'); assert.equal(protegido, perfil)
+      return React.createElement('section', { 'data-calendario-personal': true }, 'Tu agenda')
+    } },
+    '@/components/HomeCalendar': { HomeCalendarLoading: () => React.createElement('p', { role: 'status' }, 'Reuniendo tu agenda…') },
     '@/lib/metrics': { fechaArgentina: () => '2026-10-23' },
     // La frontera async y los lectores reales se prueban por separado. Este
     // sustituto síncrono verifica solo que Inicio habilita el bloque correcto

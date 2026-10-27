@@ -1,9 +1,10 @@
 import 'server-only'
 import { unstable_rethrow } from 'next/navigation'
 import { createClient } from './supabase/server'
-import { puedeUsarComunidad, TAMANO_PAGINA_COMUNIDAD, cursorComunidad, leerCursorComunidad, esPublicacionComunidad, esComentarioComunidad,
+import { ErrorFotosComunidad, verificarFotosComunidad } from './community-photos-server'
+import { puedeUsarComunidad, TAMANO_PAGINA_COMUNIDAD, cursorComunidad, leerCursorComunidad, esPublicacionComunidad, esComentarioComunidad, validarFotosComunidad, compararFotosComunidad,
   type AutorComunidad, type CambioComunidad, type ComentarioComunidad, type FiltroComunidad, type PaginaComunidad, type PaginaComentarios, type PublicacionComunidad,
-  type validarNuevaPublicacion, type validarNuevoComentario } from './community'
+  type FotoComunidad, type validarNuevaPublicacion, type validarNuevoComentario } from './community'
 
 type Cliente = Awaited<ReturnType<typeof createClient>>
 export interface SesionComunidad {
@@ -28,11 +29,20 @@ export async function autorizarComunidad(): Promise<AccesoComunidad> {
 }
 
 type FilaTexto = { id: string; contenido: string; created_at: string; actualizado_at: string; version: number; retirada_en: string | null; oculta_en: string | null; motivo_moderacion: string | null }
-type FilaPublicacion = FilaTexto & { alumna_id: string; tipo: PublicacionComunidad['tipo'] }
+type FilaPublicacion = FilaTexto & { alumna_id: string; tipo: PublicacionComunidad['tipo']; fotos?: FotoComunidad[] }
 type FilaComentario = FilaTexto & { autor_id: string; publicacion_id: string }
-const CAMPOS_PUBLICACION = 'id,alumna_id,contenido,tipo,created_at,actualizado_at,version,retirada_en,oculta_en,motivo_moderacion'
+const CAMPOS_PUBLICACION = 'id,alumna_id,contenido,tipo,created_at,actualizado_at,version,retirada_en,oculta_en,motivo_moderacion,fotos'
 const CAMPOS_COMENTARIO = 'id,publicacion_id,autor_id,contenido,created_at,actualizado_at,version,retirada_en,oculta_en,motivo_moderacion'
 function falloLectura() { return new ErrorComunidad(503, 'No pudimos cargar la comunidad. Volvé a intentar.') }
+function fotosGuardadas(fila: { fotos?: FotoComunidad[] }) { return fila.fotos === undefined ? [] : validarFotosComunidad(fila.fotos) }
+async function comprobarFotos(auth: SesionComunidad, postId: string, fotos: FotoComunidad[]) {
+  if (!fotos.length) return
+  try { await verificarFotosComunidad(auth, postId, fotos) }
+  catch (error) {
+    if (error instanceof ErrorFotosComunidad) throw new ErrorComunidad(error.status, error.message)
+    throw error
+  }
+}
 function enteroSeguro(valor: unknown) {
   const numero = typeof valor === 'number' || typeof valor === 'string' && /^\d+$/.test(valor) ? Number(valor) : NaN
   if (!Number.isSafeInteger(numero) || numero < 0) throw falloLectura()
@@ -71,6 +81,7 @@ async function proyectarPublicaciones(auth: SesionComunidad, filas: FilaPublicac
       id: fila.id, contenido: fila.contenido, tipo: fila.tipo, created_at: fila.created_at, actualizado_at: fila.actualizado_at, version: fila.version,
       retirada: fila.retirada_en !== null, oculta: fila.oculta_en !== null, propia: fila.alumna_id === auth.userId, autor,
       total_comentarios: conteo.comentarios, total_felicitaciones: conteo.felicitaciones, felicitada: conteo.felicitada,
+      fotos: fotosGuardadas(fila),
     }
     if (!esPublicacionComunidad(publicacion)) throw falloLectura()
     return publicacion
@@ -154,12 +165,15 @@ function errorGuardado(error: { code?: string; message?: string } | null) {
 }
 export async function crearPublicacionComunidad(auth: SesionComunidad, entrada: ReturnType<typeof validarNuevaPublicacion>): Promise<PublicacionComunidad> {
   const existente = await buscarPublicacion(auth, entrada.id)
-  const coincide = (fila: FilaPublicacion | null) => fila && fila.alumna_id === auth.userId && fila.version === 1 && fila.tipo === entrada.tipo && fila.contenido === entrada.contenido && fila.retirada_en === null && fila.oculta_en === null
+  const fotos = validarFotosComunidad(entrada.fotos ?? [])
+  const coincide = (fila: FilaPublicacion | null) => fila && fila.alumna_id === auth.userId && fila.version === 1 && fila.tipo === entrada.tipo && fila.contenido === entrada.contenido && fila.retirada_en === null && fila.oculta_en === null && compararFotosComunidad(fotosGuardadas(fila), fotos)
   if (existente) {
     if (!coincide(existente)) throw new ErrorComunidad(409, 'Este envío fue guardado con otros datos. Actualizá la comunidad.')
     return (await proyectarPublicaciones(auth, [existente]))[0]
   }
-  const { data, error } = await auth.supabase.from('publicaciones').insert({ id: entrada.id, alumna_id: auth.userId, tipo: entrada.tipo, contenido: entrada.contenido }).select(CAMPOS_PUBLICACION).maybeSingle()
+  if (!entrada.contenido.trim() && !fotos.length) throw new ErrorComunidad(400, 'Escribí un mensaje o agregá al menos una foto antes de compartir.')
+  await comprobarFotos(auth, entrada.id, fotos)
+  const { data, error } = await auth.supabase.from('publicaciones').insert({ id: entrada.id, alumna_id: auth.userId, tipo: entrada.tipo, contenido: entrada.contenido, fotos }).select(CAMPOS_PUBLICACION).maybeSingle()
   if (!error && coincide(data)) return (await proyectarPublicaciones(auth, [data as FilaPublicacion]))[0]
   const confirmada = await buscarPublicacion(auth, entrada.id)
   if (coincide(confirmada)) return (await proyectarPublicaciones(auth, [confirmada!]))[0]
@@ -179,14 +193,15 @@ export async function crearComentarioComunidad(auth: SesionComunidad, publicacio
   if (coincide(confirmada)) return (await proyectarComentarios(auth, [confirmada!]))[0]
   throw errorGuardado(error)
 }
-function coincideCambio(fila: FilaTexto & { tipo?: string }, cambio: CambioComunidad) {
-  if (cambio.accion === 'editar') return fila.contenido === cambio.contenido && (cambio.tipo === undefined || fila.tipo === cambio.tipo)
+function coincideCambio(fila: FilaTexto & { tipo?: string; fotos?: FotoComunidad[] }, cambio: CambioComunidad) {
+  if (cambio.accion === 'editar') return fila.contenido === cambio.contenido && (cambio.tipo === undefined || fila.tipo === cambio.tipo) &&
+    (cambio.fotos === undefined || compararFotosComunidad(fotosGuardadas(fila), cambio.fotos))
   if (cambio.accion === 'retirar') return fila.retirada_en !== null
   if (cambio.accion === 'restaurar') return fila.retirada_en === null
   if (cambio.accion === 'ocultar') return fila.oculta_en !== null && fila.motivo_moderacion === cambio.motivo
   return fila.oculta_en === null
 }
-function prepararCambio(auth: SesionComunidad, fila: FilaTexto & { tipo?: string }, autorId: string, cambio: CambioComunidad) {
+function prepararCambio(auth: SesionComunidad, fila: FilaTexto & { tipo?: string; fotos?: FotoComunidad[] }, autorId: string, cambio: CambioComunidad) {
   if (['ocultar', 'mostrar'].includes(cambio.accion)) {
     if (!auth.admin) throw new ErrorComunidad(403, 'Solo Flor y su equipo pueden moderar publicaciones.')
   } else if (autorId !== auth.userId) throw new ErrorComunidad(403, 'Solo la autora puede cambiar este mensaje.')
@@ -194,7 +209,7 @@ function prepararCambio(auth: SesionComunidad, fila: FilaTexto & { tipo?: string
   if (fila.version !== cambio.version) throw new ErrorComunidad(409, 'El mensaje cambió en otra pestaña. Volvé a abrir la versión guardada.')
   if (cambio.accion === 'editar' && (fila.retirada_en !== null || fila.oculta_en !== null)) throw new ErrorComunidad(409, 'Este mensaje está retirado u oculto. Actualizá la comunidad antes de editarlo.')
   if (cambio.accion !== 'editar' && coincideCambio(fila, cambio)) throw new ErrorComunidad(409, 'El estado de este mensaje ya cambió. Actualizá la comunidad.')
-  if (cambio.accion === 'editar') return { contenido: cambio.contenido, ...(cambio.tipo ? { tipo: cambio.tipo } : {}) }
+  if (cambio.accion === 'editar') return { contenido: cambio.contenido, ...(cambio.tipo ? { tipo: cambio.tipo } : {}), ...(cambio.fotos === undefined ? {} : { fotos: cambio.fotos }) }
   if (cambio.accion === 'retirar') return { retirada_en: new Date().toISOString() }
   if (cambio.accion === 'restaurar') return { retirada_en: null }
   if (cambio.accion === 'ocultar') return { oculta_en: new Date().toISOString(), moderada_por: auth.userId, motivo_moderacion: cambio.motivo }
@@ -205,6 +220,11 @@ export async function cambiarPublicacionComunidad(auth: SesionComunidad, id: str
   if (!existente) throw new ErrorComunidad(404, 'Esta publicación ya no está disponible.')
   const datos = prepararCambio(auth, existente, existente.alumna_id, cambio)
   if (datos === null) return (await proyectarPublicaciones(auth, [existente]))[0]
+  if (cambio.accion === 'editar') {
+    const fotos = cambio.fotos ?? fotosGuardadas(existente)
+    if (!cambio.contenido?.trim() && !fotos.length) throw new ErrorComunidad(400, 'Escribí un mensaje o agregá al menos una foto antes de guardar.')
+    await comprobarFotos(auth, id, fotos)
+  }
   const { data, error } = await auth.supabase.from('publicaciones').update(datos).eq('id', id).eq('version', cambio.version).select(CAMPOS_PUBLICACION).maybeSingle()
   if (!error && data && data.version === cambio.version + 1 && coincideCambio(data, cambio)) return (await proyectarPublicaciones(auth, [data as FilaPublicacion]))[0]
   const confirmada = await buscarPublicacion(auth, id)

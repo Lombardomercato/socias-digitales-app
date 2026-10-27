@@ -44,7 +44,7 @@ Desde el 23/10, Mis logros incluye un nivel personal calculado desde las fuentes
 
 Completar una tarea o marcar una clase, enviar un resultado a revisión y guardar un análisis pueden mostrar una felicitación breve, solo después de la respuesta confirmada del guardado. En resultados no significa aprobación de Flor; en clases no acredita reproducción íntegra. No se celebra una carga inicial, un error, desmarcar ni reprogramar. Mi día, clases y resultados deduplican por registro durante la visita; Métricas usa registro y versión. Sin sonidos ni vibración; con movimiento reducido se conserva el mensaje y no caen papelitos. El reproductor conserva el mensaje dentro de su diálogo nativo.
 
-**Comunidad sigue bloqueada para alumnas.** El muro requiere revisar el esquema y las políticas reales del proyecto antes de habilitar publicaciones, comentarios, reacciones y moderación. La conexión actual deniega esa revisión. No reutilizar resultados privados como publicaciones, abrir políticas a ciegas ni crear un almacenamiento alternativo para eludir la restricción. Próxima etapa: texto voluntario, comentarios y reacciones, con controles de autora y moderación de Flor, tras obtener acceso autorizado.
+**Actualización 26/10:** Comunidad ya tiene muro voluntario, comentarios, felicitaciones y moderación. Ver la sección de operación al final de este documento; no reutilizar resultados privados ni comprobantes como publicaciones automáticas. La restricción de conexión mencionada en el corte anterior se resolvió con la conexión específica de la app.
 
 ### Accesos de alumnas
 
@@ -222,3 +222,29 @@ Ante un incidente: detener la acción que duplica o modifica datos; conservar lo
 - Q&A anterior se conserva separada en administración, con lectura y reintento honestos; no es un segundo muro de alumnas. No se activan notificaciones por estas acciones.
 - `supabase/tests/comunidad_rls.sql` usa cuentas y mensajes dentro de una transacción y ROLLBACK obligatorio; no habilita logins ni entrega correos. Verificar después cero IDs de QA y conteos originales. La migración nueva es independiente: NO ejecutar un push indiscriminado de todo el historial local, que contiene archivos anteriores y copias conflictivas ajenas a esta entrega.
 - Reversión: recuperar la aplicación anterior deshabilita la entrada; no deshacer la protección de perfiles ni borrar las tablas/filas creadas después. Si fuera necesario cerrar temporalmente Comunidad, agregar una política restrictiva de mantenimiento para no administradoras mediante una migración nueva auditada. Antes de cualquier reversión de datos, respaldo y revisión del estado actual.
+
+## Fotos, agenda y recursos — ampliación del 26/10/2026
+
+### Fotos en Comunidad
+
+**Agregar fotos** permite elegir hasta cuatro JPG/PNG/WebP, con vista previa, quitar y reemplazar antes de compartir. Cada original admite hasta 20 MiB y 25 megapíxeles; el celular prepara una imagen reducida. No se sube nada hasta confirmar Compartir/Guardar. Con una foto preparada el texto es opcional; sin fotos continúa siendo obligatorio. Cerrar la pestaña no conserva los archivos elegidos.
+
+El servidor revalida un máximo de 4 MiB de entrada y 25 megapíxeles, rechaza animación y recodifica WebP hasta 2048 px/2 MiB, aplicando orientación y retirando metadatos. No es un antivirus ni un sistema de revisión de contenido. No adjuntar comprobantes, datos de clientas o documentos privados. Hay veinte reservas de fotos por cuenta y día de Argentina, incluidos intentos fallidos/cancelados; un reintento idéntico no consume otra reserva. Texto sigue disponible al alcanzar la cuota.
+
+Los UUID y el archivo preparado se mantienen al reintentar; respuestas ambiguas no se convierten en éxito. Primero se confirman los objetos privados y después la publicación. Una foto eliminada del listado deja de servirse por la API aunque el objeto siga almacenado; retirar o moderar la publicación respeta sus permisos e historial. Toda lectura vuelve a consultar su publicación bajo RLS. No hay caché pública, optimizador de imágenes ni URL firmada compartible. Los archivos se guardan en `comunidad-fotos/archivos/` y las cuotas en `comunidad-fotos/cuotas/` del R2 actual; no hay limpieza automática de cargas huérfanas. Respaldar ambos con los registros de publicaciones. La validación HTTP comprueba el objeto R2; SQL valida metadatos y permisos, no la existencia física del archivo.
+
+### Tu agenda mensual
+
+En Inicio, seleccionar un día muestra tareas propias guardadas y encuentros autorizados, cada uno con su indicador. **Abrir en Mi día** lleva a esa fecha sin completar ni crear tareas. Navegación de hasta seis meses antes/después, mes actual según Argentina y horarios explícitos. Solo se consulta el agregado del mes exacto (máximo 31 días). Sin permiso de Mi día no se consultan tareas; un fallo no se muestra como cero. El calendario no interpreta textos de tareas como vínculos de clases, ni crea recordatorios o asistencia. Los encuentros siguen siendo los que publica Flor en Próximo hito; no es todavía una agenda recurrente o de múltiples eventos.
+
+### Recursos y contactos de Flor
+
+En el menú de Flor → **Recursos y contactos**, crear/editar borradores con nombre, identificador, orientación y enlace HTTPS opcional. Guardar no publica ni entrega el material. El catálogo comienza vacío porque los cuatro recursos aún no están definidos. Hoy se revisan hasta 200 recursos y se informa si hay más; no esconder una lectura parcial.
+
+**Contactos y señales** permite alta manual con nombre y al menos email o teléfono, fuente declarada y preferencia de cámara. Buscar se limita a los contactos cargados; los filtros de fuente/segmento/vínculo consultan el servidor y la lista se pagina de 25 en 25. Un correo coincidente no une perfiles ni acredita una compra; la etiqueta es Sin vínculo confirmado. La confirmación de vínculos/compras queda reservada a un circuito futuro, sin controles de escritura disponibles en esta etapa.
+
+En la ficha se registra una señal realmente observada: solicitud, clic, entrega iniciada, pedido de información o interés vigente. Solicitud/clic/entrega requieren el recurso correspondiente. El historial es inmutable desde esta versión y la UI manual registra fecha de ahora; revisar antes de guardar. Una solicitud o clic no prueba descarga/lectura. Una referencia externa repetida genera conflicto, nunca una fusión silenciosa. No ingresar contraseñas ni claves en las referencias.
+
+Interés comercial: diez puntos por recurso distinto solicitado (máximo treinta), cuarenta por pedido explícito de información y diez por interés vigente observado en los últimos treinta días. El agregado usa todo el historial, no solo la página visible. No es un porcentaje ni una predicción; cámara y datos sensibles no puntúan. Las alumnas no reciben este módulo ni sus datos. RLS, campos protegidos y versiones se comprueban también fuera de la interfaz; no usar service_role en estas APIs.
+
+**ManyChat y Sndflow no sincronizan todavía con este panel.** Antes de conectar: confirmar cuentas/planes, recursos y finalidad/consentimiento, definir referencias por proveedor y eventos exactos, configurar autenticación de servidor sin exponer claves, reintentos idempotentes, correspondencias de perfil verificadas y bajas. Probar un contacto y un recurso de punta a punta antes de activar automatizaciones existentes. No se importaron datos ni se activaron envíos en esta entrega. La base no sustituye una política de privacidad ni un circuito posterior de rectificación/supresión de contactos.

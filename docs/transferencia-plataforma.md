@@ -69,6 +69,8 @@ R2 y Resend: la transferencia Vercel no les cambia propietario. Acordar mantener
 
 Además de videos, miniaturas y agenda, respaldar `materiales-clases/`: incluye los índices privados por clase y sus archivos adjuntos. Copiar solo el código no copia estos materiales. Los enlaces externos conservan los permisos que tengan en Drive u otros servicios.
 
+Desde el 26/10 incluir también `comunidad-fotos/` en el respaldo privado de R2 (archivos y cuotas), la columna `publicaciones.fotos` y las tres tablas administrativas `crm_recursos`, `crm_contactos`, `crm_eventos`. Conservar RLS, triggers, índices, versiones y funciones de agregado. No copiar datos de contactos a Git ni a documentos de Claude. ManyChat y Sndflow siguen siendo cuentas externas independientes; el nuevo panel no prueba una conexión, importación o traslado de sus automatizaciones.
+
 CORS de R2 al corte: origen `https://app.sociasdigitales.com`, GET/HEAD/PUT, headers `content-type` y `range`, expuestos `ETag`, `Content-Length`, `Accept-Ranges`, `Content-Range`, max age 3600. No es un bucket público. Un preview/local distinto no puede subir con ese CORS: usar un entorno de prueba autorizado y origen explícito, no `*` por comodidad.
 
 ## Configuración que se revisa sin revelar valores

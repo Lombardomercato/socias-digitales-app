@@ -23,12 +23,14 @@ import CampusFormation from './CampusFormation'
 import { HomeCampusLoading } from '@/components/HomeCampus'
 import { fechaArgentina } from '@/lib/metrics'
 import { puedeUsarComunidad } from '@/lib/community'
+import PersonalCalendar from './PersonalCalendar'
+import { HomeCalendarLoading } from '@/components/HomeCalendar'
 
 async function leerHoraServidor() {
   return Date.now()
 }
 
-export default async function InicioPage() {
+export default async function InicioPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -55,6 +57,7 @@ export default async function InicioPage() {
   // un módulo habilitado para una Socia que todavía no puede persistirlo.
   const estrategiaHabilitada = habilitada && Boolean(perfil.desafio_socias_habilitada && accesoEstrategia?.habilitada)
   const ahoraInicial = await leerHoraServidor()
+  const mesCalendario = (await searchParams)?.mes
   const esGratuito = acceso.gratuito
   const clasesGratuitas = esGratuito && perfil ? await leerCatalogoClases(perfil) : []
   const accesoCerrado = perfil?.desafio_socias_estado === 'rechazada' || perfil?.desafio_socias_estado === 'bloqueada'
@@ -121,6 +124,7 @@ export default async function InicioPage() {
           ) : (
             <>
               <Suspense fallback={<HomeCampusLoading />}><CampusFormation supabase={supabase} usuariaId={user.id} perfil={perfil} permisoMiDia={accesoMiDia} fecha={fechaArgentina(new Date(ahoraInicial))} /></Suspense>
+              <Suspense fallback={<HomeCalendarLoading />}><PersonalCalendar supabase={supabase} usuariaId={user.id} perfil={perfil} permisoMiDia={accesoMiDia} hoy={fechaArgentina(new Date(ahoraInicial))} mes={mesCalendario} hitos={hitos} errorAgenda={errorAgenda} /></Suspense>
               <section aria-label="Otros espacios" className="mt-3 grid gap-3 sm:grid-cols-3">
                 {[
                   { label: 'Materiales', href: '/clases/materiales', note: 'Documentos y enlaces de tus clases', tone: 'bg-[#FFFDFA] border border-[#E7DDD5]' },

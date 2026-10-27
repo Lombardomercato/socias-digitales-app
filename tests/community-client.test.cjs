@@ -35,6 +35,8 @@ function view(file, props) {
     '@/components/ArrowIcon': { default: () => null }, '@/components/NavigationIcon': { default: () => null },
     '@/components/SuccessCelebration': { default: () => null, useSuccessCelebration: () => ({ celebration: null, celebrate: value => events.celebraciones.push(value) }) },
     '@/lib/community': domain, './community-client': client, '@/components/community/community-client': client,
+    '@/lib/community-photo-client': load('src/lib/community-photo-client.ts'),
+    './CommunityPhotoPicker': { default: () => null }, './CommunityPhotos': { default: () => null },
     './CommunityAvatar': load('src/components/community/CommunityAvatar.tsx'),
     './CommunityComposer': { default: ComposerStub }, '@/components/community/CommunityComposer': { default: ComposerStub },
     './CommunityComments': { default: CommentsStub }, '@/components/community/CommunityPostCard': { default: PostStub },

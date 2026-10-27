@@ -144,6 +144,36 @@ do $$ begin
 end $$;
 
 -- La alumna real de prueba puede ensayar sin aparecer a otras socias.
+-- La base valida forma/autoría; existencia y bytes se comprueban además en la API.
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000001"}';
+insert into public.publicaciones(id,alumna_id,contenido,fotos) values
+ ('20000000-0000-4000-8000-000000000003',auth.uid(),'','[{"id":"40000000-0000-4000-8000-000000000001","ancho":10,"alto":20}]');
+do $$ begin
+  if (select jsonb_array_length(fotos) from public.publicaciones where id='20000000-0000-4000-8000-000000000003') is distinct from 1 then raise exception 'QA: foto opcional no conservada'; end if;
+  if private.fotos_comunidad_validas('[{"id":"40000000-0000-4000-8000-000000000001","ancho":10,"alto":20,"url":"https://ajeno.invalid"}]') then raise exception 'QA: URL arbitraria permitida'; end if;
+  if private.fotos_comunidad_validas('[{"id":"40000000-0000-4000-8000-000000000001","ancho":3000,"alto":20}]') then raise exception 'QA: dimensión excesiva permitida'; end if;
+  if private.fotos_comunidad_validas('[{"id":"40000000-0000-4000-8000-000000000001","ancho":10,"alto":20},{"id":"40000000-0000-4000-8000-000000000001","ancho":10,"alto":20}]') then raise exception 'QA: foto duplicada permitida'; end if;
+  begin
+    insert into public.publicaciones(alumna_id,contenido,fotos) values(auth.uid(),'','[]');
+    raise exception 'QA: publicación completamente vacía permitida';
+  exception when invalid_parameter_value then null; when check_violation then null; end;
+end $$;
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000005"}';
+do $$ begin
+  begin
+    update public.publicaciones set fotos='[{"id":"40000000-0000-4000-8000-000000000002","ancho":10,"alto":20}]' where id='20000000-0000-4000-8000-000000000003';
+    raise exception 'QA: administración reemplazó fotos ajenas';
+  exception when insufficient_privilege then null; end;
+end $$;
+set local request.jwt.claims='{"role":"authenticated","sub":"10000000-0000-4000-8000-000000000001"}';
+update public.publicaciones set retirada_en=now() where id='20000000-0000-4000-8000-000000000003' and version=1;
+do $$ begin
+  begin
+    update public.publicaciones set fotos='[{"id":"40000000-0000-4000-8000-000000000002","ancho":10,"alto":20}]' where id='20000000-0000-4000-8000-000000000003';
+    raise exception 'QA: fotos editadas sobre publicación retirada';
+  exception when insufficient_privilege then null; end;
+end $$;
+
 set local request.jwt.claims='{"role":"authenticated","sub":"06bb7999-997b-49c8-ba80-b8d05bca4a84"}';
 insert into public.publicaciones(id,alumna_id,contenido,tipo) values
  ('20000000-0000-4000-8000-000000000002',auth.uid(),'QA aislada de alumnas reales.','idea');

@@ -5,7 +5,10 @@ export type AccionComunidad = 'editar' | 'retirar' | 'restaurar' | 'ocultar' | '
 export const LIMITE_PUBLICACION_COMUNIDAD = 2000
 export const LIMITE_COMENTARIO_COMUNIDAD = 1000
 export const TAMANO_PAGINA_COMUNIDAD = 20
+export const LIMITE_FOTOS_COMUNIDAD = 4
+export const DIMENSION_FOTO_COMUNIDAD = 2048
 
+export interface FotoComunidad { id: string; ancho: number; alto: number }
 export interface AutorComunidad { nombre: string | null; avatar_url: null; es_admin: boolean }
 interface TextoComunidad {
   id: string; contenido: string; created_at: string; actualizado_at: string; version: number
@@ -13,6 +16,7 @@ interface TextoComunidad {
 }
 export interface PublicacionComunidad extends TextoComunidad {
   tipo: TipoPublicacionComunidad; total_comentarios: number; total_felicitaciones: number; felicitada: boolean
+  fotos?: FotoComunidad[]
 }
 export interface ComentarioComunidad extends TextoComunidad { publicacion_id: string }
 export type PaginaComunidad = { estado: 'lista'; publicaciones: PublicacionComunidad[]; siguiente: string | null } | { estado: 'error'; mensaje: string }
@@ -31,6 +35,21 @@ export function puedeUsarComunidad(perfil: PerfilComunidad | null | undefined) {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 export function idComunidadValido(valor: unknown): valor is string { return typeof valor === 'string' && UUID.test(valor) }
 function objeto(valor: unknown): valor is Record<string, unknown> { return Boolean(valor && typeof valor === 'object' && !Array.isArray(valor)) }
+export function esFotoComunidad(valor: unknown): valor is FotoComunidad {
+  return objeto(valor) && Object.keys(valor).every(campo => ['id', 'ancho', 'alto'].includes(campo)) && idComunidadValido(valor.id) &&
+    typeof valor.ancho === 'number' && Number.isSafeInteger(valor.ancho) && valor.ancho >= 1 && valor.ancho <= DIMENSION_FOTO_COMUNIDAD &&
+    typeof valor.alto === 'number' && Number.isSafeInteger(valor.alto) && valor.alto >= 1 && valor.alto <= DIMENSION_FOTO_COMUNIDAD
+}
+export function validarFotosComunidad(valor: unknown): FotoComunidad[] {
+  if (!Array.isArray(valor) || valor.length > LIMITE_FOTOS_COMUNIDAD || !valor.every(esFotoComunidad)) throw new Error('Elegí hasta cuatro fotos válidas de hasta 2.048 píxeles por lado.')
+  const fotos = valor.map(foto => ({ id: foto.id.toLowerCase(), ancho: foto.ancho, alto: foto.alto }))
+  if (new Set(fotos.map(foto => foto.id)).size !== fotos.length) throw new Error('Una misma foto no puede aparecer dos veces.')
+  return fotos
+}
+export function compararFotosComunidad(primera: FotoComunidad[] | undefined, segunda: FotoComunidad[] | undefined) {
+  const a = primera ?? [], b = segunda ?? []
+  return a.length === b.length && a.every((foto, indice) => foto.id.toLowerCase() === b[indice].id.toLowerCase() && foto.ancho === b[indice].ancho && foto.alto === b[indice].alto)
+}
 function campos(valor: unknown, permitidos: string[]) {
   if (!objeto(valor) || Object.keys(valor).some(campo => !permitidos.includes(campo))) throw new Error('El envío contiene datos no permitidos.')
   return valor
@@ -41,33 +60,42 @@ export function normalizarTextoComunidad(valor: unknown, limite = LIMITE_PUBLICA
   if (!texto || [...texto].length > limite || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(texto)) throw new Error(`Usá un mensaje de entre 1 y ${limite} caracteres.`)
   return texto
 }
+function normalizarContenidoPublicacion(valor: unknown, permitirVacio: boolean) {
+  if (permitirVacio && (valor === undefined || typeof valor === 'string' && !valor.trim())) return ''
+  return normalizarTextoComunidad(valor)
+}
 function tipoValido(valor: unknown): valor is TipoPublicacionComunidad { return typeof valor === 'string' && Object.hasOwn(TIPOS_PUBLICACION_COMUNIDAD, valor) }
 function versionValida(valor: unknown): valor is number { return typeof valor === 'number' && Number.isSafeInteger(valor) && valor >= 1 && valor <= 1e9 }
 export function validarNuevaPublicacion(valor: unknown) {
-  const entrada = campos(valor, ['id', 'tipo', 'contenido'])
+  const entrada = campos(valor, ['id', 'tipo', 'contenido', 'fotos'])
   if (!idComunidadValido(entrada.id)) throw new Error('El identificador de la publicación no es válido.')
   if (!tipoValido(entrada.tipo)) throw new Error('Elegí qué querés compartir.')
-  return { id: entrada.id.toLowerCase(), tipo: entrada.tipo, contenido: normalizarTextoComunidad(entrada.contenido) }
+  const fotos = entrada.fotos === undefined ? [] : validarFotosComunidad(entrada.fotos)
+  return { id: entrada.id.toLowerCase(), tipo: entrada.tipo, contenido: normalizarContenidoPublicacion(entrada.contenido, fotos.length > 0), ...(entrada.fotos === undefined ? {} : { fotos }) }
 }
 export function validarNuevoComentario(valor: unknown) {
   const entrada = campos(valor, ['id', 'contenido'])
   if (!idComunidadValido(entrada.id)) throw new Error('El identificador del comentario no es válido.')
   return { id: entrada.id.toLowerCase(), contenido: normalizarTextoComunidad(entrada.contenido, LIMITE_COMENTARIO_COMUNIDAD) }
 }
-export interface CambioComunidad { version: number; accion: AccionComunidad; contenido?: string; tipo?: TipoPublicacionComunidad; motivo?: string }
+export interface CambioComunidad { version: number; accion: AccionComunidad; contenido?: string; tipo?: TipoPublicacionComunidad; motivo?: string; fotos?: FotoComunidad[] }
 export function validarCambioComunidad(valor: unknown, comentario = false): CambioComunidad {
-  const entrada = campos(valor, ['version', 'accion', 'contenido', 'tipo', 'motivo'])
+  const entrada = campos(valor, ['version', 'accion', 'contenido', 'tipo', 'motivo', 'fotos'])
   if (!versionValida(entrada.version)) throw new Error('Volvé a abrir la versión guardada antes de editarla.')
   if (!['editar', 'retirar', 'restaurar', 'ocultar', 'mostrar'].includes(String(entrada.accion))) throw new Error('La acción no es válida.')
   const accion = entrada.accion as AccionComunidad
-  const permitidos = accion === 'editar' ? ['version', 'accion', 'contenido', ...(comentario ? [] : ['tipo'])] : accion === 'ocultar' ? ['version', 'accion', 'motivo'] : ['version', 'accion']
+  const permitidos = accion === 'editar' ? ['version', 'accion', 'contenido', ...(comentario ? [] : ['tipo', 'fotos'])] : accion === 'ocultar' ? ['version', 'accion', 'motivo'] : ['version', 'accion']
   if (Object.keys(entrada).some(campo => !permitidos.includes(campo))) throw new Error('La acción contiene datos no permitidos.')
   const cambio: CambioComunidad = { version: entrada.version, accion }
   if (accion === 'editar') {
-    cambio.contenido = normalizarTextoComunidad(entrada.contenido, comentario ? LIMITE_COMENTARIO_COMUNIDAD : LIMITE_PUBLICACION_COMUNIDAD)
+    if (comentario) cambio.contenido = normalizarTextoComunidad(entrada.contenido, LIMITE_COMENTARIO_COMUNIDAD)
     if (!comentario) {
       if (!tipoValido(entrada.tipo)) throw new Error('Elegí qué querés compartir.')
       cambio.tipo = entrada.tipo
+      if (entrada.fotos !== undefined) cambio.fotos = validarFotosComunidad(entrada.fotos)
+      // Si las fotos se omiten, el servidor verifica el contenido combinado con
+      // la versión guardada: un editor anterior no debe borrar sus adjuntos.
+      cambio.contenido = normalizarContenidoPublicacion(entrada.contenido, cambio.fotos === undefined || cambio.fotos.length > 0)
     }
   }
   if (accion === 'ocultar') {
@@ -121,19 +149,22 @@ function esAutor(valor: unknown): valor is AutorComunidad {
     (valor.nombre === null || typeof valor.nombre === 'string' && [...valor.nombre].length <= 200) && valor.avatar_url === null && typeof valor.es_admin === 'boolean'
 }
 function esTexto(valor: unknown): valor is TextoComunidad {
-  return objeto(valor) && idComunidadValido(valor.id) && typeof valor.contenido === 'string' && valor.contenido.length > 0 &&
+  return objeto(valor) && idComunidadValido(valor.id) && typeof valor.contenido === 'string' &&
     fechaValida(valor.created_at) && fechaValida(valor.actualizado_at) && versionValida(valor.version) &&
     typeof valor.retirada === 'boolean' && typeof valor.oculta === 'boolean' && typeof valor.propia === 'boolean' && esAutor(valor.autor)
 }
 const camposTexto = ['id', 'contenido', 'created_at', 'actualizado_at', 'version', 'retirada', 'oculta', 'propia', 'autor']
 function conteoValido(valor: unknown): valor is number { return typeof valor === 'number' && Number.isSafeInteger(valor) && valor >= 0 }
 export function esPublicacionComunidad(valor: unknown): valor is PublicacionComunidad {
-  return esTexto(valor) && objeto(valor) && Object.keys(valor).every(campo => [...camposTexto, 'tipo', 'total_comentarios', 'total_felicitaciones', 'felicitada'].includes(campo)) &&
-    [...valor.contenido].length <= LIMITE_PUBLICACION_COMUNIDAD && tipoValido(valor.tipo) && conteoValido(valor.total_comentarios) && conteoValido(valor.total_felicitaciones) && typeof valor.felicitada === 'boolean'
+  if (!esTexto(valor) || !objeto(valor) || Object.keys(valor).some(campo => ![...camposTexto, 'tipo', 'total_comentarios', 'total_felicitaciones', 'felicitada', 'fotos'].includes(campo))) return false
+  try {
+    const fotos = valor.fotos === undefined ? [] : validarFotosComunidad(valor.fotos)
+    return (valor.contenido.trim().length > 0 || fotos.length > 0) && [...valor.contenido].length <= LIMITE_PUBLICACION_COMUNIDAD && tipoValido(valor.tipo) && conteoValido(valor.total_comentarios) && conteoValido(valor.total_felicitaciones) && typeof valor.felicitada === 'boolean'
+  } catch { return false }
 }
 export function esComentarioComunidad(valor: unknown): valor is ComentarioComunidad {
   return esTexto(valor) && objeto(valor) && Object.keys(valor).every(campo => [...camposTexto, 'publicacion_id'].includes(campo)) &&
-    [...valor.contenido].length <= LIMITE_COMENTARIO_COMUNIDAD && idComunidadValido(valor.publicacion_id)
+    valor.contenido.trim().length > 0 && [...valor.contenido].length <= LIMITE_COMENTARIO_COMUNIDAD && idComunidadValido(valor.publicacion_id)
 }
 function cursorPaginaValido(valor: unknown) { try { return valor === null || typeof valor === 'string' && Boolean(leerCursorComunidad(valor)) } catch { return false } }
 export function esPaginaComunidad(valor: unknown): valor is PaginaComunidad {
