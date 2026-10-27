@@ -150,6 +150,27 @@ test('contrato móvil protege el avatar y la fila del encabezado frente a reglas
   assert.ok(generalWrap >= 0)
   assert.ok(nowrap.index > generalWrap)
 })
+test('enlaces principales y de herramientas conservan filas de ancho completo aunque el CSS móvil general use inline-flex', () => {
+  const { Sidebar } = components('/comunidad')
+  const html = renderToStaticMarkup(React.createElement(Sidebar, { datos: data }))
+  const menus = [...html.matchAll(/<nav\b([^>]*)>([\s\S]*?)<\/nav>/g)]
+  assert.equal(menus.length, 2)
+  for (const menu of menus) {
+    assert.ok(menu[1].includes('data-student-menu="true"'))
+    assert.ok(menu[2].includes('<a '))
+  }
+  assert.ok(menus[0][1].includes('Navegación principal'))
+  assert.ok(menus[0][2].includes('href="/notificaciones"'))
+  assert.ok(menus[1][1].includes('Herramientas de Socias'))
+  const core = renderToStaticMarkup(React.createElement(Sidebar, { datos: { ...data, herramientas: { miDia: false, metricas: false, resultados: false, logros: false } } }))
+  assert.equal((core.match(/<nav\b/g) || []).length, 1)
+  assert.equal((core.match(/data-student-menu="true"/g) || []).length, 1)
+  const css = read('src/app/globals.css')
+  assert.match(css, /\.platform-design\s+:is\(header,\s*nav\)\s+a\s*\{\s*display:\s*inline-flex\s*;/)
+  // (0,3,2) supera al selector global (0,1,2), aunque este aparezca después.
+  // display:flex crea una caja de bloque, no la fila inline de ancho intrínseco.
+  assert.match(css, /\.platform-design\s+\.sd-student-shell\s+nav\[data-student-menu\]\s+a\s*\{\s*display:\s*flex\s*;/)
+})
 test('navegación programática deja margen al encabezado sticky sin cambiar el scroll de vistas ajenas al marco', () => {
   const css = read('src/app/globals.css')
   assert.match(css, /\.sd-student-shell\s+\.scroll-mt-5,\s*\.sd-student-shell\s+#reprogramar-titulo\s*\{\s*scroll-margin-top:\s*96px\s*;/)

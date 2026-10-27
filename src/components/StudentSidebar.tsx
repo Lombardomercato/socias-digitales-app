@@ -32,7 +32,7 @@ export default function StudentSidebar({ datos, onNavigate }: { datos: StudentNa
   const utiles = herramientasEstudiante(datos)
   return <>
     <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#746A64]">Mi espacio</p>
-    <nav className="mt-5 space-y-1.5" aria-label="Navegación principal">
+    <nav data-student-menu className="mt-5 space-y-1.5" aria-label="Navegación principal">
       {seccionesPrincipalesEstudiante(datos).map(seccion => seccion.id === 'notificaciones'
         ? <div key={seccion.id} onClick={event => { if (event.target instanceof Element && event.target.closest('a[href]')) onNavigate?.() }}>
           <UnreadNoticeLink variante="menu" activo={activoSeccionEstudiante(pathname, seccion)} />
@@ -41,7 +41,7 @@ export default function StudentSidebar({ datos, onNavigate }: { datos: StudentNa
     </nav>
     {utiles.length > 0 && <div className="mt-5 border-t border-[#E7DDD5] pt-4">
       <p className="px-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#746A64]">Mis herramientas</p>
-      <nav className="mt-2 space-y-1" aria-label="Herramientas de Socias">
+      <nav data-student-menu className="mt-2 space-y-1" aria-label="Herramientas de Socias">
         {utiles.map(seccion => <EnlaceSeccion key={seccion.id} seccion={seccion} pathname={pathname} onNavigate={onNavigate} />)}
       </nav>
     </div>}

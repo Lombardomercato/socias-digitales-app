@@ -245,6 +245,7 @@ body {
 .sd-student-shell [data-student-section-header] { display: none; }
 .sd-student-shell .sd-student-section-actions { display: flex; }
 .sd-student-shell__content { min-width: 0; }
+.platform-design .sd-student-shell nav[data-student-menu] a { display: flex; }
 .sd-student-shell__content > :first-child { min-height: calc(100dvh - 76px); }
 .sd-student-shell .scroll-mt-5,
 .sd-student-shell #reprogramar-titulo { scroll-margin-top: 96px; }
